@@ -46,6 +46,17 @@ class ReferralController extends Controller
                 ->map(fn (Voucher $v) => ['id' => $v->id, 'tickets' => $v->tickets, 'status' => $v->status, 'expiresAt' => $v->expires_at->toIso8601ZuluString(),
                     'competition' => $v->competition ? ['title' => $v->competition->title, 'slug' => $v->competition->slug] : null]),
             'friends' => $friends,
+            // SOW 2.13: the scheme this player's referrals join now (null: the standard reward above applies).
+            'scheme' => ($s = $referrals->schemeFor($u)) ? [
+                'name' => $s->name, 'qualifying' => $s->qualifying, 'minSpendPence' => (int) $s->min_spend_pence,
+                'referrerReward' => \App\Models\ReferralScheme::describe($s->referrer_reward_type, (int) $s->referrer_reward_amount),
+                'friendReward' => \App\Models\ReferralScheme::describe($s->friend_reward_type, (int) $s->friend_reward_amount),
+                'endsAt' => $s->ends_at?->toIso8601ZuluString(),
+            ] : null,
+            'schemeClosed' => $referrals->schemeFor($u) === false,
+            'rewards' => \App\Models\ReferralReward::query()->where('user_id', $u->id)->latest('id')->limit(50)->get()
+                ->map(fn ($rw) => ['level' => $rw->level, 'reward' => \App\Models\ReferralScheme::describe($rw->type, $rw->amount), 'status' => $rw->status,
+                    'at' => $rw->created_at->toIso8601ZuluString()]),
         ]);
     }
 

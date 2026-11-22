@@ -100,6 +100,27 @@ final class Wallet
         ])->save();
     }
 
+    /**
+     * Take back bonus credit given by mistake or for something later reversed (a referral reward on a refunded
+     * order): as much as is still unspent, up to $pence. Once per reference. Returns what was taken.
+     */
+    public function takeBackBonus(int $userId, int $pence, string $reason, string $reference): int
+    {
+        return DB::transaction(function () use ($userId, $pence, $reason, $reference) {
+            $this->lock($userId);
+            if (LedgerEntry::query()->where('reference', $reference)->exists()) {
+                return 0;
+            }
+            $take = min($pence, $this->balances($userId)['bonus']);
+            if ($take > 0) {
+                LedgerEntry::query()->create(['user_id' => $userId, 'bucket' => 'bonus', 'direction' => 'debit', 'amount_pence' => $take,
+                    'reason' => $reason, 'reference' => $reference]);
+            }
+
+            return $take;
+        });
+    }
+
     /** Give back the wallet part of an order that was never paid, to the balances it came from. Once only. */
     public function releaseOrder(Order $order): void
     {

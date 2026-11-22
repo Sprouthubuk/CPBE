@@ -376,7 +376,7 @@ route("POST", "/api/me/withdrawals", authed(async (req, res, { user }) => { cons
 route("GET", "/api/me/referrals", authed((req, res, { user }) => {
   user.referralCode ??= crypto.randomBytes(4).toString("hex").toUpperCase().replace(/[01IO]/g, "Z");
   const friends = [...users.values()].filter((x) => x.referredBy === user.email);
-  send(res, 200, { code: user.referralCode, link: `${SITE}/r/${user.referralCode}`, stats: { invited: friends.length, qualified: 0, rewards: 0, leftThisMonth: 10, cap: 10 }, rewardType: "tickets", rewardTickets: 10, rewardCreditPence: 200, minPurchasePence: 500, vouchers: user.vouchers ?? [], friends: friends.map((f) => ({ name: `${f.firstName} ${f.lastName.slice(0, 1)}.`, status: "pending", joinedAt: iso(Date.now()) })) });
+  send(res, 200, { code: user.referralCode, link: `${SITE}/r/${user.referralCode}`, stats: { invited: friends.length, qualified: 0, rewards: 0, leftThisMonth: 10, cap: 10 }, scheme: null, schemeClosed: false, rewards: [], rewardType: "tickets", rewardTickets: 10, rewardCreditPence: 200, minPurchasePence: 500, vouchers: user.vouchers ?? [], friends: friends.map((f) => ({ name: `${f.firstName} ${f.lastName.slice(0, 1)}.`, status: "pending", joinedAt: iso(Date.now()) })) });
 }));
 const MEMBERSHIP_TIERS = [
   { id: 1, name: "Silver", description: "Free entries and credit every month.", pricePence: 999, perks: ["10 free entries every month", "£2.00 bonus credit every month"], ineligible: null },

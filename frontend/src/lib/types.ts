@@ -279,6 +279,12 @@ export interface MyReferrals {
   minPurchasePence: Pence;
   vouchers: Voucher[];
   friends: { name: string; status: ReferralStatus; joinedAt: string }[];
+  /** SOW 2.13: the scheme new referrals join (its rewards replace the standard ones), or null. */
+  scheme: { name: string; qualifying: "first_order" | "any_order" | "membership"; minSpendPence: Pence; referrerReward: string; friendReward: string; endsAt: string | null } | null;
+  /** True when schemes are set up but none is running for this player right now. */
+  schemeClosed: boolean;
+  /** Rewards this player has earned: level 0 as a friend, 1 as the referrer, 2+ from further down the chain. */
+  rewards: { level: number; reward: string; status: "given" | "reversed"; at: string }[];
 }
 
 /** A bundle a live draw is selling now. Only what fits is sent; nothing about the ticket pool. */

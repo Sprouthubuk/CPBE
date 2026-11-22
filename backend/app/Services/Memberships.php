@@ -218,6 +218,7 @@ class Memberships
                     'gateway_parent_ref' => $card ? $order->gateway_ref : $m->gateway_parent_ref,
                 ])->save();
                 $this->grantPerks($m->refresh());
+                app(Referrals::class)->membershipJoined($order);
                 break;
             case 'renewal':
                 // Paid on time: the new month follows on from the last. Paid late (after a failure): it starts now.

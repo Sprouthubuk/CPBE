@@ -245,6 +245,12 @@ class Loyalty
         });
     }
 
+    /** Points from elsewhere (a referral reward), or taken back with a negative amount. Once per reference. */
+    public function award(int $userId, LoyaltyProgramme $p, int $points, string $reason, string $reference): bool
+    {
+        return $points !== 0 && $this->write($userId, $p, $points, $points > 0 ? 'bonus' : 'reverse', $reason, $reference, null, $points > 0);
+    }
+
     /** An admin adds or takes off points, with a reason (logged). */
     public function adjust(User $admin, User $player, LoyaltyProgramme $p, int $points, string $reason): void
     {
