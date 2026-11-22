@@ -24,6 +24,8 @@ class DemoSeeder extends Seeder
             throw new \RuntimeException('Demo data is never seeded in production.');
         }
         Setting::put('sales_open', '1');
+        // Demo competitions: most have no skill question so the browser tests can buy quickly; one has one (below).
+        Setting::put('require_skill_question', '0');
 
         $admin = User::query()->firstOrNew(['email' => 'admin@example.com']);
         $admin->forceFill(['first_name' => 'Sam', 'last_name' => 'Admin', 'password' => 'admin-password-123', 'email_verified_at' => now(), 'is_admin' => true, 'is_staff' => true])->save();
@@ -57,6 +59,10 @@ class DemoSeeder extends Seeder
             [['£500 Cash', 50000, 1, 'cash'], ['£5 Site Credit', 500, 100, 'site_credit'], ['50p Site Credit', 50, 1500, 'site_credit']]);
         $make(['slug' => 'cash-flights', 'title' => 'Cash Flights', 'type' => 'instant', 'game' => 'scratch_card', 'image' => 'competitions/cash.webp', 'price_pence' => 10],
             [['£50 Cash', 5000, 2, 'cash'], ['20p Site Credit', 20, 1000, 'site_credit']]);
+        // A competition with a skill question (SOW 2.2), answered at checkout.
+        $make(['slug' => 'games-console-bundle', 'title' => 'Games Console Bundle', 'type' => 'draw', 'image' => 'competitions/board.webp', 'price_pence' => 99,
+            'end_prize_name' => 'Games Console Bundle', 'end_prize_value_pence' => 50000, 'max_tickets' => 2000, 'max_per_person' => 2000, 'tags' => ['tech'],
+            'skill_question' => 'How many sides does a triangle have?', 'skill_options' => ['Two', 'Three', 'Four'], 'skill_answer' => 1]);
         $make(['slug' => 'pro-dartboard-bundle', 'title' => 'Pro Dartboard Bundle', 'type' => 'draw', 'image' => 'competitions/board.webp', 'price_pence' => 49,
             'end_prize_name' => 'Pro Dartboard & Surround', 'end_prize_value_pence' => 6000, 'cash_alternative_pence' => 5000, 'max_tickets' => 999, 'max_per_person' => 999, 'bundles_enabled' => true, 'max_bundle_share_pct' => 10, 'prize_cost_pence' => 4000]);
 

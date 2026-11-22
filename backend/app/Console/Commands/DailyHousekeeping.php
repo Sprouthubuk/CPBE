@@ -18,10 +18,15 @@ class DailyHousekeeping extends Command
     {
         $applied = 0;
         SpendLimit::query()->whereNotNull('pending_applies_at')->where('pending_applies_at', '<=', now())->get()->each(function (SpendLimit $l) use (&$applied) {
-            $l->forceFill([
-                'weekly_deposit_pence' => $l->pending_remove ? null : $l->pending_weekly_deposit_pence,
-                'pending_weekly_deposit_pence' => null, 'pending_remove' => false, 'pending_applies_at' => null,
-            ])->save();
+            $weeklyWaiting = $l->pending_remove || $l->pending_weekly_deposit_pence !== null;
+            $fill = ['pending_weekly_deposit_pence' => null, 'pending_remove' => false, 'pending_applies_at' => null, 'pending_limits' => null];
+            if ($weeklyWaiting) {
+                $fill['weekly_deposit_pence'] = $l->pending_remove ? null : $l->pending_weekly_deposit_pence;
+            }
+            foreach ($l->pending_limits ?? [] as $period => $pence) {
+                $fill["{$period}_deposit_pence"] = $pence;
+            }
+            $l->forceFill($fill)->save();
             $applied++;
         });
         $expired = 0;

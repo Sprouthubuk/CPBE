@@ -44,6 +44,8 @@ class Setting extends Model
         'vault_case_share_of_sales_pct' => '30',
         // Refer a Friend (off until switched on)
         'feature_referrals' => '0',
+        // SOW 2.2: a competition can't be published without a skill question.
+        'require_skill_question' => '1',
         'referral_reward_type' => 'tickets',
         'referral_reward_tickets' => '10',
         'referral_reward_credit_pence' => '200',

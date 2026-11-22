@@ -18,3 +18,15 @@ Route::get('/admin/id-checks/{check}/{which}', function (\App\Models\IdCheck $ch
 
     return \Illuminate\Support\Facades\Storage::disk('local')->response($path, null, ['Cache-Control' => 'no-store, private', 'X-Robots-Tag' => 'noindex']);
 })->name('admin.id-check-file');
+
+// A dispute's printable evidence pack (SOW 2.15), for admins with the finance area only.
+Route::get('/admin/evidence/{order}', function (string $order) {
+    $user = request()->user();
+    abort_unless($user && $user->canAccessPanel(\Filament\Facades\Filament::getPanel('admin')) && $user->getAppAuthenticationSecret()
+        && \App\Support\Roles::can($user, 'finance'), 403);
+    $o = \App\Models\Order::query()->where('number', $order)->firstOrFail();
+    \App\Models\AdminAction::record($user, 'dispute.evidence_viewed', $o->number, null);
+
+    return response()->view('admin.evidence', ['order' => $o, 'e' => app(\App\Services\Disputes::class)->evidence($o),
+        'disputes' => \App\Models\Dispute::query()->where('order_id', $o->id)->get()], 200, ['Cache-Control' => 'no-store, private', 'X-Robots-Tag' => 'noindex']);
+})->name('admin.evidence');

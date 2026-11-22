@@ -61,16 +61,41 @@ class AccountController extends Controller
     public function setLimits(Request $r): JsonResponse
     {
         // £0 (pay nothing in at all) or from £5. The Voluntary Code asks that players can set a £0 limit.
-        $d = $r->validate(['weeklyDepositPence' => ['present', 'nullable', 'integer', 'min:0', 'max:10000000',
-            fn ($attr, $v, $fail) => $v !== null && $v > 0 && $v < 500 ? $fail('Set £0, or £5 or more.') : null]]);
+        $rule = fn () => ['sometimes', 'nullable', 'integer', 'min:0', 'max:10000000',
+            fn ($attr, $v, $fail) => $v !== null && $v > 0 && $v < 500 ? $fail('Set £0, or £5 or more.') : null];
+        $d = $r->validate(['dailyDepositPence' => $rule(), 'weeklyDepositPence' => $rule(), 'monthlyDepositPence' => $rule()]);
+        abort_if($d === [], 422, 'Choose a limit.');
         $u = $r->user();
         $l = $u->limits()->firstOrCreate([]);
-        $new = $d['weeklyDepositPence'];
-        $current = $l->weekly_deposit_pence;
-        if ($current === null ? $new !== null : ($new !== null && $new <= $current)) {
-            $l->forceFill(['weekly_deposit_pence' => $new, 'pending_weekly_deposit_pence' => null, 'pending_remove' => false, 'pending_applies_at' => null])->save();
-        } elseif ($new !== $current) {
-            $l->forceFill(['pending_weekly_deposit_pence' => $new, 'pending_remove' => $new === null, 'pending_applies_at' => now()->addDay()])->save();
+        if (array_key_exists('weeklyDepositPence', $d)) {
+            $new = $d['weeklyDepositPence'];
+            $current = $l->weekly_deposit_pence;
+            if ($current === null ? $new !== null : ($new !== null && $new <= $current)) {
+                $l->forceFill(['weekly_deposit_pence' => $new, 'pending_weekly_deposit_pence' => null, 'pending_remove' => false])->save();
+            } elseif ($new !== $current) {
+                $l->forceFill(['pending_weekly_deposit_pence' => $new, 'pending_remove' => $new === null, 'pending_applies_at' => now()->addDay()])->save();
+            }
+        }
+        // SOW 2.8: daily and monthly limits work the same way (pending changes wait in pending_limits).
+        foreach (['daily' => 'dailyDepositPence', 'monthly' => 'monthlyDepositPence'] as $period => $key) {
+            if (! array_key_exists($key, $d)) {
+                continue;
+            }
+            $new = $d[$key];
+            $col = "{$period}_deposit_pence";
+            $current = $l->$col;
+            $pending = $l->pending_limits ?? [];
+            if ($current === null ? $new !== null : ($new !== null && $new <= $current)) {
+                unset($pending[$period]);
+                $l->forceFill([$col => $new, 'pending_limits' => $pending ?: null])->save();
+            } elseif ($new !== $current) {
+                $pending[$period] = $new;
+                $l->forceFill(['pending_limits' => $pending, 'pending_applies_at' => now()->addDay()])->save();
+            }
+        }
+        $l->refresh();
+        if (! $l->pending_limits && $l->pending_weekly_deposit_pence === null && ! $l->pending_remove) {
+            $l->forceFill(['pending_applies_at' => null])->save();
         }
 
         return response()->json($this->present()->limits($u->refresh()));

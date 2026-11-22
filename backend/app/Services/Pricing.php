@@ -174,6 +174,8 @@ final class Pricing
             'competitionId' => $c->id, 'slug' => $c->slug, 'title' => $c->title, ...$c->pictureFields(), 'type' => $c->type,
             'quantity' => $tickets, ...$bundle, 'bonusQuantity' => 0, 'source' => null, 'vaultCaseId' => null, 'unitPence' => $c->price_pence, 'linePence' => $linePence,
             'minQuantity' => (int) ($c->min_tickets ?: 1), 'problem' => $problem, 'notice' => null,
+            // SOW 2.2: the question to answer before paying (never the answer).
+            'skillQuestion' => $c->hasSkillQuestion() ? ['question' => $c->skill_question, 'options' => array_values($c->skill_options)] : null,
         ];
     }
 

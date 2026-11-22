@@ -36,6 +36,9 @@ final class Publishing
         if (! $c->image) {
             $p[] = 'Add a picture.';
         }
+        if (\App\Models\Setting::bool('require_skill_question') && ! $c->hasSkillQuestion()) {
+            $p[] = 'Add the skill question every paid entry must answer.';
+        }
         if ($c->isInstant()) {
             $prizes = $c->prizes()->get();
             if ($prizes->isEmpty()) {

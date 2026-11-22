@@ -135,13 +135,15 @@ function startSession(u) {
   return `cp_session=${t}; Path=/; HttpOnly; SameSite=Lax`;
 }
 
+// SOW 2.2: one demo competition with a skill question (the answer stays on the server).
+const SKILL = { "tungsten-darts-set": { question: "How many sides does a triangle have?", options: ["Two", "Three", "Four"], answer: 1 } };
 function price(lines, u, promoCode) {
   const out = [];
   const problems = [];
   for (const l of lines || []) {
     const c = byId.get(l.competitionId);
     if (!c) { problems.push("A competition in your basket isn't available any more."); continue; }
-    const base = { competitionId: c.id, slug: c.slug, title: c.title, image: c.image, imageSmall: c.imageSmall, imageSrcset: c.imageSrcset, type: c.type, unitPence: c.pricePence, minQuantity: 1, bonusQuantity: 0, source: null, vaultCaseId: null, notice: null };
+    const base = { skillQuestion: SKILL[c.slug] ? { question: SKILL[c.slug].question, options: SKILL[c.slug].options } : null, competitionId: c.id, slug: c.slug, title: c.title, image: c.image, imageSmall: c.imageSmall, imageSrcset: c.imageSrcset, type: c.type, unitPence: c.pricePence, minQuantity: 1, bonusQuantity: 0, source: null, vaultCaseId: null, notice: null };
     const offers = c.bundles ?? [];
     const nextUp = (paid, tickets) => { const n = offers.filter((o) => o.paid >= paid && o.tickets > tickets).sort((a, b) => a.tickets - b.tickets)[0]; return n ? { bundleId: n.id, label: n.label, tickets: n.tickets, freeQuantity: n.free, extraPence: (n.paid - paid) * c.pricePence } : null; };
     if (l.bundleId) {
@@ -360,8 +362,8 @@ route("GET", "/api/me/tickets/:number/:competitionId", authed((req, res, { user,
   const slice = ts.slice((page - 1) * 500, page * 500);
   send(res, 200, { competition: { id: c.id, slug: c.slug, title: c.title, type: c.type }, orderNumber: number, data: slice.map((t) => ({ number: t.number, won: t.played && !!t.prize, played: t.played, prizeName: t.played && t.prize ? t.prize.name : null })), total: ts.length, page, perPage: 500, hasMore: page * 500 < ts.length });
 }));
-route("GET", "/api/me/limits", authed((req, res, { user }) => send(res, 200, user.limits)));
-route("POST", "/api/me/limits", authed(async (req, res, { user }) => { const b = await readJson(req); user.limits.weeklyDepositPence = b.weeklyDepositPence ?? null; send(res, 200, user.limits); }));
+route("GET", "/api/me/limits", authed((req, res, { user }) => send(res, 200, { dailyDepositPence: null, monthlyDepositPence: null, ...user.limits })));
+route("POST", "/api/me/limits", authed(async (req, res, { user }) => { const b = await readJson(req); for (const k of ["dailyDepositPence", "weeklyDepositPence", "monthlyDepositPence"]) if (k in b) user.limits[k] = b[k] ?? null; send(res, 200, { dailyDepositPence: null, monthlyDepositPence: null, ...user.limits }); }));
 route("POST", "/api/me/break", authed(async (req, res, { user }) => { const b = await readJson(req); user.limits.coolOffUntil = iso(Date.now() + (Number(b.days) || 1) * DAY); send(res, 200, user.limits); }));
 route("POST", "/api/me/self-exclude", authed(async (req, res, { user }) => { const b = await readJson(req); user.limits.selfExcludedUntil = iso(Date.now() + (Number(b.months) || 6) * 30 * DAY); send(res, 200, user.limits); }));
 route("PATCH", "/api/me/profile", authed(async (req, res, { user }) => { const b = await readJson(req); user.phone = b.phone || null; send(res, 200, meJson(user)); }));
@@ -446,6 +448,13 @@ route("POST", "/api/checkout", authed(async (req, res, { user }) => {
   if (block) return fail(res, 403, block === "email_unverified" ? "Please confirm your email address before you play." : "You can't play right now.", undefined);
   const p = price(b.lines, user, b.promoCode);
   if (p.problems.length || p.lines.some((l) => l.problem)) return fail(res, 422, p.problems[0] ?? p.lines.find((l) => l.problem).problem);
+  for (const l of p.lines) {
+    const q = SKILL[l.slug];
+    if (!q) continue;
+    const given = (b.lines || []).find((x) => x.competitionId === l.competitionId && x.skillAnswer !== undefined && x.skillAnswer !== null);
+    if (!given) return fail(res, 422, `Answer the question for ${l.title} to enter.`);
+    if (Number(given.skillAnswer) !== q.answer) return fail(res, 422, `That answer for ${l.title} isn't right. Please try again.`);
+  }
   const number = `CP-${++orderSeq}`;
   const walletPart = b.payWith === "wallet" ? p.totalPence : b.useWallet ? Math.min(total(user), p.totalPence) : 0;
   if (b.payWith === "wallet" && !p.walletCovers) return fail(res, 422, "Your wallet doesn't cover this order.");

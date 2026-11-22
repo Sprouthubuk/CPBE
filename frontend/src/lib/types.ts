@@ -177,6 +177,8 @@ export interface BasketLine {
   bundleId?: number | null;
   /** Set when the line came from a Vault Case: the server adds the box's bonus tickets while the line still matches it. */
   boxId?: string | null;
+  /** SOW 2.2: the chosen answer (its index) to the competition's skill question, sent at checkout. */
+  skillAnswer?: number | null;
 }
 
 export type VaultCaseMode = "surprise" | "big" | "most";
@@ -323,6 +325,8 @@ export interface PricedLine {
   source: "vault_case" | null;
   vaultCaseId: string | null;
   problem: string | null;
+  /** SOW 2.2: the question every paid entry must answer (never the answer), or null. */
+  skillQuestion?: { question: string; options: string[] } | null;
   /** Neutral note that doesn't stop checkout, e.g. a Vault Case bonus the draw's promo cap no longer allows. */
   notice: string | null;
   /** The next bundle up, for "Upgrade to … for +£X". */
@@ -428,8 +432,12 @@ export interface WinningNumbersPage {
 }
 
 export interface Limits {
+  /** SOW 2.8: daily, weekly and monthly deposit limits (null: none). */
+  dailyDepositPence: Pence | null;
   weeklyDepositPence: Pence | null;
-  pending: { weeklyDepositPence: Pence | null; appliesAt: string } | null;
+  monthlyDepositPence: Pence | null;
+  /** Raised or removed limits waiting 24 hours: only the periods that are changing are present. */
+  pending: { dailyDepositPence?: Pence | null; weeklyDepositPence?: Pence | null; monthlyDepositPence?: Pence | null; appliesAt: string } | null;
   coolOffUntil: string | null;
   selfExcludedUntil: string | null;
   reminders: { sessionMinutes: number | null; weeklySummary: boolean };

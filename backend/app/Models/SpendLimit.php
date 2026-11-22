@@ -14,6 +14,6 @@ class SpendLimit extends Model
 
     protected function casts(): array
     {
-        return ['pending_applies_at' => 'datetime', 'pending_remove' => 'boolean', 'weekly_summary' => 'boolean'];
+        return ['pending_applies_at' => 'datetime', 'pending_remove' => 'boolean', 'weekly_summary' => 'boolean', 'pending_limits' => 'array'];
     }
 }

@@ -32,6 +32,12 @@ class Order extends Model
 
     protected static function booted(): void
     {
+        // The IP an order was placed from, for chargeback evidence (SOW 2.15).
+        static::creating(function (Order $o) {
+            if ($o->ip === null && request()->route() !== null && ($ip = request()->ip())) {
+                $o->ip = $ip;
+            }
+        });
         // A refunded ticket order may have qualified a referral or earned points: take back what it unlocked.
         static::updated(function (Order $o) {
             if ($o->wasChanged('status') && $o->status === 'refunded' && $o->order_type === 'tickets') {

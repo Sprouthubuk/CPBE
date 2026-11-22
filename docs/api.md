@@ -74,7 +74,9 @@ one.", or under `minTickets`). It never says how many are left. `problems` holds
 expiry dates, a total use limit, a per-player limit and a minimum basket spend ("Spend £X or more to use that
 promo code.", "You’ve already used that promo code."). They apply to single tickets unless the code includes
 bundles, take at most half of what they apply to and never make an order free. `promo` is
-`{ code, discountPence, label }` ("20% off", "£5.00 off"). `loyaltyPoints` lists `{ programme, points }` the basket would
+`{ code, discountPence, label }` ("20% off", "£5.00 off"). SOW 2.2: a line for a competition with a skill question carries `skillQuestion { question, options[] }` (never the
+answer); checkout lines send `skillAnswer` (the option's index) and are refused with `skill_answer_missing` or
+`skill_answer_wrong` before anything is taken. `loyaltyPoints` lists `{ programme, points }` the basket would
 earn in each switched-on loyalty programme if it's paid with real money (bonus credit earns nothing). Unpaid orders hold their tickets for 15 minutes (`Order::HOLD_MINUTES`); checkout
 locks each competition row so two orders can't both take the last tickets.
 
@@ -191,7 +193,7 @@ refund within `referral_clawback_days` takes back unused rewards. `/r/{code}` on
 | GET | `/api/me/wallet/transactions` | `{ data: WalletTransaction[] }` newest first |
 | GET | `/api/me/tickets?tab=active\|to-play\|won\|past&limit=` | `{ data: TicketGroup[] }`; outcomes hidden until watched |
 | GET | `/api/me/tickets/{order}/{competitionId}?page=` | `TicketPage`: every ticket of one order line, 500 a page (a `TicketGroup` lists only the first 40 plus winners, with `ticketCount`) |
-| GET/POST | `/api/me/limits` | `Limits` / `{ weeklyDepositPence }` → `Limits` (lowering is instant, raising waits 24h) |
+| GET/POST | `/api/me/limits` | `Limits` / any of `{ dailyDepositPence, weeklyDepositPence, monthlyDepositPence }` → `Limits` (SOW 2.8: each over a rolling 1, 7 or 30 days; lowering is instant, raising or removing waits 24h and shows in `pending` for just the periods changing; refusals `daily_limit`, `spend_limit` (weekly), `monthly_limit`) |
 | POST | `/api/me/break` | `{ days }` → `Limits` (instant, no checks in front of it) |
 | POST | `/api/me/self-exclude` | `{ months }` → `Limits` (instant) |
 | PATCH | `/api/me/profile` | `{ phone }` → `Me` (name, date of birth fill-once) |

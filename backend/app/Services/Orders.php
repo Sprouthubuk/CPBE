@@ -56,6 +56,7 @@ final class Orders
             if ($total < 1) {
                 throw new RefusedException('Nothing to pay for.', 'basket_problem');
             }
+            $answers = $this->skillAnswers($lines, $priced['competitions']);
             if ($payWith === 'wallet') {
                 if (! $priced['walletCovers']) {
                     throw new RefusedException("Your wallet doesn't cover this order.", 'not_enough_wallet');
@@ -78,7 +79,8 @@ final class Orders
             foreach ($priced['lines'] as $l) {
                 $order->lines()->create(['competition_id' => $l['competitionId'], 'quantity' => $l['quantity'], 'unit_pence' => $l['unitPence'], 'line_pence' => $l['linePence'],
                     'bundle_tier_id' => $l['bundleId'], 'bundle_label' => $l['bundleLabel'], 'paid_quantity' => $l['paidQuantity'], 'free_quantity' => $l['freeQuantity'],
-                    'bonus_quantity' => $l['bonusQuantity'], 'source' => $l['source'], 'vault_case_id' => $l['vaultCaseId']]);
+                    'bonus_quantity' => $l['bonusQuantity'], 'source' => $l['source'], 'vault_case_id' => $l['vaultCaseId'],
+                    'skill_answer' => $answers[$l['competitionId']] ?? null]);
                 if ($l['vaultCaseId']) {
                     VaultCase::query()->whereKey($l['vaultCaseId'])->update(['status' => 'ordered', 'order_id' => $order->id]);
                 }
@@ -96,6 +98,37 @@ final class Orders
         }
 
         return $this->result($order->refresh());
+    }
+
+    /**
+     * SOW 2.2: every paid entry into a competition with a skill question needs the right answer. Refuses the
+     * whole order before anything is taken. Returns competition id => the answer given, to keep on the line.
+     *
+     * @param  array<int, array<string, mixed>>  $lines
+     * @param  \Illuminate\Support\Collection<string, Competition>  $competitions
+     * @return array<string, int>
+     */
+    private function skillAnswers(array $lines, $competitions): array
+    {
+        $given = [];
+        foreach ($lines as $l) {
+            if (array_key_exists('skillAnswer', $l) && $l['skillAnswer'] !== null) {
+                $given[(string) $l['competitionId']] = (int) $l['skillAnswer'];
+            }
+        }
+        foreach ($competitions as $c) {
+            if (! $c->hasSkillQuestion()) {
+                continue;
+            }
+            if (! array_key_exists($c->id, $given)) {
+                throw new RefusedException("Answer the question for {$c->title} to enter.", 'skill_answer_missing');
+            }
+            if (! $c->skillAnswerIsRight($given[$c->id])) {
+                throw new RefusedException("That answer for {$c->title} isn't right. Please try again.", 'skill_answer_wrong');
+            }
+        }
+
+        return $given;
     }
 
     /**
