@@ -46,6 +46,11 @@ class Setting extends Model
         'feature_referrals' => '0',
         // SOW 2.2: a competition can't be published without a skill question.
         'require_skill_question' => '1',
+        // Reports (SOW 2.14): Cashflows' starting rate, 2% + 20p.
+        'payment_fee_bp' => '200',
+        'payment_fee_fixed_pence' => '20',
+        'monthly_revenue_target_pence' => '0',
+        'promo_budget_pct' => '0',
         'referral_reward_type' => 'tickets',
         'referral_reward_tickets' => '10',
         'referral_reward_credit_pence' => '200',

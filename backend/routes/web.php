@@ -30,3 +30,41 @@ Route::get('/admin/evidence/{order}', function (string $order) {
     return response()->view('admin.evidence', ['order' => $o, 'e' => app(\App\Services\Disputes::class)->evidence($o),
         'disputes' => \App\Models\Dispute::query()->where('order_id', $o->id)->get()], 200, ['Cache-Control' => 'no-store, private', 'X-Robots-Tag' => 'noindex']);
 })->name('admin.evidence');
+
+// Report exports (SOW 2.14): Excel / CSV downloads and a printable page (save as PDF), reports area only.
+Route::middleware('web')->group(function () {
+    $allowed = function () {
+        $user = request()->user();
+        abort_unless($user && $user->canAccessPanel(\Filament\Facades\Filament::getPanel('admin')) && $user->getAppAuthenticationSecret()
+            && \App\Support\Roles::can($user, 'reports'), 403);
+
+        return $user;
+    };
+    Route::get('/admin/reports/export/{what}.{format}', function (string $what, string $format) use ($allowed) {
+        $user = $allowed();
+        abort_unless(in_array($format, ['csv', 'xlsx'], true), 404);
+        $r = app(\App\Services\Reports::class);
+        $period = array_key_exists((string) request('period'), \App\Services\Reports::PERIODS) ? request('period') : 'month';
+        [$from, $to] = $r->range($period);
+        $rows = match ($what) {
+            'orders' => $r->orderRows($from, $to),
+            'competitions' => [['Competition', 'Type', 'Status', 'Sold', 'Max', 'Sold %', 'Revenue £', 'Tickets/hour', 'Forecast sold', 'Forecast revenue £', 'Prize cost £', 'Break-even tickets', 'Profit so far £', 'Forecast profit £'],
+                ...$r->competitions()->map(fn ($c) => [$c['title'], $c['type'], $c['status'], $c['sold'], $c['max'], $c['soldPct'], $c['revenue'] / 100, $c['perHour'],
+                    $c['forecastSold'], $c['forecastRevenue'] / 100, $c['prizeCost'] / 100, $c['breakEvenTickets'], $c['profitSoFar'] / 100, $c['forecastProfit'] / 100])->all()],
+            'segments' => app(\App\Services\Segments::class)->rows((string) request('segment', 'all')),
+            default => abort(404),
+        };
+        \App\Models\AdminAction::record($user, 'report.exported', $what, null, ['format' => $format, 'period' => $period]);
+
+        return \App\Support\Spreadsheet::download($rows, "{$what}-{$period}-".now('Europe/London')->format('Y-m-d'), $format);
+    })->name('admin.reports.export');
+    Route::get('/admin/reports/print', function () use ($allowed) {
+        $allowed();
+        $r = app(\App\Services\Reports::class);
+        $period = array_key_exists((string) request('period'), \App\Services\Reports::PERIODS) ? request('period') : 'month';
+        [$from, $to, $pf, $pt] = $r->range($period);
+
+        return response()->view('admin.report-print', ['period' => $period, 'company' => $r->company($from, $to), 'customers' => $r->customers($from, $to, $pf, $pt),
+            'competitions' => $r->competitions(), 'marketing' => $r->marketing($from, $to), 'headline' => $r->headline()], 200, ['Cache-Control' => 'no-store, private']);
+    })->name('admin.reports.print');
+});

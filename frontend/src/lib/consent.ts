@@ -41,6 +41,7 @@ export function saveConsent(choice: Consent) {
   }
   writeConsentCookie(choice);
   if (choice === "rejected") forgetMetaCookies();
+  if (choice === "accepted") rememberSource();
 }
 
 /** The server reads this cookie (never the choice in localStorage). Kept for six months, as the ICO suggests. */
@@ -64,6 +65,21 @@ export function forgetMetaCookies() {
 export function syncConsentCookie() {
   const c = readConsent();
   if (c && !document.cookie.split("; ").some((x) => x === `cp_consent=${c}`)) writeConsentCookie(c);
+  if (c === "accepted") rememberSource();
+}
+
+/**
+ * SOW 2.14 marketing reporting: where a visitor who accepted cookies first came from (utm_source, a Google or
+ * Meta ad click), kept 30 days in `cp_src` so the server can put it on their orders. Nothing without consent.
+ */
+export function rememberSource() {
+  if (document.cookie.split("; ").some((x) => x.startsWith("cp_src="))) return;
+  const q = new URLSearchParams(location.search);
+  const raw = q.get("utm_source") ?? (q.has("gclid") ? "google" : q.has("fbclid") ? "meta" : null);
+  const src = raw?.toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40);
+  if (!src) return;
+  const secure = location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `cp_src=${src}; Max-Age=${60 * 60 * 24 * 30}; Path=/; SameSite=Lax${secure}`;
 }
 
 let pixelId: string | null = null;

@@ -48,10 +48,11 @@ class SiteSettings extends Page
         'vault_case_chips', 'vault_case_min_pence', 'vault_case_max_pence', 'vault_case_bonus_pct', 'vault_case_max_sold_pct', 'vault_case_slow_boost_pct',
         'vault_case_hold_minutes', 'vault_case_share_of_sales_pct',
         'referral_reward_type', 'referral_reward_tickets', 'referral_reward_credit_pence', 'referral_min_purchase_pence', 'referral_monthly_cap',
-        'referral_voucher_days', 'referral_clawback_days', 'referral_flag_after'];
+        'referral_voucher_days', 'referral_clawback_days', 'referral_flag_after',
+        'payment_fee_bp', 'payment_fee_fixed_pence', 'monthly_revenue_target_pence', 'promo_budget_pct'];
 
     /** On/off switches: shown as toggles, saved as 1/0. Both start off. */
-    private const FLAGS = ['feature_vault_case', 'feature_referrals'];
+    private const FLAGS = ['feature_vault_case', 'feature_referrals', 'require_skill_question'];
 
     public function mount(): void
     {
@@ -132,6 +133,14 @@ class SiteSettings extends Page
         $open = Setting::bool('sales_open');
 
         return $schema->components([
+            Section::make('Reports')->description('Used by the Business Dashboard and the alerts (SOW 2.14).')->columns(2)->collapsible()->components([
+                \Filament\Forms\Components\TextInput::make('payment_fee_bp')->label('Card fee (basis points: 200 = 2%)')->integer()->minValue(0)->maxValue(1000),
+                \Filament\Forms\Components\TextInput::make('payment_fee_fixed_pence')->label('Card fee per payment (pence)')->integer()->minValue(0)->maxValue(500),
+                Money::input('monthly_revenue_target_pence', 'Monthly sales target'),
+                \Filament\Forms\Components\TextInput::make('promo_budget_pct')->label('Promotional budget (% of revenue)')->integer()->minValue(0)->maxValue(100)
+                    ->helperText('E.g. 15 to 20. 0 for none.'),
+                \Filament\Forms\Components\Toggle::make('require_skill_question')->label('Every competition needs a skill question to publish (SOW 2.2)'),
+            ]),
             Section::make('Sales')->components([
                 Text::make($open ? 'Sales are OPEN: players can buy, top up and enter.' : 'Sales are CLOSED: the site shows “Entries open soon”. Competitions, prizes and the free postal route stay visible.'),
                 Actions::make([$this->salesAction()]),

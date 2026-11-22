@@ -37,6 +37,11 @@ class Order extends Model
             if ($o->ip === null && request()->route() !== null && ($ip = request()->ip())) {
                 $o->ip = $ip;
             }
+            // The marketing channel (SOW 2.14), only set for visitors who accepted cookies (frontend consent.ts).
+            if ($o->channel === null && request()->route() !== null && request()->cookie('cp_consent') === 'accepted'
+                && is_string($src = request()->cookie('cp_src')) && preg_match('/^[a-z0-9_-]{1,40}$/', $src)) {
+                $o->channel = $src;
+            }
         });
         // A refunded ticket order may have qualified a referral or earned points: take back what it unlocked.
         static::updated(function (Order $o) {
