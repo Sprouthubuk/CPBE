@@ -28,7 +28,7 @@ against it; the Laravel feature tests must cover the same behaviour.
 
 | Method | Path | Returns |
 | --- | --- | --- |
-| GET | `/api/site` | `SiteInfo` (cached 30s by Astro). `metaPixelId` is the Pixel ID set in the admin, or null; the site loads the Pixel only after the visitor accepts marketing cookies. `vaultCase` and `referrals` are null while those features are off (both start off; see below). `socials` holds the Instagram, Facebook, WhatsApp VIP and TikTok links set in Admin → Settings (null when not set) `loyalty` is true while any loyalty programme is switched on; `memberships` while any membership tier is open to join. |
+| GET | `/api/site` | `SiteInfo` (cached 30s by Astro). `metaPixelId` is the Pixel ID set in the admin, or null; the site loads the Pixel only after the visitor accepts marketing cookies. `vaultCase` and `referrals` are null while those features are off (both start off; see below). `socials` holds the Instagram, Facebook, WhatsApp VIP and TikTok links set in Admin → Settings (null when not set) `loyalty` is true while any loyalty programme is switched on; `memberships` while any membership tier is open to join; `google` (`{ gtmId, ga4Id, adsId, adsPurchaseLabel }`, loaded only after cookie consent) and `translation` (`{ weglotKey }`) when set up in Settings. |
 | GET | `/api/health` | `{ status: "ok"\|"failing", checks: { database, scheduler } }`, `200` or `503` (for an uptime monitor; scheduler = ran in the last 5 minutes) |
 | GET | `/api/competitions?type=instant\|draw` | `{ data: CompetitionSummary[] }` (live and sold out, featured first, then closing soonest). `opensAt` is when a scheduled competition opens; `soldPercent` is rounded down (100 only when sold out); `featuredBundle` is a live draw's Our Pick bundle or null. `maxTickets` is the entry cap and `ticketsLeft` what's left of it (Brand Name shows both, owner 22 Nov 2026); per-person limits and the promo cap are never returned |
 | GET | `/api/competitions/{slug}` | `CompetitionDetail`; `heldByMe` for the signed-in player; `bundles` = the bundles on sale now (only ones that still fit) |
@@ -75,7 +75,8 @@ expiry dates, a total use limit, a per-player limit and a minimum basket spend (
 promo code.", "You’ve already used that promo code."). They apply to single tickets unless the code includes
 bundles, take at most half of what they apply to and never make an order free. `promo` is
 `{ code, discountPence, label }` ("20% off", "£5.00 off"). SOW 2.2: a line for a competition with a skill question carries `skillQuestion { question, options[] }` (never the
-answer); checkout lines send `skillAnswer` (the option's index) and are refused with `skill_answer_missing` or
+answer); checkout lines send `skillAnswer` (the option's index) and `via` (`upsell`, `repeat`, `recovery`, `recommendation`: the tool that
+added the line, for SOW 2.18 reporting), and are refused with `skill_answer_missing` or
 `skill_answer_wrong` before anything is taken. `loyaltyPoints` lists `{ programme, points }` the basket would
 earn in each switched-on loyalty programme if it's paid with real money (bonus credit earns nothing). Unpaid orders hold their tickets for 15 minutes (`Order::HOLD_MINUTES`); checkout
 locks each competition row so two orders can't both take the last tickets.
@@ -170,6 +171,10 @@ rewardCreditPence, minPurchasePence }`). While off every route below is `404`.
 | POST | `/api/me/membership/change` | `{ tierId }`: dearer → upgrade now, charging the difference for the rest of the month (wallet, the stored card, or `redirectUrl`); cheaper → `nextTier` from the next renewal |
 | POST | `/api/me/membership/cancel` · `/keep` | Stop at the end of the paid month, or undo that. Self-exclusion, a break, a hold or a closed account end it at once |
 | POST | `/api/me/membership/pay` | After a failed renewal (`past_due`, perks paused): pay now on a card (a new recurring parent). Renewals are retried every 3 days, 3 times, then the membership lapses |
+| GET | `/api/recommendations?exclude=&limit=` | SOW 2.18: `{ data: CompetitionSummary[] }`, live competitions not in `exclude` (comma-separated ids); signed in, ranked by what the player plays (kind, categories), then closing soonest |
+| GET | `/api/orders/{number}/repeat?via=` | One-click repeat purchase: `{ lines: BasketLine[] (via repeat, or recovery for the reminder email), skipped: string[] }`; only the player's own ticket orders, only what's still on sale |
+| GET | `/api/experiments` · POST `/api/experiments/{key}/seen` | A/B tests: `{ data: { [placement]: { variant, text } } }` for a signed-in player or a visitor who accepted cookies (`cp_vid`); `seen` counts a view. A paid order converts the tests its player saw |
+| POST | `/api/webhooks/sms-opt-out` | SOW 3.3: the SMS platform's STOP: `{ phone?, email? }` signed `X-Signature` = HMAC-SHA256 of the body with SMS_OPTOUT_SECRET; turns off marketing texts |
 
 A referral qualifies on the friend's first paid ticket order if its real money (card + deposit +
 winnings; never bonus, vouchers or postal entries) is at least `minPurchasePence`. Then fraud checks

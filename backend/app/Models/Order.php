@@ -37,6 +37,11 @@ class Order extends Model
             if ($o->ip === null && request()->route() !== null && ($ip = request()->ip())) {
                 $o->ip = $ip;
             }
+            // A/B tests (SOW 2.18): the consenting visitor's id, so their tests can count this order.
+            if ($o->visitor_id === null && request()->route() !== null && request()->cookie('cp_consent') === 'accepted'
+                && is_string($vid = request()->cookie('cp_vid')) && preg_match('/^[a-f0-9]{16,40}$/', $vid)) {
+                $o->visitor_id = $vid;
+            }
             // The marketing channel (SOW 2.14), only set for visitors who accepted cookies (frontend consent.ts).
             if ($o->channel === null && request()->route() !== null && request()->cookie('cp_consent') === 'accepted'
                 && is_string($src = request()->cookie('cp_src')) && preg_match('/^[a-z0-9_-]{1,40}$/', $src)) {

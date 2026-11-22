@@ -39,6 +39,21 @@ return [
     'meta' => [
         'capi_token' => env('META_CAPI_TOKEN'),
         'graph_version' => env('META_GRAPH_VERSION', 'v25.0'),
+        // SOW 3.3: daily ad spend for reports (Marketing API insights), when both are set.
+        'ad_account_id' => env('META_AD_ACCOUNT_ID'),
+        'marketing_token' => env('META_MARKETING_TOKEN'),
+    ],
+
+    // SOW 3.3: the email and SMS marketing platforms (App\Services\MarketingSync).
+    'marketing' => [
+        'email_driver' => env('MARKETING_EMAIL_DRIVER', 'none'),
+        'email_key' => env('MARKETING_EMAIL_KEY'),
+        'email_list' => env('MARKETING_EMAIL_LIST'),
+        'webhook_url' => env('MARKETING_WEBHOOK_URL'),
+        'webhook_secret' => env('MARKETING_WEBHOOK_SECRET'),
+        'sms_driver' => env('SMS_MARKETING_DRIVER', 'none'),
+        'sms_webhook_url' => env('SMS_MARKETING_WEBHOOK_URL'),
+        'sms_optout_secret' => env('SMS_OPTOUT_SECRET'),
     ],
 
     'cashflows' => [

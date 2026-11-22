@@ -7,6 +7,8 @@ const FALLBACK_SITE: SiteInfo = {
   vaultCase: null,
   referrals: null,
   loyalty: false,
+  google: null,
+  translation: null,
   memberships: false,
   minDepositPence: 500,
   minCardPence: 100,
@@ -29,12 +31,13 @@ let siteCache: { at: number; value: SiteInfo } | null = null;
  */
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://connect.facebook.net",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://www.facebook.com",
+  // Meta Pixel and Google tags (consent.ts / google.ts, after "Accept" only) and the Weglot language switcher (SOW 2.17).
+  "script-src 'self' 'unsafe-inline' https://connect.facebook.net https://www.googletagmanager.com https://cdn.weglot.com",
+  "style-src 'self' 'unsafe-inline' https://cdn.weglot.com",
+  "img-src 'self' data: blob: https://www.facebook.com https://www.googletagmanager.com https://*.google-analytics.com https://www.google.com https://*.g.doubleclick.net https://cdn.weglot.com",
   "font-src 'self' data:",
   "media-src 'self' data: blob:",
-  "connect-src 'self' https://www.facebook.com https://connect.facebook.net",
+  "connect-src 'self' https://www.facebook.com https://connect.facebook.net https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.g.doubleclick.net https://www.google.com https://api.weglot.com https://cdn-api-weglot.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

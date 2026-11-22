@@ -11,5 +11,7 @@ Scheduler::command('orders:sweep')->everyFiveMinutes()->withoutOverlapping();
 Scheduler::command('players:housekeeping')->everyFifteenMinutes()->withoutOverlapping();
 Scheduler::command('platform:memberships')->everyFifteenMinutes()->withoutOverlapping();
 Scheduler::command('platform:reports')->hourly()->withoutOverlapping();
+Scheduler::command('platform:conversion --recover')->everyFifteenMinutes()->withoutOverlapping();
+Scheduler::command('platform:conversion --segments --ad-spend')->dailyAt('04:15')->withoutOverlapping();
 Scheduler::command('platform:end-prize-rules')->everyMinute()->withoutOverlapping();
 Scheduler::command('platform:meta-events')->everyMinute()->withoutOverlapping();

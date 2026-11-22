@@ -2,11 +2,13 @@
 import Layout from "../../layouts/Layout.astro";
 import AccountShell from "../../components/AccountShell.astro";
 import Icon from "../../components/Icon.astro";
-import type { TicketGroup } from "../../lib/types";
+import type { CompetitionSummary, TicketGroup } from "../../lib/types";
 import { formatMoney, formatPence } from "../../lib/money";
 const { me, api, site } = Astro.locals;
 const m = me!;
 const { data: groups } = await api.get<{ data: TicketGroup[] }>("/api/me/tickets?tab=active&limit=3");
+// SOW 2.18: personalised recommendations from what this player plays.
+const { data: picks } = await api.get<{ data: CompetitionSummary[] }>("/api/recommendations?limit=3").catch(() => ({ data: [] as CompetitionSummary[] }));
 const tag: Record<string, [string, string]> = { to_play: ["tag-y", "To play"], in_draw: ["tag-c", "In draw"], won: ["tag-p", "Won"], no_win: ["tag-w", "Played"], drawn: ["tag-w", "Drawn"] };
 const menu = [["My Tickets", "/account/tickets", "ticket"], ["Wallet", "/account/wallet", "wallet"], ...(site.referrals ? [["Refer A Friend", "/account/refer", "gift"]] : []), ["Safer Play", "/account/safer-play", "shield"], ["Settings", "/account/settings", "settings"], ["Help & FAQs", "/faq", "help"], ["Contact Us", "/contact", "mail"]];
 ---
@@ -26,6 +28,12 @@ const menu = [["My Tickets", "/account/tickets", "ticket"], ["Wallet", "/account
       <div class="card card-p cp-card"><div class="eyebrow">Total won</div><div class="d ny" style="font-size:34px">{formatMoney(m.stats.totalWonPence)}</div></div>
       <div class="card card-p cp-card"><div class="eyebrow">Paid In This Week</div><div class="d" style="font-size:34px">{formatMoney(m.stats.spentThisWeekPence)}</div></div>
     </div>
+    {picks.length > 0 && (
+      <div class="stack g8" data-testid="picked-for-you">
+        <h2 class="h3">Picked For You</h2>
+        <div class="card" style="overflow:hidden">{picks.map((c) => <a class="li" href={`/competitions/${c.slug}?via=recommendation`}><img src={c.imageSmall} alt="" width="44" height="44" style="width:44px;height:44px;border-radius:12px;object-fit:cover" /><span style="flex:1;min-width:0"><span style="display:block">{c.title}</span><span class="hint">{formatMoney(c.pricePence)} a ticket · {c.soldPercent}% sold</span></span><span class="chev"><Icon name="chev" size={18} /></span></a>)}</div>
+      </div>
+    )}
     <div class="card mob cp-reveal" style="overflow:hidden">
       {menu.map(([n, href, icon]) => <a class="li" href={href}><span class="ico"><Icon name={icon} size={18} /></span>{n}<span class="chev"><Icon name="chev" size={18} /></span></a>)}
       <form method="post" action="/logout"><button class="li" type="submit" style="color:#9AA8A1;width:100%;background:none;border:0;cursor:pointer;font:inherit;font-weight:800;text-align:left"><span class="ico"><Icon name="logout" size={18} /></span>Log Out</button></form>

@@ -60,7 +60,7 @@ const community = [
           <div class="bar" style="height:8px"><div style={`width:${Math.max(featured.soldPercent, 2)}%`}></div></div>
         </div>
         <div class="row wrapx g12">
-          <a class="btn btn-y btn-lg" href={`/competitions/${featured.slug}`}>{opensLater ? "See the prizes" : `Enter from ${formatPence(featured.pricePence)}`} <Icon name="arrow" size={20} stroke={2.5} /></a>
+          <a class="btn btn-y btn-lg" href={`/competitions/${featured.slug}`}><span data-exp="home_hero_cta">{opensLater ? "See the prizes" : `Enter from ${formatPence(featured.pricePence)}`}</span> <Icon name="arrow" size={20} stroke={2.5} /></a>
           <a class="btn btn-o btn-lg" style="font-size:16px" href="/competitions">See all comps</a>
         </div>
         <p class="hint" style="margin:0;font-size:13px">18+ UK only · <a href="/free-entry">Free postal entry</a> · <a href="/legal/terms">T&amp;Cs</a></p>

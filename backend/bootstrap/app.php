@@ -21,7 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // nginx on the same box is the only proxy.
         $middleware->trustProxies(at: ['127.0.0.1', '::1']);
         // Meta's own cookies and the cookie-banner choice are written in the browser, so they aren't encrypted.
-        $middleware->encryptCookies(except: ['_fbp', '_fbc', 'cp_consent', 'cp_src']);
+        $middleware->encryptCookies(except: ['_fbp', '_fbc', 'cp_consent', 'cp_src', 'cp_vid']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Errors go to Sentry when SENTRY_LARAVEL_DSN is set (nothing is sent without it). Refusals a player

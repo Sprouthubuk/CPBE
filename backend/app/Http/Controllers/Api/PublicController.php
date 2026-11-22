@@ -67,6 +67,10 @@ class PublicController extends Controller
             ] : null,
             // Loyalty (SOW 2.11): true while any programme is switched on.
             'loyalty' => \App\Models\LoyaltyProgramme::query()->active()->exists(),
+            // SOW 3.3: Google tags set in Settings; the site loads them only after cookie consent.
+            'google' => self::google(),
+            // SOW 2.17: the language switcher (Weglot), when its key is set.
+            'translation' => preg_match('/^wg_[A-Za-z0-9]{10,64}$/', (string) Setting::get('weglot_api_key')) ? ['weglotKey' => Setting::get('weglot_api_key')] : null,
             // Memberships (SOW 2.12): true while any tier is open to join.
             'memberships' => \App\Models\MembershipTier::query()->where('active', true)->exists(),
             'referrals' => Settings::referralsOn() ? [
@@ -76,6 +80,16 @@ class PublicController extends Controller
                 'minPurchasePence' => Settings::bounded('referral_min_purchase_pence', 0, 100000),
             ] : null,
         ]);
+    }
+
+    /** @return array{gtmId: ?string, ga4Id: ?string, adsId: ?string, adsPurchaseLabel: ?string}|null */
+    private static function google(): ?array
+    {
+        $v = fn (string $k, string $re) => preg_match($re, (string) Setting::get($k)) ? (string) Setting::get($k) : null;
+        $g = ['gtmId' => $v('google_gtm_id', '/^GTM-[A-Z0-9]{4,12}$/'), 'ga4Id' => $v('google_ga4_id', '/^G-[A-Z0-9]{4,20}$/'),
+            'adsId' => $v('google_ads_id', '/^AW-\d{6,15}$/'), 'adsPurchaseLabel' => $v('google_ads_purchase_label', '/^[A-Za-z0-9_-]{4,40}$/')];
+
+        return $g['gtmId'] || $g['ga4Id'] || $g['adsId'] ? $g : null;
     }
 
     public function competitions(Request $r): JsonResponse

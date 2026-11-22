@@ -59,6 +59,17 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     {
         // Customer accounts are never deleted: their money, entries and wins hang off them.
         static::deleting(fn () => throw new \DomainException('Accounts are closed, never deleted.'));
+        // SOW 3.3: the email and SMS platforms follow each player's consent and details.
+        static::created(function (User $u) {
+            if (! $u->is_admin && ($u->marketing_email || $u->marketing_sms)) {
+                \Illuminate\Support\Facades\DB::afterCommit(fn () => app(\App\Services\MarketingSync::class)->contact($u));
+            }
+        });
+        static::updated(function (User $u) {
+            if (! $u->is_admin && $u->wasChanged(['marketing_email', 'marketing_sms', 'first_name', 'last_name', 'phone', 'email', 'self_excluded_until'])) {
+                \Illuminate\Support\Facades\DB::afterCommit(fn () => app(\App\Services\MarketingSync::class)->contact($u));
+            }
+        });
         // Self-exclusion, a break, a hold or a closed account ends a membership at once: no more charges (SOW 2.8, 2.12).
         static::updated(function (User $u) {
             foreach (['self_excluded_until' => 'self-excluded', 'cool_off_until' => 'took a break', 'on_hold_at' => 'account on hold', 'closed_at' => 'account closed'] as $col => $why) {

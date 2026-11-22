@@ -49,7 +49,8 @@ class SiteSettings extends Page
         'vault_case_hold_minutes', 'vault_case_share_of_sales_pct',
         'referral_reward_type', 'referral_reward_tickets', 'referral_reward_credit_pence', 'referral_min_purchase_pence', 'referral_monthly_cap',
         'referral_voucher_days', 'referral_clawback_days', 'referral_flag_after',
-        'payment_fee_bp', 'payment_fee_fixed_pence', 'monthly_revenue_target_pence', 'promo_budget_pct'];
+        'payment_fee_bp', 'payment_fee_fixed_pence', 'monthly_revenue_target_pence', 'promo_budget_pct',
+        'google_gtm_id', 'google_ga4_id', 'google_ads_id', 'google_ads_purchase_label', 'weglot_api_key'];
 
     /** On/off switches: shown as toggles, saved as 1/0. Both start off. */
     private const FLAGS = ['feature_vault_case', 'feature_referrals', 'require_skill_question'];
@@ -133,6 +134,14 @@ class SiteSettings extends Page
         $open = Setting::bool('sales_open');
 
         return $schema->components([
+            Section::make('Google and Translation')->description('Google tags load only after a visitor accepts cookies (SOW 3.3). The Weglot key turns on the language switcher (SOW 2.17).')
+                ->columns(2)->collapsible()->components([
+                    \Filament\Forms\Components\TextInput::make('google_gtm_id')->label('Google Tag Manager ID')->placeholder('GTM-XXXXXXX')->regex('/^GTM-[A-Z0-9]{4,12}$/'),
+                    \Filament\Forms\Components\TextInput::make('google_ga4_id')->label('Google Analytics 4 measurement ID')->placeholder('G-XXXXXXXXXX')->regex('/^G-[A-Z0-9]{4,20}$/'),
+                    \Filament\Forms\Components\TextInput::make('google_ads_id')->label('Google Ads conversion ID')->placeholder('AW-123456789')->regex('/^AW-\d{6,15}$/'),
+                    \Filament\Forms\Components\TextInput::make('google_ads_purchase_label')->label('Google Ads purchase conversion label')->regex('/^[A-Za-z0-9_-]{4,40}$/'),
+                    \Filament\Forms\Components\TextInput::make('weglot_api_key')->label('Weglot API key (language switcher)')->placeholder('wg_…')->regex('/^wg_[A-Za-z0-9]{10,64}$/'),
+                ]),
             Section::make('Reports')->description('Used by the Business Dashboard and the alerts (SOW 2.14).')->columns(2)->collapsible()->components([
                 \Filament\Forms\Components\TextInput::make('payment_fee_bp')->label('Card fee (basis points: 200 = 2%)')->integer()->minValue(0)->maxValue(1000),
                 \Filament\Forms\Components\TextInput::make('payment_fee_fixed_pence')->label('Card fee per payment (pence)')->integer()->minValue(0)->maxValue(500),

@@ -49,7 +49,7 @@ class BusinessReports extends Page
             'customers' => ['customers' => $r->customers($from, $to, $pf, $pt), 'cohorts' => $r->cohorts()],
             'marketing' => ['marketing' => $r->marketing($from, $to)],
             'operations' => ['operations' => $r->operations($from, $to)],
-            'detail' => ['instant' => $r->instantWins($from, $to), 'promotions' => $r->promotions($from, $to), 'programmes' => $r->programmes($from, $to), 'finance' => $r->finance($from, $to)],
+            'detail' => ['tools' => app(\App\Services\Conversion::class)->toolReport($from, $to), 'instant' => $r->instantWins($from, $to), 'promotions' => $r->promotions($from, $to), 'programmes' => $r->programmes($from, $to), 'finance' => $r->finance($from, $to)],
             default => ['company' => $r->company($from, $to), 'previous' => $r->company($pf, $pt), 'headline' => $r->headline(), 'trend' => $r->trend($this->trend),
                 'atRisk' => $r->competitions()->where('atRisk', true)->values()],
         };

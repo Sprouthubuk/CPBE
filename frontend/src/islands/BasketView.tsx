@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, errorText } from "../lib/api";
-import { addBundle, onBasketChange, readBasket, removeFromBasket, setQuantity, upgradeLine } from "../lib/basket";
+import { addBundle, addLines, onBasketChange, readBasket, removeFromBasket, setQuantity, upgradeLine } from "../lib/basket";
 import { trackAddToCart } from "../lib/consent";
 import { lineMakeup } from "../lib/bundles";
 import { formatMoney } from "../lib/money";
@@ -22,8 +22,22 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
 
   useEffect(() => {
     setLines(readBasket());
+    // SOW 2.18: the checkout reminder email links here with ?recover=ORDER: its tickets go back in the basket.
+    const recover = new URLSearchParams(location.search).get("recover");
+    if (recover && /^CP-[A-Z0-9]{4,16}$/.test(recover) && signedIn) {
+      api<{ lines: BasketLine[] }>(`/api/orders/${encodeURIComponent(recover)}/repeat?via=recovery`)
+        .then((r) => { addLines(r.lines); history.replaceState(null, "", "/basket"); })
+        .catch(() => undefined);
+    }
     return onBasketChange(setLines);
   }, []);
+  // SOW 2.18: suggestions for this player (personalised when signed in), shown under the basket.
+  const [picks, setPicks] = useState<CompetitionSummary[]>([]);
+  useEffect(() => {
+    if (!lines?.length) return;
+    api<{ data: CompetitionSummary[] }>(`/api/recommendations?limit=3&exclude=${encodeURIComponent(lines.map((l) => l.competitionId).join(","))}`)
+      .then((r) => setPicks(r.data)).catch(() => undefined);
+  }, [lines?.map((l) => l.competitionId).join(",")]);
 
   useEffect(() => {
     if (!lines) return;
@@ -88,6 +102,21 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
             )}
           </div>
         ))}
+        {picks.length > 0 && (
+          <div className="stack g8" data-testid="recommended">
+            <div className="eyebrow" data-exp="basket_upsell">Picked For You</div>
+            {picks.map((c) => (
+              <a key={c.id} className="card card-p row g12" style={{ alignItems: "center", textDecoration: "none", color: "inherit" }} href={`/competitions/${c.slug}?via=upsell`}>
+                <img src={c.imageSmall} alt="" style={{ width: 52, height: 52, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 900, lineHeight: 1.15 }}>{c.title}</div>
+                  <div className="hint">{formatMoney(c.pricePence)} a ticket · {c.soldPercent}% sold</div>
+                </div>
+                <Svg name="chev" size={18} />
+              </a>
+            ))}
+          </div>
+        )}
         {(() => {
           const inBasket = new Set(lines.map((l) => l.competitionId));
           const picks = others.filter((c) => !inBasket.has(c.id)).slice(0, 2);
@@ -101,7 +130,7 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
                     <div style={{ fontWeight: 900, lineHeight: 1.15 }}>{c.title}</div>
                     <div className="hint">{c.featuredBundle!.label} · {c.featuredBundle!.tickets} tickets for {formatMoney(c.featuredBundle!.pricePence)}</div>
                   </div>
-                  <button type="button" className="btn btn-y" style={{ minHeight: 44 }} onClick={() => { addBundle(c.id, c.featuredBundle!.id); trackAddToCart(c.slug, c.featuredBundle!.tickets, c.featuredBundle!.pricePence); }}>Add</button>
+                  <button type="button" className="btn btn-y" style={{ minHeight: 44 }} onClick={() => { addBundle(c.id, c.featuredBundle!.id, "upsell"); trackAddToCart(c.slug, c.featuredBundle!.tickets, c.featuredBundle!.pricePence); }}>Add</button>
                 </div>
               ))}
             </div>

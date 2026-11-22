@@ -137,6 +137,13 @@
             @else <p style="{{ $lab }}">Nothing unusual in the last hour.</p> @endif
         </x-filament::section>
     @else
+        <x-filament::section heading="Checkout and Conversion Tools" description="Revenue from lines added by each tool (SOW 2.18). Profit at the period’s margin.">
+            @php($margin = app(\App\Services\Reports::class)->company(...array_slice(app(\App\Services\Reports::class)->range($period), 0, 2))['marginPct'])
+            <table style="width:100%;font-size:14px;border-collapse:collapse"><tr>@foreach (['Tool', 'Orders', 'Revenue', 'Estimated profit'] as $h)<th style="{{ $th }}">{{ $h }}</th>@endforeach</tr>
+            @forelse ($d['tools'] as $t)<tr><td style="{{ $td }}">{{ ['upsell' => 'Upsell at checkout', 'repeat' => 'Buy again', 'recovery' => 'Abandoned checkout reminder', 'recommendation' => 'Recommendations'][$t['via']] ?? $t['via'] }}</td><td style="{{ $td }}">{{ $t['orders'] }}</td><td style="{{ $td }}">{{ $m($t['revenue']) }}</td><td style="{{ $td }}">{{ $margin !== null ? $m((int) round($t['revenue'] * $margin / 100)) : '—' }}</td></tr>
+            @empty <tr><td style="{{ $td }}" colspan="4">Nothing yet.</td></tr> @endforelse</table>
+            <p style="{{ $lab }};margin-top:8px">A/B test results are under Marketing → A/B Tests.</p>
+        </x-filament::section>
         <x-filament::section heading="Instant Wins by Game">
             <table style="width:100%;font-size:14px;border-collapse:collapse"><tr>@foreach (['Game', 'Plays', 'Winners', 'Prizes paid', 'Prizes left', 'Revenue', 'Profit'] as $h)<th style="{{ $th }}">{{ $h }}</th>@endforeach</tr>
             @forelse ($d['instant'] as $r)<tr><td style="{{ $td }}">{{ str_replace('_', ' ', $r['game']) }}</td><td style="{{ $td }}">{{ number_format($r['plays']) }}</td><td style="{{ $td }}">{{ number_format($r['winners']) }}</td><td style="{{ $td }}">{{ $m($r['prizesPaid']) }}</td><td style="{{ $td }}">{{ $m($r['prizesLeft']) }}</td><td style="{{ $td }}">{{ $m($r['revenue']) }}</td><td style="{{ $td }}">{{ $m($r['profit']) }}</td></tr>

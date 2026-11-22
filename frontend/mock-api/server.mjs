@@ -242,6 +242,8 @@ route("GET", "/api/site", (req, res) => send(res, 200, { salesOpen: true, minDep
   vaultCase: process.env.MOCK_FEATURES === "off" ? null : { available: true, chipsPence: [500, 1000, 2000, 5000], minPence: 500, maxPence: 10000, bonusPct: 10 },
   loyalty: process.env.MOCK_FEATURES !== "off",
   memberships: process.env.MOCK_FEATURES !== "off",
+  google: null,
+  translation: null,
   referrals: process.env.MOCK_FEATURES === "off" ? null : { rewardType: "tickets", rewardTickets: 10, rewardCreditPence: 200, minPurchasePence: 500 } }));
 route("GET", "/api/competitions", (req, res, { query }) => send(res, 200, { data: COMPS.filter((c) => !query.get("type") || c.type === query.get("type")) }));
 route("GET", "/api/competitions/:slug", (req, res, { params, user }) => { const c = bySlug.get(params.slug); return c ? send(res, 200, detail(c, user)) : fail(res, 404, "Not found"); });
@@ -274,6 +276,14 @@ route("GET", "/api/competitions/:slug/winning-numbers", (req, res, { params, que
   send(res, 200, { competition: c, data: rows.slice((page - 1) * 100, page * 100), total: all.length, won: all.filter((r) => r.won).length, matching: rows.length, hasMore: rows.length > page * 100 });
 });
 route("GET", "/api/entry-lists", (req, res) => send(res, 200, { data: COMPS }));
+// SOW 2.18: recommendations (live competitions not in the basket), A/B tests (none running in the mock).
+route("GET", "/api/recommendations", (req, res, { query }) => {
+  const exclude = new Set(String(query.get("exclude") ?? "").split(",").filter(Boolean));
+  const limit = Math.max(1, Math.min(8, Number(query.get("limit") ?? 4)));
+  send(res, 200, { data: COMPS.filter((c) => !exclude.has(c.id) && c.status === "live").slice(0, limit) });
+});
+route("GET", "/api/experiments", (req, res) => send(res, 200, { data: {} }));
+route("POST", "/api/experiments/:key/seen", (req, res) => send(res, 200, { ok: true }));
 route("GET", "/api/entry-lists/:slug", (req, res, { params }) => { const c = bySlug.get(params.slug); return c ? send(res, 200, { competition: c, data: [{ ticket: 1, name: "N***** B.", source: "paid", prizeName: null }, { ticket: 2, name: "E**** A.", source: "postal", prizeName: c.type === "instant" ? "Single One" : null }], hasMore: false }) : fail(res, 404, "Not found"); });
 route("GET", "/api/pages/:slug", (req, res, { params }) => send(res, 200, { title: { terms: "Terms & Conditions", privacy: "Privacy Policy", cookies: "Cookie Policy", complaints: "Complaints", "free-entry": "Free Entry Terms" }[params.slug] ?? "Page", updatedAt: iso(now - 10 * DAY), version: "1.0", html: `<h2 id="about">1. About Us</h2><p>Brand Name is a trading name of [Company name TBC].</p><h2 id="who">2. Who Can Enter</h2><p>UK residents aged 18 or over.</p>`, headings: [{ id: "about", text: "1. About Us" }, { id: "who", text: "2. Who Can Enter" }] }));
 route("POST", "/api/contact", async (req, res) => { const b = await readJson(req); if (!b.message || String(b.message).length < 10) return fail(res, 422, "Please check the form.", { message: ["Tell us a bit more (at least 10 characters)."] }); send(res, 201, { ok: true }); });
@@ -479,6 +489,11 @@ route("POST", "/api/orders/:number/return", authed(async (req, res, { user, para
     user.deposit += o.walletPence;
   }
   send(res, 200, orderJson(o, user));
+}));
+route("GET", "/api/orders/:number/repeat", authed((req, res, { user, params }) => {
+  const o = orders.get(params.number);
+  if (!o || o.user !== user.email) return fail(res, 404, "Not found");
+  send(res, 200, { lines: o.lines.filter((l) => l.paidQuantity > 0).map((l) => ({ competitionId: l.competitionId, quantity: l.paidQuantity, via: "repeat" })), skipped: [] });
 }));
 route("POST", "/api/orders/:number/play", authed((req, res, { user, params }) => {
   const o = orders.get(params.number);

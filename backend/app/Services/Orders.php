@@ -57,6 +57,13 @@ final class Orders
                 throw new RefusedException('Nothing to pay for.', 'basket_problem');
             }
             $answers = $this->skillAnswers($lines, $priced['competitions']);
+            // SOW 2.18: which conversion tool put each competition in the basket.
+            $via = [];
+            foreach ($lines as $l) {
+                if (in_array($l['via'] ?? null, Conversion::VIA, true)) {
+                    $via[(string) $l['competitionId']] = $l['via'];
+                }
+            }
             if ($payWith === 'wallet') {
                 if (! $priced['walletCovers']) {
                     throw new RefusedException("Your wallet doesn't cover this order.", 'not_enough_wallet');
@@ -80,7 +87,7 @@ final class Orders
                 $order->lines()->create(['competition_id' => $l['competitionId'], 'quantity' => $l['quantity'], 'unit_pence' => $l['unitPence'], 'line_pence' => $l['linePence'],
                     'bundle_tier_id' => $l['bundleId'], 'bundle_label' => $l['bundleLabel'], 'paid_quantity' => $l['paidQuantity'], 'free_quantity' => $l['freeQuantity'],
                     'bonus_quantity' => $l['bonusQuantity'], 'source' => $l['source'], 'vault_case_id' => $l['vaultCaseId'],
-                    'skill_answer' => $answers[$l['competitionId']] ?? null]);
+                    'skill_answer' => $answers[$l['competitionId']] ?? null, 'via' => $via[$l['competitionId']] ?? null]);
                 if ($l['vaultCaseId']) {
                     VaultCase::query()->whereKey($l['vaultCaseId'])->update(['status' => 'ordered', 'order_id' => $order->id]);
                 }
@@ -305,6 +312,10 @@ final class Orders
             VaultCase::query()->where('order_id', $order->id)->update(['status' => 'paid']);
             app(Referrals::class)->orderPaid($order);
             app(Loyalty::class)->orderPaid($order);
+            app(Conversion::class)->orderPaid($order);
+            if ($order->total_pence > 0) {
+                DB::afterCommit(fn () => app(MarketingSync::class)->purchase($order));
+            }
         }
         if ($wasClosed) {
             $this->fulfilment->flag($order, 'Paid after the order had closed.');

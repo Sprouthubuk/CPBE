@@ -6,6 +6,8 @@ import { lineMakeup } from "../lib/bundles";
 import type { CheckoutResult, CompetitionSummary, OrderView as Order, PlayResult, PricedBasket } from "../lib/types";
 import { Svg } from "./Svg";
 import { trackPurchaseOnce } from "../lib/consent";
+import { addLines } from "../lib/basket";
+import type { BasketLine } from "../lib/types";
 
 const ArcadeReveal = lazy(() => import("../games/arcade/ArcadeReveal"));
 
@@ -151,6 +153,7 @@ export default function OrderView({ number, initial }: { number: string; initial
 
       {instant.length === 0 && <NextDraw exclude={order.lines.map((l) => l.competitionId)} />}
 
+      <BuyAgain number={order.number} />
       <div className="r2 cp-rise cp-d4"><a className="btn btn-o" href="/account/tickets">My Tickets</a><a className="btn btn-p" href="/competitions">Play More</a></div>
       <p className="hint" style={{ textAlign: "center", margin: 0 }}>Receipt sent to your email · results are saved in My Tickets</p>
     </div>
@@ -215,6 +218,30 @@ function NextDraw({ exclude }: { exclude: string[] }) {
         <a className="btn btn-y btn-block" href={`/checkout?buy=${encodeURIComponent(`${c.id}:b${b.id}`)}`}>Pay {formatMoney(priced.totalPence)} By Card</a>
       ))}
       {error && <div className="notice notice-p" role="alert"><Svg name="info" size={18} /><span>{error}</span></div>}
+    </div>
+  );
+}
+
+/** SOW 2.18: one-click repeat purchase: this order's tickets go back in the basket (what's still on sale). */
+function BuyAgain({ number }: { number: string }) {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  async function go() {
+    setBusy(true);
+    try {
+      const r = await api<{ lines: BasketLine[]; skipped: string[] }>(`/api/orders/${encodeURIComponent(number)}/repeat`);
+      if (!r.lines.length) { setNote("None of these competitions are on sale any more."); setBusy(false); return; }
+      addLines(r.lines);
+      window.location.assign("/basket");
+    } catch (e) {
+      setNote(errorText(e));
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="stack g8">
+      <button type="button" className="btn btn-o btn-block" onClick={go} disabled={busy} data-testid="buy-again">{busy ? <span className="spin" /> : <><Svg name="ticket" size={16} /> Buy These Again</>}</button>
+      {note && <div className="hint" role="status">{note}</div>}
     </div>
   );
 }

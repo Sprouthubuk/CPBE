@@ -100,6 +100,10 @@ export interface SiteInfo {
   loyalty: boolean;
   /** True while any membership tier is open to join (SOW 2.12). */
   memberships: boolean;
+  /** SOW 3.3: Google tags set in the admin (loaded only after cookie consent), or null. */
+  google: { gtmId: string | null; ga4Id: string | null; adsId: string | null; adsPurchaseLabel: string | null } | null;
+  /** SOW 2.17: the language switcher (Weglot), or null while it isn't set up. */
+  translation: { weglotKey: string } | null;
 }
 
 export interface WalletBalances {
@@ -179,6 +183,8 @@ export interface BasketLine {
   boxId?: string | null;
   /** SOW 2.2: the chosen answer (its index) to the competition's skill question, sent at checkout. */
   skillAnswer?: number | null;
+  /** SOW 2.18: the conversion tool that put it in the basket, for reporting. */
+  via?: "upsell" | "repeat" | "recovery" | "recommendation";
 }
 
 export type VaultCaseMode = "surprise" | "big" | "most";

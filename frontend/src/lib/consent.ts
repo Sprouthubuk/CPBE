@@ -156,6 +156,7 @@ export const metaValue = (pence: number) => Math.round(pence) / 100;
  */
 export function trackPurchaseOnce(orderNumber: string, valuePence: number, items?: { slug: string; quantity: number }[]) {
   if (valuePence <= 0) return;
+  void import("./google").then((g) => g.googlePurchaseOnce(orderNumber, valuePence));
   once(`cp-px-purchase:${orderNumber}`, () =>
     track("Purchase", {
       value: metaValue(valuePence), currency: "GBP", content_type: "product",

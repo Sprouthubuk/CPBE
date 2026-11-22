@@ -117,8 +117,11 @@ export default function TicketPicker(p: PickerProps) {
     : p.playBlock ? BLOCK_TEXT[p.playBlock] ?? "You can't enter right now." : null;
   const verb = p.type === "draw" ? "Enter now" : "Buy & throw";
   const addToBasketNow = () => {
-    if (chosenBundle) addBundle(p.competitionId, chosenBundle.id);
-    else addToBasket(p.competitionId, qty);
+    // SOW 2.18: arrived from a recommendation or upsell link (?via=…): the line remembers it for reporting.
+    const v = typeof location !== "undefined" ? new URLSearchParams(location.search).get("via") : null;
+    const via = v === "recommendation" || v === "upsell" ? v : undefined;
+    if (chosenBundle) addBundle(p.competitionId, chosenBundle.id, via);
+    else addToBasket(p.competitionId, qty, false, via);
     trackAddToCart(p.slug, chosenBundle ? chosenBundle.tickets : qty, total);
     setAdded(chosenBundle ? chosenBundle.label : `${formatCount(qty)} ${qty === 1 ? "ticket" : "tickets"}`);
   };
