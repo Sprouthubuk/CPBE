@@ -23,6 +23,12 @@ use Filament\Support\Icons\Heroicon;
 
 class SiteSettings extends Page
 {
+    /** Admin roles (App\Support\Roles): the settings area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('settings');
+    }
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 
     protected static ?string $navigationLabel = 'Settings';
@@ -107,7 +113,7 @@ class SiteSettings extends Page
                 TextInput::make('vault_case_share_of_sales_pct')->label('Report warning above (% of sales)')->integer()->minValue(1)->maxValue(100)->required()
                     ->helperText('The Vault Case report flags a draw where boxes are more than this share of its tickets.'),
             ]),
-            Section::make('Refer A Friend')->description('Off until you switch it on. Load the draft terms first: php artisan vault:legal-pages --drafts, then edit them in Pages.')->columns(3)->collapsible()->components([
+            Section::make('Refer A Friend')->description('Off until you switch it on. Load the draft terms first: php artisan platform:legal-pages --drafts, then edit them in Pages.')->columns(3)->collapsible()->components([
                 Toggle::make('feature_referrals')->label('Refer a Friend on')->columnSpanFull(),
                 Select::make('referral_reward_type')->label('Reward')->options(['tickets' => 'Free tickets (voucher)', 'credit' => 'Bonus credit'])->required()->native(false),
                 TextInput::make('referral_reward_tickets')->label('Free tickets each')->integer()->minValue(1)->maxValue(100)->required(),
@@ -164,7 +170,7 @@ class SiteSettings extends Page
                     return;
                 }
                 try {
-                    // The real design (Vault Nine mail theme), sent now rather than queued, so a failure shows here.
+                    // The real design (Brand Name mail theme), sent now rather than queued, so a failure shows here.
                     \Illuminate\Support\Facades\Notification::route('mail', $data['to'])->notifyNow(new \App\Notifications\TestEmail);
                 } catch (\Throwable $e) {
                     AdminAction::record(auth()->user(), 'email.test_failed', null, null, ['mailer' => $mailer]);

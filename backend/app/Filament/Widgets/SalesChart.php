@@ -8,6 +8,12 @@ use Illuminate\Support\Carbon;
 
 class SalesChart extends ChartWidget
 {
+    /** Admin roles (App\Support\Roles): the reports area. */
+    public static function canView(): bool
+    {
+        return \App\Support\Roles::allows('reports');
+    }
+
     protected static ?int $sort = 2;
 
     protected ?string $heading = 'Takings, Last 30 Days';

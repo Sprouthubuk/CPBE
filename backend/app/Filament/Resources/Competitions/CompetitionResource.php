@@ -41,6 +41,12 @@ use Illuminate\Support\Str;
 
 class CompetitionResource extends Resource
 {
+    /** Admin roles (App\Support\Roles): the competitions area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('competitions');
+    }
+
     protected static ?string $model = Competition::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTrophy;

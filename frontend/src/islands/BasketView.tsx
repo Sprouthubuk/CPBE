@@ -41,7 +41,7 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
       <span style={{ color: "#9AA8A1" }}><Svg name="cart" size={36} /></span>
       <div className="h3">Your Basket Is Empty</div>
       <p className="p">Pick a competition and your tickets will wait here.</p>
-      <a className="btn btn-y v9-cta" href="/competitions">Browse Competitions</a>
+      <a className="btn btn-y cp-cta" href="/competitions">Browse Competitions</a>
     </div>
   );
 
@@ -51,7 +51,7 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
       <div className="stack g12">
         {!priced && lines.map((l, i) => <div key={i} className="card card-p empty"><span className="spin" /></div>)}
         {priced?.lines.map((pl) => (
-          <div key={`${pl.competitionId}:${pl.bundleId ?? "s"}`} className="card card-p stack g12 v9-card" data-testid="basket-line">
+          <div key={`${pl.competitionId}:${pl.bundleId ?? "s"}`} className="card card-p stack g12 cp-card" data-testid="basket-line">
             <div className="row g12" style={{ alignItems: "flex-start" }}>
               <img src={pl.imageSmall} alt="" style={{ width: 76, height: 76, borderRadius: 14, objectFit: "cover", flexShrink: 0 }} />
               <div className="stack g8" style={{ flex: 1, minWidth: 0 }}>
@@ -116,14 +116,14 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
               <input className="inp" placeholder="Enter code" aria-label="Promo code" value={promo} onChange={(e) => setPromo(e.target.value)} />
               <button type="submit" className="btn btn-o">Apply</button>
             </form>
-            {priced?.promo && <div className="hint" style={{ marginTop: 6 }}>{priced.promo.code}: −{formatMoney(priced.promo.discountPence)}</div>}
+            {priced?.promo && <div className="hint" style={{ marginTop: 6 }}>{priced.promo.code} ({priced.promo.label}): −{formatMoney(priced.promo.discountPence)}</div>}
           </details>
           <div className="row between" style={{ fontWeight: 800 }}><span className="muted">{priced?.ticketCount ?? "…"} tickets · {new Set(lines.map((l) => l.competitionId)).size} {new Set(lines.map((l) => l.competitionId)).size === 1 ? "comp" : "comps"}</span></div>
           <div className="row between" style={{ borderTop: "1px solid rgba(255,255,255,.1)", paddingTop: 12 }}><span className="d" style={{ fontSize: 22 }}>Total</span><span className="d ny" style={{ fontSize: 34 }} data-testid="basket-total">{priced ? formatMoney(priced.totalPence) : "…"}</span></div>
           {signedIn && priced?.walletCovers && <div className="notice notice-c"><Svg name="wallet" size={18} /><span>Your wallet covers this — checkout takes one tap.</span></div>}
           {(priced?.problems ?? []).map((p) => <div key={p} className="notice notice-p" role="alert"><Svg name="info" size={18} /><span>{p}</span></div>)}
           {error && <div className="notice notice-p" role="alert"><Svg name="info" size={18} /><span>{error}</span></div>}
-          <a className="btn btn-y btn-lg btn-block v9-cta" href={checkoutHref} aria-disabled={!priced || priced.problems.length > 0 || priced.lines.some((l) => l.problem) ? "true" : undefined}>Checkout · {priced ? formatMoney(priced.totalPence) : "…"}</a>
+          <a className="btn btn-y btn-lg btn-block cp-cta" href={checkoutHref} aria-disabled={!priced || priced.problems.length > 0 || priced.lines.some((l) => l.problem) ? "true" : undefined}>Checkout · {priced ? formatMoney(priced.totalPence) : "…"}</a>
           <a className="btn btn-o btn-block" href="/competitions">Keep Browsing</a>
           {vaultCase && lines.every((l) => !l.boxId) && <a className="tap" style={{ textAlign: "center", fontWeight: 800 }} href="/vault-case">Or let a Vault Case pick for you</a>}
         </div>

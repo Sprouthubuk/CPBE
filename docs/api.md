@@ -1,4 +1,4 @@
-# Vault Nine API contract
+# Brand Name API contract
 
 The Astro front end (`frontend/`) talks to the Laravel backend (`backend/`) only through the
 endpoints below. The TypeScript shapes are the source of truth: `frontend/src/lib/types.ts`.
@@ -20,7 +20,7 @@ against it; the Laravel feature tests must cover the same behaviour.
   `401` not signed in, `403` signed in but not allowed (with `code`, e.g. `self_excluded`),
   `404`, `409` conflict (stale/duplicate), `419` CSRF, `429` rate limited.
   `message` is safe to show a player; never include internals.
-- **Ids** are opaque strings (ULIDs). Order numbers are `V9-…` (tickets) and `VD-…` (deposits).
+- **Ids** are opaque strings (ULIDs). Order numbers are `CP-…` (tickets) and `CD-…` (deposits).
 - Every money-moving `POST` is idempotent: checkout takes a `requestId`; the same id returns the
   same order.
 
@@ -30,17 +30,12 @@ against it; the Laravel feature tests must cover the same behaviour.
 | --- | --- | --- |
 | GET | `/api/site` | `SiteInfo` (cached 30s by Astro). `metaPixelId` is the Pixel ID set in the admin, or null; the site loads the Pixel only after the visitor accepts marketing cookies. `vaultCase` and `referrals` are null while those features are off (both start off; see below). `socials` holds the Instagram, Facebook, WhatsApp VIP and TikTok links set in Admin → Settings (null when not set) |
 | GET | `/api/health` | `{ status: "ok"\|"failing", checks: { database, scheduler } }`, `200` or `503` (for an uptime monitor; scheduler = ran in the last 5 minutes) |
-| GET | `/api/competitions?type=instant\|draw` | `{ data: CompetitionSummary[] }` (live and sold out, featured first, then closing soonest). `opensAt` is when a scheduled competition opens; `soldPercent` is rounded down (100 only when sold out); `featuredBundle` is a live draw's Our Pick bundle or null. `maxTickets` is the entry cap and `ticketsLeft` what's left of it (Vault Nine shows both, owner 22 Nov 2026); per-person limits and the promo cap are never returned |
+| GET | `/api/competitions?type=instant\|draw` | `{ data: CompetitionSummary[] }` (live and sold out, featured first, then closing soonest). `opensAt` is when a scheduled competition opens; `soldPercent` is rounded down (100 only when sold out); `featuredBundle` is a live draw's Our Pick bundle or null. `maxTickets` is the entry cap and `ticketsLeft` what's left of it (Brand Name shows both, owner 22 Nov 2026); per-person limits and the promo cap are never returned |
 | GET | `/api/competitions/{slug}` | `CompetitionDetail`; `heldByMe` for the signed-in player; `bundles` = the bundles on sale now (only ones that still fit) |
 | GET | `/api/winners/instant?limit=&page=&game=` | `{ data: InstantWinnerRow[], total }` |
 | GET | `/api/winners/draws` | `{ data: DrawWinnerRow[] }` |
 | GET | `/api/entry-lists` | `{ data: CompetitionSummary[] }` (no entry counts): every published competition once it opens, on sale first (closing soonest), then finished ones |
 | GET | `/api/entry-lists/{slug}?q=&page=` | `{ competition, data: EntryRow[], hasMore }` (no total); open from the first sale; names masked ("L*** P."); `prizeName` on an instant-win ticket that won |
-| GET | `/api/archive` | `{ data: ArchiveCompetitionSummary[] }`: the old (Lovable) site's competitions, read-only (`vault:import-archive`). Not Verity records: never linked to `/verify` or called verified |
-| GET | `/api/archive/winners` | `{ data: ArchiveWinnerRow[] }`: the old site's announced live-draw winners, newest first (masked names, town, winning ticket) |
-| GET | `/api/archive/{slug}` | `{ competition: ArchiveCompetitionSummary, drawWinners: ArchiveWinnerRow[], hasInstantWins }` |
-| GET | `/api/archive/{slug}/instant-wins?page=` | `{ data: ArchiveWinnerRow[], hasMore }` (50 a page, newest first) |
-| GET | `/api/archive/{slug}/entries?q=&page=` | `{ data: EntryRow[], hasMore }` (no total, 100 a page; `q` is a ticket number); masked names as the old site showed them; `prizeName` on a ticket that won an instant prize |
 | GET | `/api/competitions/{slug}/winning-numbers?show=all\|won\|left&q=&prize=&page=` | `WinningNumbersPage` (`prize` = one prize's name). A paid win isn't named (here, in `/api/winners/instant` or as an entry list's `prizeName`) until its player has played the reveal, or for an hour: every instant prize's winning ticket number, public from publish, biggest prize first, 100 a page; `404` for draws |
 | GET | `/api/pages/{slug}` | `{ title, updatedAt, version, html, headings }` (terms, privacy, rules, cookies, free-entry) |
 | POST | `/api/contact` | `{ name, email, topic, message }` → `204`; rate limited |
@@ -75,8 +70,11 @@ ignored. Each `PricedLine` has `quantity` (tickets: paid + free), `paidQuantity`
 or null). A line gets a `problem` when it cannot be bought as asked (closed, sold out, "Not that many
 tickets are left. Please choose fewer.", "This bundle is no longer available. Please choose a smaller
 one.", or under `minTickets`). It never says how many are left. `problems` holds basket-wide reasons
-(sales closed, play block). Promo codes apply to single tickets only, take at most 50% off and never
-make an order free. Unpaid orders hold their tickets for 15 minutes (`Order::HOLD_MINUTES`); checkout
+(sales closed, play block). Promo codes (SOW 2.3) are a percentage or a fixed amount off, with optional start and
+expiry dates, a total use limit, a per-player limit and a minimum basket spend ("Spend £X or more to use that
+promo code.", "You’ve already used that promo code."). They apply to single tickets unless the code includes
+bundles, take at most half of what they apply to and never make an order free. `promo` is
+`{ code, discountPence, label }` ("20% off", "£5.00 off"). Unpaid orders hold their tickets for 15 minutes (`Order::HOLD_MINUTES`); checkout
 locks each competition row so two orders can't both take the last tickets.
 
 `POST /api/checkout` (signed in) —
@@ -97,9 +95,9 @@ locks each competition row so two orders can't both take the last tickets.
 what the Meta pixel reports for the order: real money only (card, deposit and winnings), never bonus credit.
 
 **Meta tracking (Conversions API).** No endpoint: `POST /api/checkout`, `POST /api/me/deposits` and
-`POST /api/auth/register` note the event when the request carries the `v9_consent=accepted` cookie (written
+`POST /api/auth/register` note the event when the request carries the `cp_consent=accepted` cookie (written
 by the cookie banner) and a Pixel ID is set; `_fbp`, `_fbc`, IP and browser name are kept with it. The
-scheduler (`vault:meta-events`, every minute) sends it once the order is paid. Event ids match the browser
+scheduler (`platform:meta-events`, every minute) sends it once the order is paid. Event ids match the browser
 pixel's so Meta counts each once: Purchase and the custom Deposit use the order number,
 CompleteRegistration uses `reg-{user id}`. Customer details leave only SHA-256 hashed.
 

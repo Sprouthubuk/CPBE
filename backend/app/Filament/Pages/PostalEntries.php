@@ -29,6 +29,12 @@ use Illuminate\Support\Carbon;
 /** Log a free postal entry: one envelope, one entry. Every envelope is recorded, entered or refused. */
 class PostalEntries extends Page implements HasTable
 {
+    /** Admin roles (App\Support\Roles): the postal area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('postal');
+    }
+
     use InteractsWithTable;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxArrowDown;

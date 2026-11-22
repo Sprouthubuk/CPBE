@@ -18,6 +18,6 @@ class Dashboard extends BaseDashboard
 
     public function getSubheading(): ?string
     {
-        return now('Europe/London')->format('l j F Y').' · here is how Vault Nine is doing';
+        return now('Europe/London')->format('l j F Y').' · here is how '.config('app.name').' is doing';
     }
 }

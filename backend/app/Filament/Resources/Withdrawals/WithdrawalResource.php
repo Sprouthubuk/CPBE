@@ -22,6 +22,12 @@ use Illuminate\Support\Facades\DB;
 /** Winnings withdrawals: the money left the wallet when requested; an admin pays it, or rejects it and it goes back. */
 class WithdrawalResource extends Resource
 {
+    /** Admin roles (App\Support\Roles): the withdrawals area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('withdrawals');
+    }
+
     protected static ?string $model = Withdrawal::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingLibrary;

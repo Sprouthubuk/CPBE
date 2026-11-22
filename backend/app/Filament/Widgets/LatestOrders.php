@@ -11,6 +11,12 @@ use Filament\Widgets\TableWidget;
 
 class LatestOrders extends TableWidget
 {
+    /** Admin roles (App\Support\Roles): the orders area. */
+    public static function canView(): bool
+    {
+        return \App\Support\Roles::allows('orders');
+    }
+
     protected static ?int $sort = 4;
 
     protected int|string|array $columnSpan = 'full';

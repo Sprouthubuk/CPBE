@@ -34,6 +34,12 @@ use Illuminate\Support\Str;
 /** Players. Accounts are never deleted; money and holds change only through the actions here, each with a reason. */
 class UserResource extends Resource
 {
+    /** Admin roles (App\Support\Roles): the players area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('players');
+    }
+
     protected static ?string $model = User::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
@@ -121,6 +127,20 @@ class UserResource extends Resource
                     self::reasoned('staff', 'Mark as staff (can’t play)', fn (User $u) => ! $u->is_staff, function (User $u) {
                         $u->forceFill(['is_staff' => true])->save();
                     }),
+                    Action::make('role')->label('Admin role')->icon(Heroicon::OutlinedKey)
+                        ->visible(fn (User $u) => $u->id !== auth()->id() && \App\Support\Roles::allows('team'))
+                        ->schema([
+                            Select::make('role')->label('Role')->options(['none' => 'No admin access (player)'] + \App\Support\Roles::ROLES)
+                                ->default(fn (User $u) => \App\Support\Roles::of($u) ?? 'none')->required(),
+                            Textarea::make('reason')->required()->maxLength(300),
+                        ])
+                        ->action(function (User $u, array $data) {
+                            $role = $data['role'] === 'none' ? null : $data['role'];
+                            // Anyone with a role can't play (PlayCheck), and keeps "can't play" if the role is taken away.
+                            $u->forceFill(['is_admin' => $role !== null, 'admin_role' => $role, 'is_staff' => $role !== null ? true : $u->is_staff])->save();
+                            AdminAction::record(auth()->user(), 'player.role', (string) $u->id, $data['reason'], ['role' => $role]);
+                            Notification::make()->success()->title('Role saved')->send();
+                        }),
                     self::reasoned('verify_email', 'Confirm email by hand', fn (User $u) => ! $u->email_verified_at, function (User $u) {
                         $u->markEmailAsVerified();
                     }),

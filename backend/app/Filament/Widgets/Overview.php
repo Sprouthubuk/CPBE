@@ -16,6 +16,12 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class Overview extends StatsOverviewWidget
 {
+    /** Admin roles (App\Support\Roles): the reports area. */
+    public static function canView(): bool
+    {
+        return \App\Support\Roles::allows('reports');
+    }
+
     protected static ?int $sort = 1;
 
     protected ?string $pollingInterval = '60s';

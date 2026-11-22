@@ -23,6 +23,12 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class ReferralResource extends Resource
 {
+    /** Admin roles (App\Support\Roles): the marketing area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('marketing');
+    }
+
     protected static ?string $model = Referral::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserPlus;

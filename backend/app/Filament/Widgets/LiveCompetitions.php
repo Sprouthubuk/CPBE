@@ -37,8 +37,8 @@ class LiveCompetitions extends TableWidget
                     ->description(fn (Competition $c) => ($c->isInstant() ? 'Instant win' : 'Live draw').' · '.Money::show($c->price_pence).' a ticket'),
                 TextColumn::make('sold')->label('Sold')->state(fn (Competition $c) => $state->soldPercent($c))
                     ->formatStateUsing(fn (int $state, Competition $c) => new HtmlString(
-                        '<div class="v9-progress"><span style="width:'.max(2, min(100, $state)).'%"></span></div>'
-                        .'<div class="v9-progress-label">'.number_format(app(CompetitionState::class)->sold($c)).' of '.number_format($c->max_tickets).' · '.$state.'%</div>')),
+                        '<div class="cp-progress"><span style="width:'.max(2, min(100, $state)).'%"></span></div>'
+                        .'<div class="cp-progress-label">'.number_format(app(CompetitionState::class)->sold($c)).' of '.number_format($c->max_tickets).' · '.$state.'%</div>')),
                 TextColumn::make('status')->badge()->state(fn (Competition $c) => $state->status($c))
                     ->color(fn (string $state) => ['live' => 'success', 'scheduled' => 'info', 'sold_out' => 'warning'][$state] ?? 'gray'),
                 TextColumn::make('closes_at')->label('Closes')->since('Europe/London')

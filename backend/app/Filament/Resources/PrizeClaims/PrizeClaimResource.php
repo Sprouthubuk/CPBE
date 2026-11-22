@@ -18,6 +18,12 @@ use Filament\Tables\Table;
 /** Draw wins and physical instant prizes: handled by a person. */
 class PrizeClaimResource extends Resource
 {
+    /** Admin roles (App\Support\Roles): the verification area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('verification');
+    }
+
     protected static ?string $model = PrizeClaim::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedGift;

@@ -32,7 +32,7 @@ export interface CompetitionSummary {
   subtitle: string | null;
   /** Rounded down; 100 only when it has actually sold out. */
   soldPercent: number;
-  /** The entry cap (max tickets) and how many are left. Vault Nine shows both (owner, 22 Nov 2026). */
+  /** The entry cap (max tickets) and how many are left. Brand Name shows both (owner, 22 Nov 2026). */
   maxTickets: number;
   ticketsLeft: number;
   /** Instant wins: how many instant prizes there are in total. Null for draws. */
@@ -268,7 +268,8 @@ export interface PricedBasket {
   lines: PricedLine[];
   totalPence: Pence;
   ticketCount: number;
-  promo: { code: string; discountPence: Pence } | null;
+  /** A valid promo code (SOW 2.3): its discount and a label such as "20% off" or "£5.00 off". */
+  promo: { code: string; discountPence: Pence; label: string } | null;
   /** What the wallet would pay if the player chooses wallet. */
   walletCanPayPence: Pence;
   walletCovers: boolean;
@@ -326,29 +327,6 @@ export interface DrawWinnerRow {
   verifyUrl: string | null;
 }
 
-/** A competition from the old site's archive (read-only; not a Verity record). */
-export interface ArchiveCompetitionSummary {
-  slug: string;
-  title: string;
-  type: "instant" | "draw";
-  drawAt: string | null;
-  image: string;
-  imageSmall: string;
-  imageSrcset: string | null;
-}
-
-/** A winner on the old site: the masked name it showed, and the ticket that won. */
-export interface ArchiveWinnerRow {
-  id: string;
-  name: string;
-  town: string | null;
-  prizeName: string;
-  valuePence: number;
-  ticketNumber: number | null;
-  at: string | null;
-  competitionTitle: string | null;
-  competitionSlug: string | null;
-}
 
 export interface EntryRow {
   ticket: number;

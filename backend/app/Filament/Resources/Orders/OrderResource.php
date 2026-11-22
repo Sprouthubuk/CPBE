@@ -23,6 +23,12 @@ use Illuminate\Database\Eloquent\Builder;
 /** Orders are read-only here: money moves only through the order services. */
 class OrderResource extends Resource
 {
+    /** Admin roles (App\Support\Roles): the orders area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('orders');
+    }
+
     protected static ?string $model = Order::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedReceiptPercent;

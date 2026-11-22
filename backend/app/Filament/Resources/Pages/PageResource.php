@@ -20,6 +20,12 @@ use Filament\Tables\Table;
 /** Terms, privacy, cookies, complaints and free entry: the legal pages the site shows. */
 class PageResource extends Resource
 {
+    /** Admin roles (App\Support\Roles): the content area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('content');
+    }
+
     protected static ?string $model = Page::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
