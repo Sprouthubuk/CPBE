@@ -36,12 +36,12 @@ const winnersLoop = loopOf(winners);
 const s = site.socials;
 const community = [
   s.whatsapp ? { t: "WhatsApp VIP", d: "Discount codes, buyers givvys and early access to every drop.", cta: "Join the VIP", href: s.whatsapp, hi: true } : null,
-  s.facebook ? { t: "Facebook Group", d: "Live draws every Wednesday and Sunday, and plenty of darts talk.", cta: "Join the group", href: s.facebook, hi: false } : null,
+  s.facebook ? { t: "Facebook Group", d: "Live draws, winners and news.", cta: "Join the group", href: s.facebook, hi: false } : null,
   s.instagram ? { t: "Instagram", d: "Behind the scenes, unboxings and reels.", cta: "Follow", href: s.instagram, hi: false } : null,
   { t: "Email Club", d: "New comps and member news in your inbox. Tick the box when you join.", cta: "Join free", href: "/join", hi: false },
 ].filter((x): x is NonNullable<typeof x> => !!x);
 ---
-<Layout title="Home" active="home" fullTitle="Darts Prize Competitions & Instant Wins | Brand Name" description="Win pro darts, cases, boards and cash with UK prize competitions. Live draws on Facebook and instant win games. 18+ UK only, free postal entry on every comp.">
+<Layout title="Home" active="home" fullTitle="UK Prize Competitions & Instant Wins | Brand Name" description="Win cash, tech and more with UK prize competitions. Live draws and instant win games. 18+ UK only, free postal entry on every comp.">
   {featured && (
     <section class="hero"><div class="wrap hero-in">
       <div class="stack g20 cp-stg">
@@ -100,7 +100,7 @@ const community = [
   {draws.length > 0 && (
     <section class="wrap cp-sec" id="draws">
       <div class="sh2">
-        <div><div class="eyebrow" style="margin-bottom:6px">Live every Wednesday &amp; Sunday · 9:30pm on Facebook</div><h2 class="h2">Live <span class="np">Draws</span></h2></div>
+        <div><div class="eyebrow" style="margin-bottom:6px">Streamed live on social media</div><h2 class="h2">Live <span class="np">Draws</span></h2></div>
         <a class="more" href="/competitions?type=draw">View all live draws →</a>
       </div>
       <div class="grid-cards cp-kids">{draws.map((c) => <CompCard c={c} />)}</div>
@@ -111,7 +111,7 @@ const community = [
     <section class="wrap cp-sec" id="vault-case">
       <div style="margin-bottom:24px">
         <h2 class="h2" style="margin-bottom:10px">The <span class="np">Vault</span> Case</h2>
-        <p class="p" style="margin:0;max-width:640px">Can't pick? Set a budget and we'll pack you a case of darts. Each dart is a bundle of tickets for a different live draw{site.vaultCase.bonusPct > 0 ? <>, plus <strong style="color:var(--green)">{site.vaultCase.bonusPct}% bonus tickets</strong> free</> : null}.</p>
+        <p class="p" style="margin:0;max-width:640px">Can't pick? Set a budget and we'll pack you a case of tickets. Each pick is a bundle of tickets for a different live draw{site.vaultCase.bonusPct > 0 ? <>, plus <strong style="color:var(--green)">{site.vaultCase.bonusPct}% bonus tickets</strong> free</> : null}.</p>
       </div>
       <VaultCaseBuilder client:visible available={site.vaultCase.available} chipsPence={site.vaultCase.chipsPence} minPence={site.vaultCase.minPence} maxPence={site.vaultCase.maxPence} bonusPct={site.vaultCase.bonusPct} />
     </section>
@@ -120,9 +120,9 @@ const community = [
   <section class="wrap cp-sec">
     <h2 class="h2" style="margin-bottom:24px">How It <span class="np">Works</span></h2>
     <div class="cp-steps cp-kids">
-      <div class="step cp-card"><span class="n">01</span><h3 class="h3">Step up to the oche</h3><p>Pick a live draw for darts, cases and kit, or an instant win for cash.{cheapest !== null && <> Tickets from {formatPence(cheapest)}.</>}</p></div>
+      <div class="step cp-card"><span class="n">01</span><h3 class="h3">Pick a competition</h3><p>Choose a live draw or an instant win.{cheapest !== null && <> Tickets from {formatPence(cheapest)}.</>}</p></div>
       <div class="step cp-card"><span class="n">02</span><h3 class="h3">Grab your tickets</h3><p>Pay from your wallet or by card, or enter free by post. Ticket numbers are given at random.</p></div>
-      <div class="step cp-card"><span class="n">03</span><h3 class="h3">Game shot</h3><p>Instant wins reveal straight away. Live draws are streamed on Facebook. Cash wins land in your wallet.</p></div>
+      <div class="step cp-card"><span class="n">03</span><h3 class="h3">See if you’ve won</h3><p>Instant wins reveal straight away. Live draws are streamed live. Cash wins land in your wallet.</p></div>
     </div>
   </section>
 
@@ -144,7 +144,7 @@ const community = [
   )}
 
   <section class="wrap cp-sec">
-    <div style="text-align:center;margin-bottom:28px"><h2 class="h2" style="margin-bottom:8px;text-align:center">Join The <span class="np">Community</span></h2><p class="p" style="margin:0;text-align:center">A darts club, not a checkout. Get behind the oche with us.</p></div>
+    <div style="text-align:center;margin-bottom:28px"><h2 class="h2" style="margin-bottom:8px;text-align:center">Join The <span class="np">Community</span></h2><p class="p" style="margin:0;text-align:center">News, offers and live draws: follow along wherever you like.</p></div>
     <div class="comm cp-kids">
       {community.map((k) => (
         <div class={k.hi ? "hi cp-card" : "cp-card"}>
@@ -156,8 +156,8 @@ const community = [
   </section>
 
   <section class="seo">
-    <h2 class="h2" style="font-size:clamp(32px,7vw,44px);line-height:.95;margin-bottom:18px">Darts Prize Competitions <span class="np">In The UK</span></h2>
-    <p>Brand Name runs online prize competitions for darts players aged 18 and over in the UK. Enter a <a href="/competitions?type=draw">live draw</a> to win pro darts, cases and boards, or play an <a href="/competitions?type=instant">instant win</a> and find out on the spot.</p>
+    <h2 class="h2" style="font-size:clamp(32px,7vw,44px);line-height:.95;margin-bottom:18px">Prize Competitions <span class="np">In The UK</span></h2>
+    <p>Brand Name runs online prize competitions for players aged 18 and over in the UK. Enter a <a href="/competitions?type=draw">live draw</a> to win big prizes, or play an <a href="/competitions?type=instant">instant win</a> and find out on the spot.</p>
     <p style="margin:0">Entries are capped, ticket numbers are given at random, and every winning number is published on our <a href="/winners">winners page</a>. Every competition can be entered for free by post: see <a href="/free-entry">free postal entry</a> or read <a href="/how-it-works">how it works</a>.</p>
   </section>
 <script>

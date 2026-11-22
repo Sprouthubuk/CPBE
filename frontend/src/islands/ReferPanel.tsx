@@ -5,13 +5,14 @@ import { trackCustom } from "../lib/consent";
 import { ukDate } from "../lib/time";
 import type { CompetitionSummary, MyReferrals, ReferralStatus, Voucher } from "../lib/types";
 import { Svg } from "./Svg";
+import { BRAND } from "../lib/seo";
 
 const STATUS: Record<ReferralStatus, [string, string]> = {
   pending: ["tag-w", "Joined"], missed: ["tag-w", "Didn't qualify"], blocked: ["tag-w", "Not eligible"], review: ["tag-y", "Being checked"],
   rewarded: ["tag-c", "Rewarded"], capped: ["tag-y", "Monthly limit reached"], rejected: ["tag-w", "Not eligible"], clawed_back: ["tag-w", "Reversed"],
 };
 
-function VoucherCard({ v, onUsed }: { v: Voucher; onUsed: () => void }) {
+export function VoucherCard({ v, onUsed }: { v: Voucher; onUsed: () => void }) {
   const [draws, setDraws] = useState<CompetitionSummary[] | null>(null);
   const [pick, setPick] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -46,7 +47,7 @@ function VoucherCard({ v, onUsed }: { v: Voucher; onUsed: () => void }) {
   if (v.status !== "available") return (
     <div className="li" style={{ cursor: "default" }}>
       <span className="ico"><Svg name="ticket" size={18} /></span>
-      <span style={{ flex: 1 }}>{v.tickets} free tickets{v.competition ? <> · <a href={`/competitions/${v.competition.slug}`}>{v.competition.title}</a></> : null}</span>
+      <span style={{ flex: 1 }}>{v.tickets} free tickets{v.forCompetition && !v.competition ? <> · for {v.forCompetition.title}</> : null}{v.competition ? <> · <a href={`/competitions/${v.competition.slug}`}>{v.competition.title}</a></> : null}</span>
       <span className="tag tag-w">{v.status === "redeemed" ? "Used" : v.status === "expired" ? "Expired" : "Reversed"}</span>
     </div>
   );
@@ -80,7 +81,7 @@ export default function ReferPanel({ initial }: { initial: MyReferrals }) {
   const [data, setData] = useState(initial);
   const [copied, setCopied] = useState(false);
   const reward = data.rewardType === "credit" ? `${formatMoney(data.rewardCreditPence)} bonus credit` : `${data.rewardTickets} free tickets`;
-  const message = `Join me on Brand Name: spend ${formatPence(data.minPurchasePence)} on your first order and we both get ${reward}. 18+ UK.`;
+  const message = `Join me on ${BRAND}: spend ${formatPence(data.minPurchasePence)} on your first order and we both get ${reward}. 18+ UK.`;
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   async function copy() {
@@ -93,7 +94,7 @@ export default function ReferPanel({ initial }: { initial: MyReferrals }) {
   }
   async function share() {
     try {
-      await navigator.share({ title: "Brand Name", text: message, url: data.link });
+      await navigator.share({ title: BRAND, text: message, url: data.link });
       trackCustom("ReferralShare", { via: "share" });
     } catch { /* cancelled */ }
   }
@@ -112,7 +113,7 @@ export default function ReferPanel({ initial }: { initial: MyReferrals }) {
         <div className="r2">
           {canShare ? <button type="button" className="btn btn-y cp-cta" onClick={share}><Svg name="share" size={16} /> Share</button>
             : <a className="btn btn-y cp-cta" href={`https://wa.me/?text=${text}`} target="_blank" rel="noopener noreferrer" onClick={() => trackCustom("ReferralShare", { via: "whatsapp" })}>WhatsApp</a>}
-          <a className="btn btn-o" href={`mailto:?subject=${encodeURIComponent("Join me on Brand Name")}&body=${text}`} onClick={() => trackCustom("ReferralShare", { via: "email" })}>Email</a>
+          <a className="btn btn-o" href={`mailto:?subject=${encodeURIComponent(`Join me on ${BRAND}`)}&body=${text}`} onClick={() => trackCustom("ReferralShare", { via: "email" })}>Email</a>
         </div>
       </div>
 

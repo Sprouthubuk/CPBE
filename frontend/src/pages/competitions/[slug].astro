@@ -35,7 +35,7 @@ const presets = c.presets?.length ? c.presets : isDraw ? [1, 5, 10, 25] : [5, 10
 const endCount = c.endPrize?.count ?? 0;
 const endPrizeLine = c.endPrize ? `${endCount > 1 ? `${endCount} × ` : ""}${formatPence(c.endPrize.valuePence, { short: false })}` : "";
 const [lead, tail] = splitTitle(c.title);
-const category = isDraw ? (c.tags.includes("kit") ? "Cases & Kit" : c.tags.includes("darts") ? "Darts" : null) : null;
+const category = isDraw ? (c.tags.includes("cash") ? "Cash" : c.tags.includes("tech") ? "Tech" : null) : null;
 ---
 <Layout title={c.title} fullTitle={pageTitle(competitionTitle(c))} active={isDraw ? "competitions" : "instant"} description={competitionDescription(c)} shareImage={c.image} jsonLd={[breadcrumbLd(new URL(Astro.site ?? Astro.url).origin, [["Home", "/"], [isDraw ? "Live Draws" : "Instant Wins", `/competitions?type=${isDraw ? "draw" : "instant"}`], [c.title, `/competitions/${c.slug}`]])]}>
 <main class="wrap" style="padding-top:20px">

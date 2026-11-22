@@ -166,7 +166,7 @@ function price(lines, u, promoCode) {
   const promo = promoCode && String(promoCode).toUpperCase() === "OCHE10" ? { code: "OCHE10", discountPence: Math.floor(sum * 0.1), label: "10% off" } : null;
   if (promoCode && !promo) problems.push("That promo code isn't valid.");
   const totalPence = sum - (promo?.discountPence ?? 0);
-  return { lines: out, totalPence, ticketCount: out.reduce((n, l) => n + l.quantity, 0), promo, walletCanPayPence: u ? Math.min(total(u), totalPence) : 0, walletCovers: !!u && total(u) >= totalPence && totalPence > 0, problems };
+  return { lines: out, totalPence, ticketCount: out.reduce((n, l) => n + l.quantity, 0), promo, loyaltyPoints: totalPence >= 100 && process.env.MOCK_FEATURES !== "off" ? [{ programme: "Rewards Club", points: Math.floor(totalPence / 100) }] : [], walletCanPayPence: u ? Math.min(total(u), totalPence) : 0, walletCovers: !!u && total(u) >= totalPence && totalPence > 0, problems };
 }
 
 // Vault Case: packs live draws with bundles first, then singles, never over the budget.
@@ -238,6 +238,7 @@ route("GET", "/api/health", (req, res) => send(res, 200, { status: "ok", checks:
 route("GET", "/api/site", (req, res) => send(res, 200, { salesOpen: true, minDepositPence: 500, minCardPence: 100, minWithdrawalPence: 2000, maxTopUpPence: 50000, featuredSlug: "treble-twenty-cash-claw", socials: { instagram: "https://instagram.com/example", facebook: "https://facebook.com/groups/example", whatsapp: "https://chat.whatsapp.com/example", tiktok: null }, supportEmail: "hello@example.co.uk", metaPixelId: process.env.MOCK_PIXEL_ID ?? null,
   // Both features are on in the mock so the pages can be seen and tested; the real site starts with them off.
   vaultCase: process.env.MOCK_FEATURES === "off" ? null : { available: true, chipsPence: [500, 1000, 2000, 5000], minPence: 500, maxPence: 10000, bonusPct: 10 },
+  loyalty: process.env.MOCK_FEATURES !== "off",
   referrals: process.env.MOCK_FEATURES === "off" ? null : { rewardType: "tickets", rewardTickets: 10, rewardCreditPence: 200, minPurchasePence: 500 } }));
 route("GET", "/api/competitions", (req, res, { query }) => send(res, 200, { data: COMPS.filter((c) => !query.get("type") || c.type === query.get("type")) }));
 route("GET", "/api/competitions/:slug", (req, res, { params, user }) => { const c = bySlug.get(params.slug); return c ? send(res, 200, detail(c, user)) : fail(res, 404, "Not found"); });
@@ -375,6 +376,27 @@ route("GET", "/api/me/referrals", authed((req, res, { user }) => {
   user.referralCode ??= crypto.randomBytes(4).toString("hex").toUpperCase().replace(/[01IO]/g, "Z");
   const friends = [...users.values()].filter((x) => x.referredBy === user.email);
   send(res, 200, { code: user.referralCode, link: `${SITE}/r/${user.referralCode}`, stats: { invited: friends.length, qualified: 0, rewards: 0, leftThisMonth: 10, cap: 10 }, rewardType: "tickets", rewardTickets: 10, rewardCreditPence: 200, minPurchasePence: 500, vouchers: user.vouchers ?? [], friends: friends.map((f) => ({ name: `${f.firstName} ${f.lastName.slice(0, 1)}.`, status: "pending", joinedAt: iso(Date.now()) })) });
+}));
+route("GET", "/api/me/loyalty", authed((req, res, { user }) => {
+  user.points ??= 120;
+  send(res, 200, { programmes: [{ id: 1, name: "Rewards Club", description: "Earn points on every order.", balance: user.points, lifetime: user.points, pointsPerPound: 1, expiryDays: 365, expiringSoon: 0,
+    tier: { name: "Bronze", benefits: "1x points", multiplierPct: 100 }, nextTier: { name: "Silver", pointsToGo: 500 - user.points },
+    tiers: [{ name: "Bronze", thresholdPoints: 0, multiplierPct: 100, benefits: "1x points" }, { name: "Silver", thresholdPoints: 500, multiplierPct: 125, benefits: "1.25x points" }],
+    rewards: [{ id: 1, name: "£1 Site Credit", description: null, type: "site_credit", pointsCost: 100, creditPence: 100, tickets: null, minTier: null, available: true, affordable: user.points >= 100 },
+      { id: 2, name: "5 Free Entries", description: "Into any live draw.", type: "free_entries", pointsCost: 400, creditPence: null, tickets: 5, minTier: null, available: true, affordable: user.points >= 400 }],
+    history: [{ points: 120, kind: "earn", reason: "Order CP-DEMO", at: new Date().toISOString(), expiresAt: null }] }],
+    redemptions: user.redemptions ?? [], vouchers: (user.vouchers ?? []).filter((v) => v.source === "loyalty") });
+}));
+route("POST", "/api/me/loyalty/redeem", authed(async (req, res, { user }) => {
+  const b = await readJson(req);
+  const cost = b.rewardId === 1 ? 100 : b.rewardId === 2 ? 400 : null;
+  user.points ??= 120;
+  if (cost === null) return fail(res, 404, "Not found.");
+  if (user.points < cost) return fail(res, 422, "You don’t have enough points for this reward yet.");
+  user.points -= cost;
+  const red = { id: Date.now(), reward: b.rewardId === 1 ? "£1 Site Credit" : "5 Free Entries", points: cost, status: "done", voucherId: null, at: new Date().toISOString() };
+  (user.redemptions ??= []).unshift(red);
+  send(res, 201, { redemption: { id: red.id, status: red.status, voucherId: null } });
 }));
 route("GET", "/api/me/vouchers/:id/draws", authed((req, res, { user, params }) => {
   const v = (user.vouchers ?? []).find((x) => String(x.id) === params.id);

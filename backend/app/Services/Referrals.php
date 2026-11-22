@@ -248,7 +248,7 @@ final class Referrals
     public function drawsFor(Voucher $v, User $user): array
     {
         return Competition::query()->published()->where('type', 'draw')->orderBy('closes_at')->get()
-            ->filter(fn (Competition $c) => $this->state->status($c) === 'live' && $this->state->canBuy($c, $user->ownerRef()) >= $v->tickets
+            ->filter(fn (Competition $c) => (! $v->for_competition_id || $v->for_competition_id === $c->id) && $this->state->status($c) === 'live' && $this->state->canBuy($c, $user->ownerRef()) >= $v->tickets
                 && $v->tickets <= Bundles::shareLimit($c) && PromoCap::room($c) >= $v->tickets)
             ->values()->all();
     }

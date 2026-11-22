@@ -96,6 +96,8 @@ export interface SiteInfo {
   vaultCase: { available: boolean; chipsPence: Pence[]; minPence: Pence; maxPence: Pence; bonusPct: number } | null;
   /** Refer a Friend: null while the feature is off. */
   referrals: { rewardType: "tickets" | "credit"; rewardTickets: number; rewardCreditPence: Pence; minPurchasePence: Pence } | null;
+  /** True while any loyalty programme is switched on (SOW 2.11). */
+  loyalty: boolean;
 }
 
 export interface WalletBalances {
@@ -208,6 +210,32 @@ export interface Voucher {
   status: "available" | "redeemed" | "expired" | "clawed_back";
   expiresAt: string;
   competition: { title: string; slug: string } | null;
+  /** Bonus entries: the only draw this voucher can go into. */
+  forCompetition?: { title: string; slug: string } | null;
+}
+
+/** GET /api/me/loyalty (SOW 2.11). */
+export interface LoyaltyProgrammeView {
+  id: number;
+  name: string;
+  description: string | null;
+  balance: number;
+  lifetime: number;
+  pointsPerPound: number;
+  expiryDays: number | null;
+  expiringSoon: number;
+  tier: { name: string; benefits: string | null; multiplierPct: number } | null;
+  nextTier: { name: string; pointsToGo: number } | null;
+  tiers: { name: string; thresholdPoints: number; multiplierPct: number; benefits: string | null }[];
+  rewards: { id: number; name: string; description: string | null; type: "site_credit" | "free_entries" | "bonus_entries" | "custom"; pointsCost: number;
+    creditPence: Pence | null; tickets: number | null; minTier: string | null; available: boolean; affordable: boolean }[];
+  history: { points: number; kind: "earn" | "bonus" | "redeem" | "expire" | "reverse" | "adjust" | "refund"; reason: string; at: string; expiresAt: string | null }[];
+}
+
+export interface MyLoyalty {
+  programmes: LoyaltyProgrammeView[];
+  redemptions: { id: number; reward: string | null; points: number; status: "done" | "pending" | "fulfilled" | "cancelled"; voucherId: number | null; at: string }[];
+  vouchers: Voucher[];
 }
 
 export interface MyReferrals {
@@ -270,6 +298,8 @@ export interface PricedBasket {
   ticketCount: number;
   /** A valid promo code (SOW 2.3): its discount and a label such as "20% off" or "£5.00 off". */
   promo: { code: string; discountPence: Pence; label: string } | null;
+  /** Points the basket would earn in each switched-on loyalty programme, paid with real money (SOW 2.11). */
+  loyaltyPoints: { programme: string; points: number }[];
   /** What the wallet would pay if the player chooses wallet. */
   walletCanPayPence: Pence;
   walletCovers: boolean;

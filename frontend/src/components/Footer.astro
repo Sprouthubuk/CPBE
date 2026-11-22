@@ -13,7 +13,7 @@ const socials: [string | null, string, string][] = [
     <div class="ft-grid">
       <div class="ft-brand">
         <img src="/logo-sm.webp" alt="Brand Name" style="width:150px;height:auto;display:block" width="300" height="175" loading="lazy">
-        <p>Every entry. Every chance. Built by darts players, for darts players.</p>
+        <p>Every entry. Every chance.</p>
         {socials.some(([u]) => u) && <div class="ft-soc">{socials.filter(([u]) => u).map(([u, l, i]) => <a href={u!} aria-label={l} rel="noopener" target="_blank"><Icon name={i} size={18} /></a>)}</div>}
       </div>
       <nav aria-label="Play"><h2>Play</h2><a href="/competitions">All Competitions</a><a href="/competitions?type=instant">Instant Wins</a><a href="/competitions?type=draw">Live Draws</a><a href="/winners">Winners</a><a href="/instant-winners">Instant Winners</a></nav>

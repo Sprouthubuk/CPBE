@@ -95,7 +95,7 @@ describe("site-wide rules", () => {
     // Instant wins, then live draws, each with one green word and a "View all" link (design/Main.dc.html).
     expect(html).toMatch(/Instant <span class="np">Wins<\/span>/);
     expect(html).toMatch(/Live <span class="np">Draws<\/span>/);
-    expect(text(html)).toMatch(/Live every Wednesday & Sunday · 9:30pm on Facebook/);
+    expect(text(html)).toMatch(/Streamed live on social media/);
     // The ticker under the hero is the real winners feed (names, prize, competition, when).
     expect(html).toMatch(/Latest <span class="np">Winners<\/span>/);
     expect(html).toMatch(/<strong>Emmie A\.<\/strong> won <em>£0\.50 site credit<\/em> · Double Top Pop · /);

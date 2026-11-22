@@ -56,6 +56,7 @@ class AuthController extends Controller
         ])->save();
         // Refer a Friend: linked now or never. Device and IP are kept only as hashes, for the fraud checks.
         app(Referrals::class)->attach($u, $d['referralCode'] ?? null, $d['deviceId'] ?? null, $r->ip());
+        app(\App\Services\Loyalty::class)->signedUp($u);
         // Where they were going (e.g. the checkout for the tickets they picked): the confirmation link
         // brings them back there, even when it's opened in another tab or browser.
         if (($next = self::safeNext($d['next'] ?? null)) !== null) {

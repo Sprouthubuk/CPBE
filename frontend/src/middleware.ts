@@ -6,6 +6,7 @@ const FALLBACK_SITE: SiteInfo = {
   salesOpen: false,
   vaultCase: null,
   referrals: null,
+  loyalty: false,
   minDepositPence: 500,
   minCardPence: 100,
   minWithdrawalPence: 2000,

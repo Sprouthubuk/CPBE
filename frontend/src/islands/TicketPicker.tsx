@@ -157,7 +157,7 @@ export default function TicketPicker(p: PickerProps) {
 
         {bundles.length === 0 && (
           <div className="stack g8" style={{ marginTop: 14 }}>
-            <span className="lbl">{p.type === "instant" ? "How many darts?" : "How many tickets?"}</span>
+            <span className="lbl">{p.type === "instant" ? "How many tickets?" : "How many tickets?"}</span>
             <div className="r4" style={popular ? { rowGap: 16, paddingTop: 6 } : undefined}>
               {p.presets.map((n) => (
                 <button key={n} type="button" className={choice.kind === "single" && qty === n ? "pick on" : "pick"} aria-pressed={choice.kind === "single" && qty === n} disabled={!!blocked || n < min} onClick={() => setSingles(n)} style={n === popular ? { position: "relative" } : undefined}>

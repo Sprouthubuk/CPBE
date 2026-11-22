@@ -28,7 +28,7 @@ against it; the Laravel feature tests must cover the same behaviour.
 
 | Method | Path | Returns |
 | --- | --- | --- |
-| GET | `/api/site` | `SiteInfo` (cached 30s by Astro). `metaPixelId` is the Pixel ID set in the admin, or null; the site loads the Pixel only after the visitor accepts marketing cookies. `vaultCase` and `referrals` are null while those features are off (both start off; see below). `socials` holds the Instagram, Facebook, WhatsApp VIP and TikTok links set in Admin → Settings (null when not set) |
+| GET | `/api/site` | `SiteInfo` (cached 30s by Astro). `metaPixelId` is the Pixel ID set in the admin, or null; the site loads the Pixel only after the visitor accepts marketing cookies. `vaultCase` and `referrals` are null while those features are off (both start off; see below). `socials` holds the Instagram, Facebook, WhatsApp VIP and TikTok links set in Admin → Settings (null when not set) `loyalty` is true while any loyalty programme is switched on. |
 | GET | `/api/health` | `{ status: "ok"\|"failing", checks: { database, scheduler } }`, `200` or `503` (for an uptime monitor; scheduler = ran in the last 5 minutes) |
 | GET | `/api/competitions?type=instant\|draw` | `{ data: CompetitionSummary[] }` (live and sold out, featured first, then closing soonest). `opensAt` is when a scheduled competition opens; `soldPercent` is rounded down (100 only when sold out); `featuredBundle` is a live draw's Our Pick bundle or null. `maxTickets` is the entry cap and `ticketsLeft` what's left of it (Brand Name shows both, owner 22 Nov 2026); per-person limits and the promo cap are never returned |
 | GET | `/api/competitions/{slug}` | `CompetitionDetail`; `heldByMe` for the signed-in player; `bundles` = the bundles on sale now (only ones that still fit) |
@@ -74,7 +74,8 @@ one.", or under `minTickets`). It never says how many are left. `problems` holds
 expiry dates, a total use limit, a per-player limit and a minimum basket spend ("Spend £X or more to use that
 promo code.", "You’ve already used that promo code."). They apply to single tickets unless the code includes
 bundles, take at most half of what they apply to and never make an order free. `promo` is
-`{ code, discountPence, label }` ("20% off", "£5.00 off"). Unpaid orders hold their tickets for 15 minutes (`Order::HOLD_MINUTES`); checkout
+`{ code, discountPence, label }` ("20% off", "£5.00 off"). `loyaltyPoints` lists `{ programme, points }` the basket would
+earn in each switched-on loyalty programme if it's paid with real money (bonus credit earns nothing). Unpaid orders hold their tickets for 15 minutes (`Order::HOLD_MINUTES`); checkout
 locks each competition row so two orders can't both take the last tickets.
 
 `POST /api/checkout` (signed in) —
@@ -160,6 +161,8 @@ rewardCreditPence, minPurchasePence }`). While off every route below is `404`.
 | GET | `/api/me/referrals` | `MyReferrals`: `{ code, link, stats: { invited, qualified, rewards, leftThisMonth, cap }, rewardType, rewardTickets, rewardCreditPence, minPurchasePence, vouchers: Voucher[], friends: { name, status, joinedAt }[] }` |
 | GET | `/api/me/vouchers/{id}/draws` | `{ data: CompetitionSummary[] }`: live draws the voucher can go into (% sold only); a draw whose promo ticket cap can't take the voucher is left out |
 | POST | `/api/me/vouchers/{id}/redeem` | `{ competitionId }` → `201 { order: { number, status } }`: a £0 order, tickets from Verity. `422` (`voucher_unavailable`, `voucher_draw`) or a play-check refusal |
+| GET | `/api/me/loyalty` | `MyLoyalty` (SOW 2.11): each switched-on programme's `balance`, `lifetime` (sets the tier), `tier`, `nextTier { name, pointsToGo }`, `tiers`, `rewards` (`available`, `affordable`), `expiringSoon` (next 30 days), the last 30 `history` lines; the last 20 `redemptions`; and loyalty `vouchers` (bonus entries carry `forCompetition`) |
+| POST | `/api/me/loyalty/redeem` | `{ rewardId }` → `201 { redemption: { id, status, voucherId } }`. Site credit goes to the bonus wallet; free and bonus entries become a voucher (30 days, used through `/api/me/vouchers/{id}/…`); custom rewards wait as `pending` until the Client fulfils them. `422` `reward_unavailable`, `reward_out_of_stock`, `reward_tier`, `not_enough_points`, or a play-check refusal |
 
 A referral qualifies on the friend's first paid ticket order if its real money (card + deposit +
 winnings; never bonus, vouchers or postal entries) is at least `minPurchasePence`. Then fraud checks

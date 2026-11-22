@@ -15,9 +15,9 @@ const TYPES: [string, string, (c: CompetitionSummary) => boolean][] = [
   ["all", "All", () => true],
   ["instant", "Instant Wins", (c) => c.type === "instant"],
   ["draw", "Live Draws", (c) => c.type === "draw"],
-  // Tags are set per competition in the admin ("darts", "kit").
-  ["darts", "Darts", (c) => c.tags.includes("darts")],
-  ["kit", "Cases & Kit", (c) => c.tags.includes("kit")],
+  // Tags are set per competition in the admin ("cash", "tech"). The categories follow the Client's prize mix.
+  ["cash", "Cash", (c) => c.tags.includes("cash")],
+  ["tech", "Tech", (c) => c.tags.includes("tech")],
   ["under1", "Under £1", (c) => c.pricePence < 100],
 ];
 const t = TYPES.find((x) => x[0] === type) ?? TYPES[0];
@@ -26,9 +26,9 @@ const SEO: Record<string, { title: string; h1: [string, string]; description: st
   all: { title: "Live UK Competitions & Raffles | Brand Name", h1: ["All", "Competitions"], description: "Every live Brand Name competition: instant win games and live draw raffles for cash, tech and more, from 1p a ticket. 18+ UK, free postal entry." },
   instant: { title: "Instant Win Competitions UK | Brand Name", h1: ["Instant Win", "Competitions"], description: "Instant win competitions: buy a ticket, play the reveal game and see straight away if you've won cash or a prize. 18+ UK, free postal entry." },
   draw: { title: "Live Draw Competitions & Raffles | Brand Name", h1: ["Live Draw", "Competitions"], description: "Prize draws and raffles drawn live when they close. Pick your tickets, watch the draw and see every winner published. 18+ UK, free postal entry." },
-  darts: { title: "Darts Competitions | Brand Name", h1: ["Darts", "Competitions"], description: "Win pro darts sets from the top brands in live draws with capped entries. 18+ UK only, free postal entry on every competition." },
-  kit: { title: "Darts Cases & Kit Competitions | Brand Name", h1: ["Cases &", "Kit"], description: "Win darts cases, boards and kit in live draws with capped entries. 18+ UK only, free postal entry on every competition." },
-  under1: { title: "Competitions Under £1 | Brand Name", h1: ["Under", "£1"], description: "Darts prize competitions with tickets under £1: instant win games and live draws. 18+ UK only, free postal entry." },
+  cash: { title: "Cash Competitions | Brand Name", h1: ["Cash", "Competitions"], description: "Win tax-free cash in live draws and instant win games with capped entries. 18+ UK only, free postal entry on every competition." },
+  tech: { title: "Tech Competitions | Brand Name", h1: ["Tech", "Competitions"], description: "Win phones, consoles and gadgets in live draws with capped entries. 18+ UK only, free postal entry on every competition." },
+  under1: { title: "Competitions Under £1 | Brand Name", h1: ["Under", "£1"], description: "Prize competitions with tickets under £1: instant win games and live draws. 18+ UK only, free postal entry." },
 };
 const seo = SEO[t[0]] ?? SEO.all;
 let list = all.filter(t[2]);
@@ -56,7 +56,7 @@ const link = (k: string) => {
     <h1 class="h1 cp-in" style="animation-delay:.08s;margin:0 0 28px">{seo.h1[0]}{" "}<span class="np">{seo.h1[1]}</span></h1>
     <form class="search-row" method="get" action="/competitions" role="search">
       {type !== "all" && <input type="hidden" name="type" value={type}>}
-      <label class="q"><Icon name="search" size={18} /><span class="sr-only">Search competitions</span><input type="search" name="q" value={q} placeholder="Search darts, players, cases or cash"></label>
+      <label class="q"><Icon name="search" size={18} /><span class="sr-only">Search competitions</span><input type="search" name="q" value={q} placeholder="Search competitions or prizes"></label>
       <label>Sort
         <select name="sort" onchange="this.form.submit()">
           <option value="ending" selected={sort === "ending"}>Ending soon</option>

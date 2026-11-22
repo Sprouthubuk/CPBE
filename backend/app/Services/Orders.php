@@ -219,6 +219,7 @@ final class Orders
             $this->fulfilment->fulfil($order);
             VaultCase::query()->where('order_id', $order->id)->update(['status' => 'paid']);
             app(Referrals::class)->orderPaid($order);
+            app(Loyalty::class)->orderPaid($order);
         }
         if ($wasClosed) {
             $this->fulfilment->flag($order, 'Paid after the order had closed.');

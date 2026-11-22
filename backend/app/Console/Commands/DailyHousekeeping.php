@@ -7,7 +7,7 @@ use App\Models\SpendLimit;
 use App\Services\Wallet;
 use Illuminate\Console\Command;
 
-/** Apply limit raises whose 24 hours are up, and write off expired bonus credit. */
+/** Apply limit raises whose 24 hours are up, write off expired bonus credit and vouchers, give birthday points and expire old points. */
 class DailyHousekeeping extends Command
 {
     protected $signature = 'players:housekeeping';
@@ -31,9 +31,10 @@ class DailyHousekeeping extends Command
             });
         $vouchers = app(\App\Services\Referrals::class)->expireVouchers();
         app(\App\Services\VaultCases::class)->expire();
-        // Player spreadsheets uploaded for an import never stay on the server longer than a day.
-        $imports = \App\Support\PlayerImportRun::removeOld();
-        $this->info("limits applied {$applied}, bonus expired {$expired}p, vouchers expired {$vouchers}, old imports removed {$imports}");
+        $loyalty = app(\App\Services\Loyalty::class);
+        $birthdays = $loyalty->birthdays();
+        $pointsExpired = $loyalty->expire();
+        $this->info("limits applied {$applied}, bonus expired {$expired}p, vouchers expired {$vouchers}, birthday bonuses {$birthdays}, points expiries {$pointsExpired}");
 
         return self::SUCCESS;
     }

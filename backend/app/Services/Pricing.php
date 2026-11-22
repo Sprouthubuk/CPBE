@@ -141,6 +141,11 @@ final class Pricing
         }
 
         $walletCan = $user ? $this->wallet->spendable($user, $total) : 0;
+        $perCompetition = [];
+        foreach ($out as $l) {
+            $perCompetition[$l['competitionId']] = ($perCompetition[$l['competitionId']] ?? 0) + (int) ($l['linePence'] ?? 0);
+        }
+        $loyaltyPoints = $total > 0 ? app(Loyalty::class)->estimate($user, $perCompetition, $total) : [];
 
         return [
             'lines' => $out,
@@ -148,6 +153,7 @@ final class Pricing
             'subtotalPence' => $subtotal,
             'ticketCount' => $count,
             'promo' => $promo,
+            'loyaltyPoints' => $loyaltyPoints,
             'walletCanPayPence' => $walletCan,
             'walletCovers' => $user !== null && $total > 0 && $walletCan >= $total,
             'problems' => array_values(array_unique($problems)),

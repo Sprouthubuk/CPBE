@@ -1,0 +1,14 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import AccountShell from "../../components/AccountShell.astro";
+import LoyaltyPanel from "../../islands/LoyaltyPanel";
+import type { MyLoyalty } from "../../lib/types";
+const { api, site } = Astro.locals;
+if (!site.loyalty) return Astro.rewrite("/404");
+const data = await api.get<MyLoyalty>("/api/me/loyalty");
+---
+<Layout title="My Rewards" active="account" noindex>
+  <AccountShell active="loyalty" title="My Rewards" eyebrow="Loyalty Points" glow="ny">
+    <LoyaltyPanel client:load initial={data} />
+  </AccountShell>
+</Layout>

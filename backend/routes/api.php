@@ -61,6 +61,8 @@ Route::middleware('throttle:api')->group(function () {
         Route::post('orders/{number}/return', [OrderController::class, 'return']);
         Route::post('orders/{number}/play', [OrderController::class, 'play']);
         Route::get('me/referrals', [ReferralController::class, 'mine']);
+        Route::get('me/loyalty', [\App\Http\Controllers\Api\LoyaltyController::class, 'mine']);
+        Route::post('me/loyalty/redeem', [\App\Http\Controllers\Api\LoyaltyController::class, 'redeem'])->middleware('throttle:money');
         Route::get('me/vouchers/{voucher}/draws', [ReferralController::class, 'draws']);
         Route::post('me/vouchers/{voucher}/redeem', [ReferralController::class, 'redeem'])->middleware('throttle:money');
     });

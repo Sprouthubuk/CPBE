@@ -120,6 +120,7 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
           </details>
           <div className="row between" style={{ fontWeight: 800 }}><span className="muted">{priced?.ticketCount ?? "…"} tickets · {new Set(lines.map((l) => l.competitionId)).size} {new Set(lines.map((l) => l.competitionId)).size === 1 ? "comp" : "comps"}</span></div>
           <div className="row between" style={{ borderTop: "1px solid rgba(255,255,255,.1)", paddingTop: 12 }}><span className="d" style={{ fontSize: 22 }}>Total</span><span className="d ny" style={{ fontSize: 34 }} data-testid="basket-total">{priced ? formatMoney(priced.totalPence) : "…"}</span></div>
+          {(priced?.loyaltyPoints ?? []).map((l) => <div key={l.programme} className="hint" data-testid="basket-points">You’ll earn <b>{l.points.toLocaleString("en-GB")} {l.programme} points</b> when you pay by card or wallet balance.</div>)}
           {signedIn && priced?.walletCovers && <div className="notice notice-c"><Svg name="wallet" size={18} /><span>Your wallet covers this — checkout takes one tap.</span></div>}
           {(priced?.problems ?? []).map((p) => <div key={p} className="notice notice-p" role="alert"><Svg name="info" size={18} /><span>{p}</span></div>)}
           {error && <div className="notice notice-p" role="alert"><Svg name="info" size={18} /><span>{error}</span></div>}

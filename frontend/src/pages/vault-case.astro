@@ -9,7 +9,7 @@ if (!gb) return Astro.rewrite("/404");
 <Layout title="The Vault Case" active="comps" description="Set a budget and we pack you a case of live draw tickets, with bonus tickets on top. 18+ UK only, free postal entry on every draw.">
   <section class="sec" style="padding-top:20px"><div class="wrap stack g16">
     <div class="stack g8"><div class="eyebrow">Vault Case</div><h1 class="h1">The <span class="np">Vault</span> Case</h1>
-      <p class="p" style="margin:0">Set a budget and we'll pack you a case of darts: each dart is a bundle of tickets for a different live draw{gb.bonusPct > 0 ? <>, plus <b class="ny">{gb.bonusPct}% bonus tickets</b> free</> : null}. Same prices as each competition page.</p></div>
+      <p class="p" style="margin:0">Set a budget and we'll pack you a case of tickets: each pick is a bundle of tickets for a different live draw{gb.bonusPct > 0 ? <>, plus <b class="ny">{gb.bonusPct}% bonus tickets</b> free</> : null}. Same prices as each competition page.</p></div>
     <VaultCaseBuilder client:load available={gb.available} chipsPence={gb.chipsPence} minPence={gb.minPence} maxPence={gb.maxPence} bonusPct={gb.bonusPct} />
   </div></section>
   <section class="sec" style="padding-top:0"><div class="mid stack g16" style="max-width:640px">

@@ -121,7 +121,7 @@ it("every page works and fits a phone", async () => {
   await lp.locator('[data-testid="login-form"] button[type="submit"]').click();
   await lp.waitForURL((u) => !u.pathname.startsWith("/login"));
   await lp.close();
-  const mem = ["/account", "/account/tickets", "/account/wallet", "/account/settings", "/account/safer-play", "/account/refer", "/", "/competitions", "/competitions/pro-dartboard-bundle", "/competitions/cash-flights", "/basket", "/checkout", "/vault-case", "/payment/failed?order=CP-NOPE", "/payment/cancelled?order=CP-NOPE"];
+  const mem = ["/account", "/account/tickets", "/account/wallet", "/account/settings", "/account/safer-play", "/account/refer", "/account/loyalty", "/", "/competitions", "/competitions/pro-dartboard-bundle", "/competitions/cash-flights", "/basket", "/checkout", "/vault-case", "/payment/failed?order=CP-NOPE", "/payment/cancelled?order=CP-NOPE"];
   for (const u of mem) await audit(member, site.origin, u, 390, "player");
   await member.close();
   expect(seen.size, "pages crawled").toBeGreaterThan(40);

@@ -127,6 +127,17 @@ class UserResource extends Resource
                     self::reasoned('staff', 'Mark as staff (can’t play)', fn (User $u) => ! $u->is_staff, function (User $u) {
                         $u->forceFill(['is_staff' => true])->save();
                     }),
+                    Action::make('points')->label('Adjust loyalty points')->icon(Heroicon::OutlinedStar)
+                        ->visible(fn (User $u) => ! $u->is_admin && \App\Models\LoyaltyProgramme::query()->exists() && \App\Support\Roles::allows('marketing'))
+                        ->schema([
+                            Select::make('programme')->options(fn () => \App\Models\LoyaltyProgramme::query()->pluck('name', 'id')->all())->required(),
+                            TextInput::make('points')->integer()->required()->helperText('Negative to take points off.')->rule('not_in:0'),
+                            Textarea::make('reason')->required()->maxLength(300),
+                        ])
+                        ->action(function (User $u, array $data) {
+                            app(\App\Services\Loyalty::class)->adjust(auth()->user(), $u, \App\Models\LoyaltyProgramme::query()->findOrFail($data['programme']), (int) $data['points'], $data['reason']);
+                            Notification::make()->success()->title('Points adjusted')->send();
+                        }),
                     Action::make('role')->label('Admin role')->icon(Heroicon::OutlinedKey)
                         ->visible(fn (User $u) => $u->id !== auth()->id() && \App\Support\Roles::allows('team'))
                         ->schema([
