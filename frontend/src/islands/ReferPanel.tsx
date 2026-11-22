@@ -68,7 +68,7 @@ function VoucherCard({ v, onUsed }: { v: Voucher; onUsed: () => void }) {
               </label>
             ))}
           </div>
-          <button type="button" className="btn btn-y v9-cta" onClick={redeem} disabled={busy || !pick} data-testid="voucher-redeem">{busy ? "Adding…" : `Use ${v.tickets} Free Tickets`}</button>
+          <button type="button" className="btn btn-y cp-cta" onClick={redeem} disabled={busy || !pick} data-testid="voucher-redeem">{busy ? "Adding…" : `Use ${v.tickets} Free Tickets`}</button>
         </>
       )}
       {error && <div className="err" role="alert">{error}</div>}
@@ -80,7 +80,7 @@ export default function ReferPanel({ initial }: { initial: MyReferrals }) {
   const [data, setData] = useState(initial);
   const [copied, setCopied] = useState(false);
   const reward = data.rewardType === "credit" ? `${formatMoney(data.rewardCreditPence)} bonus credit` : `${data.rewardTickets} free tickets`;
-  const message = `Join me on Vault Nine Competitions: spend ${formatPence(data.minPurchasePence)} on your first order and we both get ${reward}. 18+ UK.`;
+  const message = `Join me on Brand Name: spend ${formatPence(data.minPurchasePence)} on your first order and we both get ${reward}. 18+ UK.`;
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   async function copy() {
@@ -93,7 +93,7 @@ export default function ReferPanel({ initial }: { initial: MyReferrals }) {
   }
   async function share() {
     try {
-      await navigator.share({ title: "Vault Nine Competitions", text: message, url: data.link });
+      await navigator.share({ title: "Brand Name", text: message, url: data.link });
       trackCustom("ReferralShare", { via: "share" });
     } catch { /* cancelled */ }
   }
@@ -110,9 +110,9 @@ export default function ReferPanel({ initial }: { initial: MyReferrals }) {
         </div>
         <div className="hint">Your code: <b style={{ letterSpacing: ".08em" }}>{data.code}</b></div>
         <div className="r2">
-          {canShare ? <button type="button" className="btn btn-y v9-cta" onClick={share}><Svg name="share" size={16} /> Share</button>
-            : <a className="btn btn-y v9-cta" href={`https://wa.me/?text=${text}`} target="_blank" rel="noopener noreferrer" onClick={() => trackCustom("ReferralShare", { via: "whatsapp" })}>WhatsApp</a>}
-          <a className="btn btn-o" href={`mailto:?subject=${encodeURIComponent("Join me on Vault Nine")}&body=${text}`} onClick={() => trackCustom("ReferralShare", { via: "email" })}>Email</a>
+          {canShare ? <button type="button" className="btn btn-y cp-cta" onClick={share}><Svg name="share" size={16} /> Share</button>
+            : <a className="btn btn-y cp-cta" href={`https://wa.me/?text=${text}`} target="_blank" rel="noopener noreferrer" onClick={() => trackCustom("ReferralShare", { via: "whatsapp" })}>WhatsApp</a>}
+          <a className="btn btn-o" href={`mailto:?subject=${encodeURIComponent("Join me on Brand Name")}&body=${text}`} onClick={() => trackCustom("ReferralShare", { via: "email" })}>Email</a>
         </div>
       </div>
 

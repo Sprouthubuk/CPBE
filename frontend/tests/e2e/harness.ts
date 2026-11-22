@@ -42,11 +42,11 @@ export async function startSite(backend: "mock" | "laravel" = "mock", opts: { fe
   let artisan: ((args: string[]) => string) | undefined;
   if (backend === "laravel") {
     const be = path.resolve(ROOT, "../backend");
-    dbFile = path.join(os.tmpdir(), `v9-fullstack-${process.pid}-${Date.now()}.sqlite`);
+    dbFile = path.join(os.tmpdir(), `cp-fullstack-${process.pid}-${Date.now()}.sqlite`);
     fs.writeFileSync(dbFile, "");
     const lenv = {
       ...env, APP_ENV: "local", APP_DEBUG: "true", APP_URL: origin, FRONTEND_URL: origin, DB_CONNECTION: "sqlite", DB_DATABASE: dbFile,
-      SESSION_DRIVER: "file", SESSION_COOKIE: "v9_session", SESSION_DOMAIN: "", SANCTUM_STATEFUL_DOMAINS: `127.0.0.1:${proxyPort}`,
+      SESSION_DRIVER: "file", SESSION_COOKIE: "cp_session", SESSION_DOMAIN: "", SANCTUM_STATEFUL_DOMAINS: `127.0.0.1:${proxyPort}`,
       // Each test site gets its own cache folder, so one site's sign-in limits never count against another running alongside.
       CACHE_STORE: "file", CACHE_FILE_PATH: dbFile.replace(/\.sqlite$/, "-cache"), QUEUE_CONNECTION: "sync", MAIL_MAILER: "log", CASHFLOWS_DRIVER: "fake", VERITY_BEACON: "local",
       VERITY_OWNER_PEPPER: "fullstack-test-pepper-0123456789", PHP_CLI_SERVER_WORKERS: "12", LOG_CHANNEL: "single",

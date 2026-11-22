@@ -122,7 +122,7 @@ describe("account", () => {
     await b.api("/api/auth/login", { email: "player@example.com", password: "password123" });
     const res = await fetch(site.origin + "/logout", { method: "POST", headers: { Cookie: b.cookie(), Origin: site.origin, "Content-Type": "application/x-www-form-urlencoded" }, redirect: "manual" });
     expect(res.status).toBe(303);
-    for (const c of res.headers.getSetCookie()) if (c.startsWith("v9_session=")) b.jar.delete("v9_session");
+    for (const c of res.headers.getSetCookie()) if (c.startsWith("cp_session=")) b.jar.delete("cp_session");
     expect((await b.get("/account")).status).toBe(302);
   });
 });

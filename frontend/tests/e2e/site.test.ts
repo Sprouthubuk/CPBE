@@ -28,7 +28,7 @@ const PUBLIC_PAGES: [string, RegExp][] = [
   ["/free-entry", /Free Postal Entry/],
   ["/legal/terms", /Terms &(amp;)? Conditions/],
   ["/menu", /All Competitions/],
-  ["/join", /Join Vault Nine/],
+  ["/join", /Join Brand Name/],
   ["/login", /Welcome Back/],
   ["/forgot-password", /Reset Password/],
   ["/basket", /Your Basket/],
@@ -82,7 +82,7 @@ describe("site-wide rules", () => {
   });
   it("members-only pages send visitors to log in and come back", async () => {
     const b = new Browser(site.origin);
-    for (const p of ["/account", "/account/wallet", "/account/tickets", "/account/safer-play", "/account/settings", "/checkout", "/order/V9-1234", "/payment/failed?order=V9-1234", "/payment/cancelled?order=V9-1234"]) {
+    for (const p of ["/account", "/account/wallet", "/account/tickets", "/account/safer-play", "/account/settings", "/checkout", "/order/CP-1234", "/payment/failed?order=CP-1234", "/payment/cancelled?order=CP-1234"]) {
       const res = await b.get(p);
       expect(res.status, p).toBe(302);
       expect(res.headers.get("location")).toBe(`/login?next=${encodeURIComponent(p)}`);

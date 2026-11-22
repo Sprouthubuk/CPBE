@@ -1,5 +1,5 @@
 /* Reveal games — shared shell. Everything is scoped under .rg-reveal and
-   prefixed rg- so it cannot clash with the site's own --v9-* tokens.
+   prefixed rg- so it cannot clash with the site's own --cp-* tokens.
    Fonts come from the site (--font-display, --font-sans in src/index.css). */
 
 .rg-reveal {
@@ -514,7 +514,7 @@ html.rg-lock, html.rg-lock body { overflow: hidden; overscroll-behavior: none; }
 .rg-btn-cyan, .rg-btn-white { min-height: 48px; }
 .rg-link { min-height: 44px; display: inline-flex; align-items: center; }
 
-/* ---------- Vault Nine brand: logo in the header and the splash burst ---------- */
+/* ---------- Brand Name brand: logo in the header and the splash burst ---------- */
 .rg-brand-logo {
   display: block;
   height: 32px;

@@ -5,13 +5,13 @@ use Illuminate\Support\Facades\Artisan;
 
 /**
  * Fills the legal pages with the wording carried over from the old site, on the next deploy. Pages
- * already edited in the admin are left alone (see vault:legal-pages).
+ * already edited in the admin are left alone (see platform:legal-pages).
  */
 return new class extends Migration
 {
     public function up(): void
     {
-        Artisan::call('vault:legal-pages');
+        Artisan::call('platform:legal-pages');
     }
 
     public function down(): void

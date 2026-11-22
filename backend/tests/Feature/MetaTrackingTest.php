@@ -32,7 +32,7 @@ class MetaTrackingTest extends TestCase
     private function buy(User $u, bool $consent, string $payWith = 'card', int $qty = 10, ?bool $useWallet = null)
     {
         $c = $this->competition('draw');
-        $req = $consent ? $this->withCredentials()->withUnencryptedCookies(['v9_consent' => 'accepted', '_fbp' => self::FBP, '_fbc' => self::FBC]) : $this;
+        $req = $consent ? $this->withCredentials()->withUnencryptedCookies(['cp_consent' => 'accepted', '_fbp' => self::FBP, '_fbc' => self::FBC]) : $this;
 
         return $req->actingAs($u)->withHeader('User-Agent', 'Mozilla/5.0 (iPhone)')->postJson('/api/checkout', [
             'lines' => [['competitionId' => $c->id, 'quantity' => $qty]], 'payWith' => $payWith, 'useWallet' => $useWallet ?? $payWith === 'wallet', 'requestId' => (string) Str::uuid(),
@@ -52,7 +52,7 @@ class MetaTrackingTest extends TestCase
         $number = $this->buy($u, false)->json('order.number');
         $this->gateway()->settle(Order::query()->where('number', $number)->value('gateway_ref'), 'paid');
         $this->postJson('/api/webhooks/cashflows', ['paymentJobReference' => Order::query()->where('number', $number)->value('gateway_ref')])->assertOk();
-        $this->artisan('vault:meta-events')->assertSuccessful();
+        $this->artisan('platform:meta-events')->assertSuccessful();
         $this->assertSame(0, MetaEvent::query()->count());
         Http::assertNothingSent();
     }
@@ -64,15 +64,15 @@ class MetaTrackingTest extends TestCase
         $order = Order::query()->where('number', $number)->firstOrFail();
 
         // Not paid yet: nothing goes.
-        $this->artisan('vault:meta-events');
+        $this->artisan('platform:meta-events');
         Http::assertNothingSent();
         $this->assertSame('waiting', MetaEvent::query()->value('status'));
 
         // Paid at Cashflows; the webhook confirms it; the buyer closes the tab.
         $this->gateway()->settle($order->gateway_ref, 'paid');
         $this->postJson('/api/webhooks/cashflows', ['paymentJobReference' => $order->gateway_ref])->assertOk();
-        $this->artisan('vault:meta-events');
-        $this->artisan('vault:meta-events'); // a second run sends nothing more
+        $this->artisan('platform:meta-events');
+        $this->artisan('platform:meta-events'); // a second run sends nothing more
 
         $events = $this->sentEvents();
         $this->assertCount(1, $events);
@@ -98,7 +98,7 @@ class MetaTrackingTest extends TestCase
         $u = $this->player(['phone' => '07700 900123', 'city' => 'Bristol', 'postcode' => 'LS1 4AP']);
         $this->topUp($u, 5000);
         $this->buy($u, true, 'wallet');
-        $this->artisan('vault:meta-events');
+        $this->artisan('platform:meta-events');
         $this->assertCount(1, $this->sentEvents());
         $body = json_encode($this->sentEvents());
         foreach ([$u->email, $u->first_name, $u->last_name, '07700', 'Bristol', 'LS1', $u->date_of_birth->format('Y-m-d')] as $plain) {
@@ -118,7 +118,7 @@ class MetaTrackingTest extends TestCase
         $this->postJson('/api/webhooks/cashflows', ['paymentJobReference' => $order->gateway_ref])->assertOk();
         $order->refresh();
         $this->assertGreaterThan(0, $order->paid_bonus_pence);
-        $this->artisan('vault:meta-events');
+        $this->artisan('platform:meta-events');
         $value = $this->sentEvents()[0]['custom_data']['value'];
         $this->assertSame(round(($order->total_pence - $order->paid_bonus_pence) / 100, 2), $value);
         // The order page tells the browser pixel the same value.
@@ -131,27 +131,27 @@ class MetaTrackingTest extends TestCase
         $this->topUp($u, 5000, 'bonus');
         $this->topUp($u, 5000, 'deposit');
         // Bonus pays at most half, so build the row by hand for an order whose real money is 0.
-        $o = Order::query()->create(['number' => 'V9-TEST1', 'user_id' => $u->id, 'order_type' => 'tickets', 'status' => 'paid', 'total_pence' => 100,
+        $o = Order::query()->create(['number' => 'CP-TEST1', 'user_id' => $u->id, 'order_type' => 'tickets', 'status' => 'paid', 'total_pence' => 100,
             'card_pence' => 0, 'wallet_pence' => 100, 'paid_bonus_pence' => 100, 'paid_at' => now()]);
         MetaEvent::query()->create(['event_name' => 'Purchase', 'event_id' => $o->number, 'user_id' => $u->id, 'order_id' => $o->id, 'status' => 'ready', 'context' => []]);
-        $this->artisan('vault:meta-events');
+        $this->artisan('platform:meta-events');
         Http::assertNothingSent();
         $this->assertSame('skipped', MetaEvent::query()->value('status'));
     }
 
     public function test_sign_up_and_top_up_are_sent_with_the_ids_the_browser_uses(): void
     {
-        $me = $this->withCredentials()->withUnencryptedCookies(['v9_consent' => 'accepted', '_fbp' => self::FBP])->postJson('/api/auth/register', [
+        $me = $this->withCredentials()->withUnencryptedCookies(['cp_consent' => 'accepted', '_fbp' => self::FBP])->postJson('/api/auth/register', [
             'firstName' => 'Sam', 'lastName' => 'Jones', 'email' => 'sam@example.com', 'password' => 'a-long-password', 'dateOfBirth' => '1990-05-01',
         ])->assertCreated()->json();
         $u = User::query()->findOrFail($me['id']);
         $u->forceFill(['email_verified_at' => now()])->save();
-        $number = $this->withCredentials()->withUnencryptedCookies(['v9_consent' => 'accepted', '_fbp' => self::FBP])->actingAs($u)
+        $number = $this->withCredentials()->withUnencryptedCookies(['cp_consent' => 'accepted', '_fbp' => self::FBP])->actingAs($u)
             ->postJson('/api/me/deposits', ['amountPence' => 1000])->assertCreated()->json('orderNumber');
         $order = Order::query()->where('number', $number)->firstOrFail();
         $this->gateway()->settle($order->gateway_ref, 'paid');
         $this->postJson('/api/webhooks/cashflows', ['paymentJobReference' => $order->gateway_ref])->assertOk();
-        $this->artisan('vault:meta-events');
+        $this->artisan('platform:meta-events');
 
         $events = collect($this->sentEvents())->keyBy('event_name');
         $this->assertSame('reg-'.$me['id'], $events['CompleteRegistration']['event_id']);
@@ -165,12 +165,12 @@ class MetaTrackingTest extends TestCase
         $u = $this->player();
         $this->topUp($u, 5000);
         $this->buy($u, true, 'wallet');
-        $this->artisan('vault:meta-events');
+        $this->artisan('platform:meta-events');
         $row = MetaEvent::query()->firstOrFail();
         $this->assertSame('failed', $row->status);
         $this->assertStringContainsString('OAuthException 100', $row->last_error);
         $this->assertStringNotContainsString('sam@', $row->last_error); // Meta's message is never stored
-        $this->artisan('vault:meta-events');
+        $this->artisan('platform:meta-events');
         $this->assertSame('sent', $row->refresh()->status);
         $this->assertStringNotContainsString('test-token', json_encode(MetaEvent::query()->get()));
     }
@@ -181,7 +181,7 @@ class MetaTrackingTest extends TestCase
         $u = $this->player();
         $this->topUp($u, 5000);
         $this->buy($u, true, 'wallet');
-        $this->artisan('vault:meta-events');
+        $this->artisan('platform:meta-events');
         Http::assertNothingSent();
         $this->assertSame('ready', MetaEvent::query()->value('status')); // sent once the token is added
 
@@ -196,17 +196,17 @@ class MetaTrackingTest extends TestCase
         $u = $this->player();
         $this->topUp($u, 5000);
         $this->buy($u, true, 'wallet');
-        $this->artisan('vault:meta-events');
+        $this->artisan('platform:meta-events');
         Http::assertSent(fn (SentRequest $r) => ($r->data()['test_event_code'] ?? null) === 'TEST12345');
     }
 
     public function test_events_older_than_seven_days_expire(): void
     {
         $u = $this->player();
-        $o = Order::query()->create(['number' => 'V9-OLD1', 'user_id' => $u->id, 'order_type' => 'tickets', 'status' => 'pending_payment', 'total_pence' => 500, 'card_pence' => 500]);
+        $o = Order::query()->create(['number' => 'CP-OLD1', 'user_id' => $u->id, 'order_type' => 'tickets', 'status' => 'pending_payment', 'total_pence' => 500, 'card_pence' => 500]);
         $row = MetaEvent::query()->create(['event_name' => 'Purchase', 'event_id' => $o->number, 'user_id' => $u->id, 'order_id' => $o->id, 'status' => 'waiting', 'context' => []]);
         $row->forceFill(['created_at' => now()->subDays(8)])->saveQuietly();
-        $this->artisan('vault:meta-events');
+        $this->artisan('platform:meta-events');
         $this->assertSame('expired', $row->refresh()->status);
         Http::assertNothingSent();
     }

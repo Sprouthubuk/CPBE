@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 /** Every minute: schedule the redraw for any end prize won twice by one person (EndPrizeRules). */
 class EndPrizeRulesCommand extends Command
 {
-    protected $signature = 'vault:end-prize-rules';
+    protected $signature = 'platform:end-prize-rules';
 
     protected $description = 'Redraw end prizes won twice by the same person';
 

@@ -9,11 +9,11 @@ use Illuminate\Console\Command;
  * Loads the legal wording (resources/legal/*.html, version 2.0 of 18 Nov 2026) into the Pages the
  * site shows at /legal/{slug}. It only fills a page that is missing or still has the sample wording,
  * so wording edited in the admin is never overwritten (unless --force).
- * Run on the server once: php artisan vault:legal-pages
+ * Run on the server once: php artisan platform:legal-pages
  */
 class LegalPages extends Command
 {
-    protected $signature = 'vault:legal-pages {--force : Replace wording already edited in the admin} {--drafts : Also load draft wording (Refer a Friend terms)}';
+    protected $signature = 'platform:legal-pages {--force : Replace wording already edited in the admin} {--drafts : Also load draft wording (Refer a Friend terms)}';
 
     protected $description = 'Load the legal pages carried over from the old site';
 

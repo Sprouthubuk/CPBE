@@ -1,6 +1,6 @@
 // Visual sweep: every page at phone, small phone, tablet and desktop, against the real Laravel stack.
 // Fails on console errors, failed same-site requests, sideways scrolling and broken pictures, and
-// saves full-page screenshots to $SHOTS_DIR (default /tmp/v9-shots) for a person to look at.
+// saves full-page screenshots to $SHOTS_DIR (default /tmp/cp-shots) for a person to look at.
 // Run: npm run build && npm run test:visual   (needs Chrome: CHROME_PATH or /usr/bin/google-chrome)
 import fs from "node:fs";
 import path from "node:path";
@@ -8,9 +8,9 @@ import { chromium, type Browser as PW, type BrowserContext, type Page } from "pl
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startSite, type Site } from "../e2e/harness";
 
-const OUT = process.env.SHOTS_DIR ?? "/tmp/v9-shots";
+const OUT = process.env.SHOTS_DIR ?? "/tmp/cp-shots";
 const VIEWPORTS = { phone: { width: 390, height: 844 }, small: { width: 320, height: 640 }, tablet: { width: 820, height: 1180 }, desktop: { width: 1440, height: 900 } } as const;
-const PUBLIC = ["/", "/competitions", "/competitions?type=instant", "/competitions/treble-twenty-cash-claw", "/competitions/pro-dartboard-bundle", "/instant-winners", "/winners", "/entry-lists", "/competitions/treble-twenty-cash-claw/winning-numbers", "/entry-lists/treble-twenty-cash-claw", "/how-it-works", "/faq", "/contact", "/free-entry", "/legal/terms", "/previous", "/previous/old-tax-free-cash", "/previous/old-double-top-pop", "/menu", "/join", "/login", "/forgot-password", "/basket", "/vault-case", "/demo/balloon_pop", "/verify-email?status=verified", "/nope-404"];
+const PUBLIC = ["/", "/competitions", "/competitions?type=instant", "/competitions/treble-twenty-cash-claw", "/competitions/pro-dartboard-bundle", "/instant-winners", "/winners", "/entry-lists", "/competitions/treble-twenty-cash-claw/winning-numbers", "/entry-lists/treble-twenty-cash-claw", "/how-it-works", "/faq", "/contact", "/free-entry", "/legal/terms", "/menu", "/join", "/login", "/forgot-password", "/basket", "/vault-case", "/demo/balloon_pop", "/verify-email?status=verified", "/nope-404"];
 const MEMBER = ["/account", "/account/tickets", "/account/wallet", "/account/safer-play", "/account/settings", "/account/refer", "/checkout", "/payment/failed"];
 
 let site: Site;

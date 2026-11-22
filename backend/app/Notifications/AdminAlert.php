@@ -39,11 +39,11 @@ class AdminAlert extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $m = (new MailMessage)->subject('[Vault Nine Admin] '.$this->subject);
+        $m = (new MailMessage)->subject('['.config('app.name').' Admin] '.$this->subject);
         foreach ($this->lines as $line) {
             $m->line($line);
         }
 
-        return $m->action('Open The Admin', rtrim((string) config('app.url'), '/').$this->path)->salutation('Vault Nine');
+        return $m->action('Open The Admin', rtrim((string) config('app.url'), '/').$this->path)->salutation(config('app.name'));
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Vault Nine Competitions email theme: the site's look (near-black page, green-bordered card, green button,
+ * Brand Name email theme: the site's look (near-black page, green-bordered card, green button,
  * Barlow and Barlow Condensed). Laravel inlines these rules into every element, so they work in Gmail and
  * Outlook. Fonts fall back to Arial Black / Arial where the site's fonts can't load (most webmail).
  */
@@ -128,21 +128,21 @@ img { max-width: 100%; }
 .panel-item { padding: 0; }
 .panel-item p:last-of-type { margin-bottom: 0; padding-bottom: 0; }
 
-/* Vault Nine blocks: tickets and summary rows */
+/* Brand Name blocks: tickets and summary rows */
 
-.v9-tickets { background-color: #0E1311; border-left: 4px solid #2FD36B; border-radius: 12px; margin: 0 0 14px; width: 100%; }
-.v9-tickets td { padding: 16px 18px; }
-.v9-tickets-title { color: #ffffff; font-size: 16px; font-weight: bold; margin: 0 0 2px; }
-.v9-tickets-sub { color: #C9D3CE; font-size: 13px; margin: 0 0 10px; }
-.v9-chip { background-color: #111715; border: 1px solid #2B3A32; border-radius: 8px; color: #2FD36B; display: inline-block; font-family: 'Courier New', Courier, monospace; font-size: 14px; font-weight: bold; margin: 0 4px 6px 0; padding: 4px 8px; }
-.v9-more { color: #C9D3CE; font-size: 13px; }
+.cp-tickets { background-color: #0E1311; border-left: 4px solid #2FD36B; border-radius: 12px; margin: 0 0 14px; width: 100%; }
+.cp-tickets td { padding: 16px 18px; }
+.cp-tickets-title { color: #ffffff; font-size: 16px; font-weight: bold; margin: 0 0 2px; }
+.cp-tickets-sub { color: #C9D3CE; font-size: 13px; margin: 0 0 10px; }
+.cp-chip { background-color: #111715; border: 1px solid #2B3A32; border-radius: 8px; color: #2FD36B; display: inline-block; font-family: 'Courier New', Courier, monospace; font-size: 14px; font-weight: bold; margin: 0 4px 6px 0; padding: 4px 8px; }
+.cp-more { color: #C9D3CE; font-size: 13px; }
 
-.v9-rows { border-top: 1px solid #1E2723; margin: 6px 0 18px; width: 100%; }
-.v9-rows td { border-bottom: 1px solid #1E2723; color: #C9D3CE; font-size: 15px; padding: 10px 0; }
-.v9-rows td.v9-val { color: #ffffff; font-weight: bold; text-align: right; }
-.v9-rows tr.v9-total td { color: #ffffff; font-family: 'Arial Black', Arial, sans-serif; font-size: 20px; font-weight: normal; }
-.v9-rows tr.v9-total td.v9-val { color: #2FD36B; }
+.cp-rows { border-top: 1px solid #1E2723; margin: 6px 0 18px; width: 100%; }
+.cp-rows td { border-bottom: 1px solid #1E2723; color: #C9D3CE; font-size: 15px; padding: 10px 0; }
+.cp-rows td.cp-val { color: #ffffff; font-weight: bold; text-align: right; }
+.cp-rows tr.cp-total td { color: #ffffff; font-family: 'Arial Black', Arial, sans-serif; font-size: 20px; font-weight: normal; }
+.cp-rows tr.cp-total td.cp-val { color: #2FD36B; }
 
-.v9-small { color: #9AA8A1; font-size: 13px; }
+.cp-small { color: #9AA8A1; font-size: 13px; }
 
 .break-all { word-break: break-all; }

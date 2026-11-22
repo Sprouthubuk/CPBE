@@ -11,7 +11,7 @@ class GameSkinsTest extends TestCase
 {
     public function test_the_classic_skin_is_the_only_one_and_is_returned_by_the_api(): void
     {
-        // Vault Nine starts with the classic look only; the old site's themed skins are refused.
+        // Brand Name starts with the classic look only; the old site's themed skins are refused.
         $this->assertSame(['classic'], GameIds::skins());
         $c = $this->competition('instant', ['skin' => 'classic', 'game' => 'gems']);
         $this->getJson('/api/competitions/'.$c->slug)->assertOk()->assertJsonPath('skin', 'classic')->assertJsonPath('game', 'gems');

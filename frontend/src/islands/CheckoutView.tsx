@@ -75,7 +75,7 @@ export default function CheckoutView({ buy, walletPence, minCardPence, minDeposi
 
   return (
     <div className="stack g16">
-      <div className="card v9-rise v9-d2" style={{ overflow: "hidden" }}>
+      <div className="card cp-rise cp-d2" style={{ overflow: "hidden" }}>
         {priced.lines.map((l, i) => (
           <div key={`${l.competitionId}:${l.bundleId ?? "s"}`} className="row g12" style={{ padding: "14px 16px", borderTop: i ? "1px solid rgba(255,255,255,.06)" : 0 }}>
             <img src={l.imageSmall} alt="" style={{ width: 48, height: 48, borderRadius: 12, objectFit: "cover" }} />
@@ -86,7 +86,7 @@ export default function CheckoutView({ buy, walletPence, minCardPence, minDeposi
         <div className="row between" style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,.06)" }}>{direct ? <span /> : <a href="/basket" style={{ fontWeight: 800, fontSize: 14 }}>Edit basket</a>}<span className="d ny" style={{ fontSize: 26 }}>{formatMoney(total)}</span></div>
       </div>
 
-      <fieldset className="stack g8 v9-rise v9-d3" style={{ border: 0, margin: 0, padding: 0 }}>
+      <fieldset className="stack g8 cp-rise cp-d3" style={{ border: 0, margin: 0, padding: 0 }}>
         <legend className="eyebrow" style={{ marginBottom: 8 }}>How would you like to pay?</legend>
         <label className="opt" style={!priced.walletCovers ? { opacity: 0.55 } : undefined}>
           <input type="radio" name="pay" checked={pay === "wallet"} disabled={!priced.walletCovers} onChange={() => setPay("wallet")} />
@@ -110,7 +110,7 @@ export default function CheckoutView({ buy, walletPence, minCardPence, minDeposi
         )}
       </fieldset>
 
-      <details className="acd v9-rise v9-d4">
+      <details className="acd cp-rise cp-d4">
         <summary>Promo Code <Svg name="down" /></summary>
         <form className="ab row g8" onSubmit={(e) => { e.preventDefault(); setPromoApplied(promo.trim() || null); }}>
           <input className="inp" placeholder="Enter code" aria-label="Promo code" value={promo} onChange={(e) => setPromo(e.target.value)} />
@@ -118,12 +118,12 @@ export default function CheckoutView({ buy, walletPence, minCardPence, minDeposi
         </form>
       </details>
 
-      <div className="card card-hot card-p stack g12 v9-rise v9-d5">
+      <div className="card card-hot card-p stack g12 cp-rise cp-d5">
         <div className="row between"><span className="d" style={{ fontSize: 22 }}>To Pay</span><span className="d ny" style={{ fontSize: 38 }} data-testid="checkout-total">{formatMoney(total)}</span></div>
         {pay === "card" && walletPart > 0 && <div className="hint">{formatMoney(walletPart)} from your wallet · {formatMoney(cardPart)} by card</div>}
         {cardTooSmall && <div className="notice notice-y" role="alert"><Svg name="info" size={18} /><span>Card payments start at {formatMoney(minCardPence)}. Add a few more tickets, or <a href="/account/wallet" style={{ color: "#2FD36B" }}>top up your wallet</a> and pay from there.</span></div>}
         {error && <div className="notice notice-p" role="alert"><Svg name="info" size={18} /><span>{error}</span></div>}
-        <button type="button" className="btn btn-y btn-lg btn-block v9-cta" onClick={submit} disabled={busy || blocked || cardTooSmall} data-testid="pay">
+        <button type="button" className="btn btn-y btn-lg btn-block cp-cta" onClick={submit} disabled={busy || blocked || cardTooSmall} data-testid="pay">
           {busy ? <span className="spin" /> : pay === "wallet" ? `Pay ${formatMoney(total)} From Wallet` : `Pay ${formatMoney(cardPart)} By Card`}
         </button>
         {pay === "card" && <div className="notice notice-c"><Svg name="lock" size={18} /><span>You’ll go to Cashflows’ secure payment page, then come straight back here to play.</span></div>}

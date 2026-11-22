@@ -4,7 +4,7 @@
 interface Props { class?: string; spin?: boolean }
 const { class: cls = "", spin = false } = Astro.props;
 ---
-<svg class={`${cls} ${spin ? "v9-slow" : ""}`} viewBox="0 0 200 200" aria-hidden="true">
+<svg class={`${cls} ${spin ? "cp-slow" : ""}`} viewBox="0 0 200 200" aria-hidden="true">
   <circle cx="100" cy="100" r="96" fill="#111715"></circle>
   <circle cx="100" cy="100" r="86" fill="none" stroke="#1B9A47" stroke-width="10" stroke-dasharray="13.5 13.5"></circle>
   <circle cx="100" cy="100" r="86" fill="none" stroke="#D7322B" stroke-width="10" stroke-dasharray="13.5 13.5" stroke-dashoffset="13.5"></circle>

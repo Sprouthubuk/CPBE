@@ -128,10 +128,10 @@ class WithdrawalsAndAlertsTest extends TestCase
     public function test_an_order_needing_attention_alerts_the_admins_once(): void
     {
         $u = $this->player();
-        $o = Order::query()->create(['number' => 'V9-TEST1', 'user_id' => $u->id, 'order_type' => 'tickets', 'status' => 'paid', 'total_pence' => 100, 'card_pence' => 100, 'wallet_pence' => 0]);
+        $o = Order::query()->create(['number' => 'CP-TEST1', 'user_id' => $u->id, 'order_type' => 'tickets', 'status' => 'paid', 'total_pence' => 100, 'card_pence' => 100, 'wallet_pence' => 0]);
         app(Fulfilment::class)->flag($o, 'Paid after the order had closed.');
         app(Fulfilment::class)->flag($o->refresh(), 'Something else.');
-        $this->assertTrue($this->alerted('Order V9-TEST1 needs attention'));
+        $this->assertTrue($this->alerted('Order CP-TEST1 needs attention'));
         Notification::assertSentTimes(AdminAlert::class, 1);
     }
 }

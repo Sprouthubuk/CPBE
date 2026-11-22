@@ -16,7 +16,7 @@ import { expect, test, type Page } from "@playwright/test";
  */
 
 const CLASSIC_GAMES = ["scratch_card", "spin_wheel", "bingo_card", "balloon_pop", "hook_a_duck", "claw_machine", "coin_drop", "slots", "gems", "whack_a_mole", "pinata"];
-/** The games each skin draws its own way (Vault Nine starts with the classic look only). */
+/** The games each skin draws its own way (Brand Name starts with the classic look only). */
 const SKIN_GAMES: Record<string, string[]> = {
   classic: CLASSIC_GAMES,
 };

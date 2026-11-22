@@ -1,8 +1,8 @@
 // The basket lives in the browser until checkout; the server prices it every time.
 import type { BasketLine } from "./types";
 
-const KEY = "v9-basket-v1";
-const EVENT = "v9-basket";
+const KEY = "cp-basket-v1";
+const EVENT = "cp-basket";
 const BOX_ID = /^[a-z0-9]{32}$/;
 
 const valid = (l: any) => l && typeof l.competitionId === "string"

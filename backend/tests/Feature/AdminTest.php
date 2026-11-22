@@ -156,14 +156,14 @@ class AdminTest extends TestCase
         $admin = $this->admin();
         $admin->saveAppAuthenticationSecret(app(AppAuthentication::class)->generateSecret());
         $page = $this->actingAs($admin->refresh())->get('/admin')->assertOk();
-        $page->assertSee('css/filament/vaultnine/admin.css', false)->assertSee('css/filament/vaultnine/logo.webp', false)
+        $page->assertSee('css/filament/platform/admin.css', false)->assertSee('css/filament/platform/logo.webp', false)
             ->assertSee('Good ', false);
         $html = (string) $page->getContent();
         foreach (['ui-avatars.com', 'fonts.bunny.net', 'fonts.googleapis.com'] as $host) {
             $this->assertStringNotContainsString($host, $html, "the admin must not load anything from {$host}");
         }
         foreach (['admin.css', 'fonts.css', 'logo.webp', 'favicon.png'] as $f) {
-            $this->assertFileExists(public_path('css/filament/vaultnine/'.$f));
+            $this->assertFileExists(public_path('css/filament/platform/'.$f));
         }
         Filament::setCurrentPanel('admin');
         foreach ([Overview::class, SalesChart::class, LiveCompetitions::class, LatestOrders::class] as $w) {
@@ -181,7 +181,7 @@ class AdminTest extends TestCase
         $this->assertArrayNotHasKey('app_authentication_secret', $admin->refresh()->toArray());
         $this->actingAs($admin)->getJson('/api/me')->assertJsonMissingPath('app_authentication_secret');
 
-        $this->artisan('vault:reset-two-step', ['email' => $admin->email])->assertSuccessful();
+        $this->artisan('platform:reset-two-step', ['email' => $admin->email])->assertSuccessful();
         $this->assertNull($admin->refresh()->getAppAuthenticationSecret());
     }
 
@@ -279,7 +279,7 @@ class AdminTest extends TestCase
     {
         $this->signInAdmin();
         $u = $this->player();
-        $o = Order::query()->create(['number' => 'V9-ATTN0001', 'user_id' => $u->id, 'order_type' => 'tickets', 'status' => 'paid', 'total_pence' => 100, 'card_pence' => 100, 'needs_attention' => true, 'attention_reason' => 'Sold out']);
+        $o = Order::query()->create(['number' => 'CP-ATTN0001', 'user_id' => $u->id, 'order_type' => 'tickets', 'status' => 'paid', 'total_pence' => 100, 'card_pence' => 100, 'needs_attention' => true, 'attention_reason' => 'Sold out']);
         Livewire::test(ListOrders::class)->assertCanSeeTableRecords([$o])->callTableAction('resolve', $o, ['reason' => 'Refunded by hand']);
         $this->assertFalse($o->refresh()->needs_attention);
     }

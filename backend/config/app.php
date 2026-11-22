@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Vault Nine Competitions'),
+    'name' => env('APP_NAME', 'Brand Name'),
 
     /*
     |--------------------------------------------------------------------------

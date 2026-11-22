@@ -3,11 +3,11 @@
  * cookie banner, and only when a Pixel ID is set in the admin (Settings → Site). "Reject", or withdrawing
  * later from "Cookie settings" in the footer, stops it at once (the page reloads without it).
  * The choice is kept in this browser (localStorage, with the date it was made) and copied to a first-party
- * `v9_consent` cookie, so the server knows whether it may also tell Meta about a sale (Conversions API,
+ * `cp_consent` cookie, so the server knows whether it may also tell Meta about a sale (Conversions API,
  * `backend/app/Tracking/MetaEvents.php`). Server and browser events share an id so Meta counts each once.
  */
 export type Consent = "accepted" | "rejected";
-const KEY = "v9-cookie-consent";
+const KEY = "cp-cookie-consent";
 
 interface Fbq {
   (...args: unknown[]): void;
@@ -46,7 +46,7 @@ export function saveConsent(choice: Consent) {
 /** The server reads this cookie (never the choice in localStorage). Kept for six months, as the ICO suggests. */
 export function writeConsentCookie(choice: Consent) {
   const secure = location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `v9_consent=${choice}; Max-Age=${60 * 60 * 24 * 182}; Path=/; SameSite=Lax${secure}`;
+  document.cookie = `cp_consent=${choice}; Max-Age=${60 * 60 * 24 * 182}; Path=/; SameSite=Lax${secure}`;
 }
 
 /** Withdrawing consent removes Meta's cookies from this site (on this host and the parent domain it may use). */
@@ -63,7 +63,7 @@ export function forgetMetaCookies() {
 /** Visitors who chose before the cookie existed get it on their next page view. */
 export function syncConsentCookie() {
   const c = readConsent();
-  if (c && !document.cookie.split("; ").some((x) => x === `v9_consent=${c}`)) writeConsentCookie(c);
+  if (c && !document.cookie.split("; ").some((x) => x === `cp_consent=${c}`)) writeConsentCookie(c);
 }
 
 let pixelId: string | null = null;
@@ -140,7 +140,7 @@ export const metaValue = (pence: number) => Math.round(pence) / 100;
  */
 export function trackPurchaseOnce(orderNumber: string, valuePence: number, items?: { slug: string; quantity: number }[]) {
   if (valuePence <= 0) return;
-  once(`v9-px-purchase:${orderNumber}`, () =>
+  once(`cp-px-purchase:${orderNumber}`, () =>
     track("Purchase", {
       value: metaValue(valuePence), currency: "GBP", content_type: "product",
       ...(items?.length ? { content_ids: [...new Set(items.map((i) => i.slug))], contents: items.map((i) => ({ id: i.slug, quantity: i.quantity })), num_items: items.reduce((s, i) => s + i.quantity, 0) } : {}),
@@ -150,7 +150,7 @@ export function trackPurchaseOnce(orderNumber: string, valuePence: number, items
 /** A wallet top up, once per top up (custom event "Deposit", the same id as the server's). */
 export function trackDepositOnce(orderNumber: string, valuePence: number) {
   if (valuePence <= 0) return;
-  once(`v9-px-deposit:${orderNumber}`, () => trackCustom("Deposit", { value: metaValue(valuePence), currency: "GBP" }, orderNumber));
+  once(`cp-px-deposit:${orderNumber}`, () => trackCustom("Deposit", { value: metaValue(valuePence), currency: "GBP" }, orderNumber));
 }
 
 // Pages without an island send their event through this (see the competition and checkout pages).

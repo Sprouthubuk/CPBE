@@ -1,4 +1,4 @@
-// Vault Nine started as a copy of another competition site's build. Nothing of that site's brand,
+// Brand Name started as a copy of another competition site's build. Nothing of that site's brand,
 // company or data may be left in this repository: its name, domain, company details, order-number
 // prefix, cookie names, colours or fonts. This test reads every tracked text file.
 //
@@ -26,6 +26,10 @@ const OLD: [string, RegExp][] = [
   ["old yellow", new RegExp(j("#FFF2", "3A") + "|" + j("255, ?242, ?", "58"), "i")],
   ["old slogan", new RegExp(j("ginor", "mous"), "i")],
   ["old fonts", new RegExp(j("Lili", "ta") + "|" + j("Nun", "ito"), "i")],
+  // The second site this engine was copied from (CPBE is its own brand).
+  ["base site name", new RegExp(j("vault", " ?", "nine"), "i")],
+  ["base site domain", new RegExp(j("vaultnine", "competitions"), "i")],
+  ["base site prefix", new RegExp("\\b" + j("v", "9") + "[-_]|\\b" + j("V", "9") + "-[A-Z0-9]")],
 ];
 
 const files = execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" })

@@ -84,7 +84,7 @@ export default function TicketPicker(p: PickerProps) {
         const c = await api<CompetitionDetail>(`/api/competitions/${encodeURIComponent(p.slug)}`);
         setBundles(Array.isArray(c.bundles) ? c.bundles : []);
         setSold({ percent: c.soldPercent ?? 0, out: c.status === "sold_out" });
-        window.dispatchEvent(new CustomEvent("v9-sold", { detail: { slug: p.slug, percent: c.soldPercent ?? 0 } }));
+        window.dispatchEvent(new CustomEvent("cp-sold", { detail: { slug: p.slug, percent: c.soldPercent ?? 0 } }));
       } catch { /* try again next minute */ }
     }, 60000);
     return () => window.clearInterval(t);
@@ -193,7 +193,7 @@ export default function TicketPicker(p: PickerProps) {
             <span className="btn btn-o btn-lg" aria-disabled="true">{sold.out ? "Sold Out" : (p.open && !p.salesOpen) || p.opensAt ? "Entries Open Soon" : "Unavailable"}</span>
           ) : (
             <>
-              <a className="btn btn-y btn-lg v9-cta" href={buyHref} data-testid="buy-now">{verb} · {formatMoney(total)}</a>
+              <a className="btn btn-y btn-lg cp-cta" href={buyHref} data-testid="buy-now">{verb} · {formatMoney(total)}</a>
               <button type="button" className="btn btn-o" onClick={addToBasketNow}>Add to basket</button>
             </>
           )}
@@ -209,11 +209,11 @@ export default function TicketPicker(p: PickerProps) {
 
       {bundles.length > 0 && <p className="hint" style={{ margin: 0 }}>Bundle and free tickets are entered into the draw exactly like paid tickets.</p>}
       {blocked && <div className="notice notice-p" role="status"><Svg name="info" size={18} /><span>{blocked}</span></div>}
-      {added && <div className="notice notice-c v9-pop" role="status"><Svg name="check" size={18} stroke={2.6} /><span>Added {added} to your basket. <a href="/basket" style={{ color: "#2FD36B" }}>View basket</a> or keep browsing.</span></div>}
+      {added && <div className="notice notice-c cp-pop" role="status"><Svg name="check" size={18} stroke={2.6} /><span>Added {added} to your basket. <a href="/basket" style={{ color: "#2FD36B" }}>View basket</a> or keep browsing.</span></div>}
 
       {!blocked && (
         <div className={`buybar${actionsOnScreen ? " buybar-away" : ""}`} data-testid="buy-bar" aria-hidden={actionsOnScreen || undefined}>
-          <a className="btn btn-y btn-block v9-cta" href={buyHref} tabIndex={actionsOnScreen ? -1 : undefined}>{ticketWord(tickets)} · {formatMoney(total)} <Svg name="arrow" size={16} stroke={3} /> {verb}</a>
+          <a className="btn btn-y btn-block cp-cta" href={buyHref} tabIndex={actionsOnScreen ? -1 : undefined}>{ticketWord(tickets)} · {formatMoney(total)} <Svg name="arrow" size={16} stroke={3} /> {verb}</a>
         </div>
       )}
     </div>

@@ -23,11 +23,11 @@ const FLIGHTS = ["#2FD36B", "#F4F7F5", "#1B9A47", "#D7322B"];
 function CaseArt({ open, lines, label }: { open: boolean; lines: { title: string; tickets: number }[]; label: string }) {
   const darts = lines.length ? lines : [{ title: "", tickets: 0 }, { title: "", tickets: 0 }, { title: "", tickets: 0 }];
   return (
-    <div className={`v9-case${open ? " is-open" : ""}`} aria-hidden="true">
-      <div className="v9-tray">
+    <div className={`cp-case${open ? " is-open" : ""}`} aria-hidden="true">
+      <div className="cp-tray">
         {darts.map((d, i) => (
-          <div key={i} className="v9-dart" style={{ transitionDelay: open ? `${0.75 + i * 0.15}s` : "0s" }}>
-            <div className="v9-slot">
+          <div key={i} className="cp-dart" style={{ transitionDelay: open ? `${0.75 + i * 0.15}s` : "0s" }}>
+            <div className="cp-slot">
               <svg viewBox="0 0 220 30" width="196" height="27" style={{ flex: "none", maxWidth: "46%" }}>
                 <polygon points="0,15 42,13.2 42,16.8" fill="#D9E0DC" />
                 <rect x="42" y="8" width="70" height="14" rx="4" fill="#8C9692" />
@@ -41,13 +41,13 @@ function CaseArt({ open, lines, label }: { open: boolean; lines: { title: string
           </div>
         ))}
       </div>
-      <div className="v9-lid">
-        <div className="v9-zip" />
-        <svg viewBox="0 0 120 80" preserveAspectRatio="none" className="v9-lid-stripes"><polygon points="40,80 62,0 74,0 52,80" fill="#1B9A47" opacity=".45" /><polygon points="62,80 84,0 96,0 74,80" fill="#1B9A47" opacity=".75" /><polygon points="84,80 106,0 118,0 96,80" fill="#2FD36B" /></svg>
-        <img src="/logo-sm.webp" alt="" className="v9-lid-logo" width={300} height={175} />
-        <span className="v9-lid-name">THE VAULT CASE</span>
-        <span className="v9-lid-chip">{label}</span>
-        <span className="v9-lid-pull" />
+      <div className="cp-lid">
+        <div className="cp-zip" />
+        <svg viewBox="0 0 120 80" preserveAspectRatio="none" className="cp-lid-stripes"><polygon points="40,80 62,0 74,0 52,80" fill="#1B9A47" opacity=".45" /><polygon points="62,80 84,0 96,0 74,80" fill="#1B9A47" opacity=".75" /><polygon points="84,80 106,0 118,0 96,80" fill="#2FD36B" /></svg>
+        <img src="/logo-sm.webp" alt="" className="cp-lid-logo" width={300} height={175} />
+        <span className="cp-lid-name">THE VAULT CASE</span>
+        <span className="cp-lid-chip">{label}</span>
+        <span className="cp-lid-pull" />
       </div>
     </div>
   );
@@ -112,12 +112,12 @@ export default function VaultCaseBuilder({ chipsPence, minPence, maxPence, bonus
 
   const mode1 = MODES.find((m) => m.id === mode)!;
   return (
-    <div className="v9-cbox" data-testid="vault-case">
+    <div className="cp-cbox" data-testid="vault-case">
       <div className="stack g20">
         <div className="stack g8">
           <div className="lbl" id="gbx-budget">Your budget</div>
           <div className="r4" role="group" aria-labelledby="gbx-budget">
-            {chipsPence.map((p) => <button key={p} type="button" className={`pick v9-pill${budget === p ? " on" : ""}`} aria-pressed={budget === p} onClick={pick(() => setBudget(p))}>{formatPence(p)}</button>)}
+            {chipsPence.map((p) => <button key={p} type="button" className={`pick cp-pill${budget === p ? " on" : ""}`} aria-pressed={budget === p} onClick={pick(() => setBudget(p))}>{formatPence(p)}</button>)}
           </div>
           <div className="row g12" style={{ alignItems: "center" }}>
             <input type="range" className="gbx-range" min={minPence / 100} max={maxPence / 100} step={1} value={pounds} onChange={(e) => { setBudget(Number(e.target.value) * 100); if (box) setBox(null); }}
@@ -129,7 +129,7 @@ export default function VaultCaseBuilder({ chipsPence, minPence, maxPence, bonus
           <div className="lbl" id="gbx-mode">How should we pack it?</div>
           <div className="r3" role="radiogroup" aria-labelledby="gbx-mode">
             {MODES.map((m) => (
-              <button key={m.id} type="button" role="radio" aria-checked={mode === m.id} className={`opt-b v9-pill${mode === m.id ? " on" : ""}`} onClick={pick(() => setMode(m.id))}>
+              <button key={m.id} type="button" role="radio" aria-checked={mode === m.id} className={`opt-b cp-pill${mode === m.id ? " on" : ""}`} onClick={pick(() => setMode(m.id))}>
                 <b>{m.label}</b><small>{m.hint}</small>
               </button>
             ))}
@@ -148,8 +148,8 @@ export default function VaultCaseBuilder({ chipsPence, minPence, maxPence, bonus
         <p className="hint" style={{ margin: 0 }}>Live draws only · 18+ UK · <a href="/free-entry">Free postal entry</a> for every draw</p>
       </div>
 
-      <div className="v9-cstage" ref={panel}>
-        <button type="button" className="v9-case-btn" onClick={() => (shaking ? skip.current?.() : !busy && available && !box && shake())} aria-label={box ? "Your case is open" : shaking ? "Skip" : "Unzip the case"} disabled={!available || !!box || (busy && !shaking)} data-testid={available ? undefined : "gb-unavailable"}>
+      <div className="cp-cstage" ref={panel}>
+        <button type="button" className="cp-case-btn" onClick={() => (shaking ? skip.current?.() : !busy && available && !box && shake())} aria-label={box ? "Your case is open" : shaking ? "Skip" : "Unzip the case"} disabled={!available || !!box || (busy && !shaking)} data-testid={available ? undefined : "gb-unavailable"}>
           <CaseArt open={!!box} lines={box ? box.lines.map((l) => ({ title: l.title, tickets: l.tickets })) : []} label={`£${pounds} · ${mode1.label}`} />
         </button>
         <div aria-live="polite" style={{ textAlign: "center" }}>

@@ -72,7 +72,7 @@ return new class extends Migration
 
         Schema::create('orders', function (Blueprint $t) {
             $t->ulid('id')->primary();
-            $t->string('number', 20)->unique();          // V9-… tickets, VD-… deposits
+            $t->string('number', 20)->unique();          // CP-… tickets, CD-… deposits
             $t->foreignId('user_id')->constrained();
             $t->string('order_type', 8);                 // tickets | deposit
             $t->string('status', 16);                    // created | pending_payment | paid | failed | cancelled | expired | refunded

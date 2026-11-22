@@ -34,17 +34,17 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             // Every admin signs in with a code from an authenticator app as well as the password; the first time,
-            // Filament walks them through setting it up and gives recovery codes. Lost phone: vault:reset-two-step.
+            // Filament walks them through setting it up and gives recovery codes. Lost phone: platform:reset-two-step.
             ->multiFactorAuthentication([AppAuthentication::make()->recoverable()], isRequired: true)
-            ->brandName('Vault Nine Admin')
+            ->brandName(config('app.name').' Admin')
             // The site's look: near-black with neon pink, cyan and yellow, the logo and the site's own fonts
-            // (served from public/css/filament/vaultnine, nothing third-party). Extra styling in public/css/filament/vaultnine/admin.css.
+            // (served from public/css/filament/platform, nothing third-party). Extra styling in public/css/filament/platform/admin.css.
             ->brandLogo(fn () => view('filament.brand'))
             ->brandLogoHeight('2.75rem')
-            ->favicon(asset('css/filament/vaultnine/favicon.png'))
+            ->favicon(asset('css/filament/platform/favicon.png'))
             ->defaultAvatarProvider(InitialsAvatar::class)
             ->darkMode(true, true)
-            ->font('Barlow', url: asset('css/filament/vaultnine/fonts.css'), provider: LocalFontProvider::class)
+            ->font('Barlow', url: asset('css/filament/platform/fonts.css'), provider: LocalFontProvider::class)
             ->sidebarCollapsibleOnDesktop()
             ->sidebarWidth('17rem')
             ->maxContentWidth(Width::ScreenTwoExtraLarge)
@@ -68,7 +68,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Marketing'),
                 NavigationGroup::make('Site'),
             ])
-            ->renderHook(PanelsRenderHook::HEAD_END, fn () => new HtmlString('<link rel="stylesheet" href="'.e(asset('css/filament/vaultnine/admin.css')).'?v='.@filemtime(public_path('css/filament/vaultnine/admin.css')).'">'))
+            ->renderHook(PanelsRenderHook::HEAD_END, fn () => new HtmlString('<link rel="stylesheet" href="'.e(asset('css/filament/platform/admin.css')).'?v='.@filemtime(public_path('css/filament/platform/admin.css')).'">'))
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([

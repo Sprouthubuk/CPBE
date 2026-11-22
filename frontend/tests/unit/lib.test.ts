@@ -78,17 +78,17 @@ describe("basket", () => {
     expect(readBasket()).toEqual([]);
   });
   it("ignores tampered storage", () => {
-    localStorage.setItem("v9-basket-v1", JSON.stringify([{ competitionId: "a", quantity: -4 }, { competitionId: 5, quantity: 1 }, { competitionId: "b", quantity: 1.5 }, { competitionId: "c", quantity: 2, price: 0 }]));
+    localStorage.setItem("cp-basket-v1", JSON.stringify([{ competitionId: "a", quantity: -4 }, { competitionId: 5, quantity: 1 }, { competitionId: "b", quantity: 1.5 }, { competitionId: "c", quantity: 2, price: 0 }]));
     expect(readBasket()).toEqual([{ competitionId: "c", quantity: 2 }]);
-    localStorage.setItem("v9-basket-v1", "{not json");
+    localStorage.setItem("cp-basket-v1", "{not json");
     expect(readBasket()).toEqual([]);
   });
   it("a 'buy now' card payment that fails puts its tickets in the basket, keeping what was already there", () => {
     // Bug: "Enter Now" skips the basket, so after a declined card "Try Again" opened an empty basket.
     addToBasket("other", 2);
-    setAside("V9-9", [{ competitionId: "x", quantity: 0, bundleId: 3 }]);
+    setAside("CP-9", [{ competitionId: "x", quantity: 0, bundleId: 3 }]);
     expect(readBasket()).toEqual([{ competitionId: "other", quantity: 2 }]);
-    expect(restoreAside("V9-9")).toBe(true);
+    expect(restoreAside("CP-9")).toBe(true);
     expect(readBasket()).toEqual([{ competitionId: "other", quantity: 2 }, { competitionId: "x", quantity: 0, bundleId: 3 }]);
   });
 
@@ -107,7 +107,7 @@ describe("basket", () => {
     // More single tickets keep the box (the server still adds its bonus); a made-up box id is dropped.
     setQuantity("z", 8);
     expect(readBasket().find((l) => l.competitionId === "z")).toEqual({ competitionId: "z", quantity: 8, boxId: box });
-    localStorage.setItem("v9-basket-v1", JSON.stringify([{ competitionId: "q", quantity: 1, boxId: "<script>" }]));
+    localStorage.setItem("cp-basket-v1", JSON.stringify([{ competitionId: "q", quantity: 1, boxId: "<script>" }]));
     expect(readBasket()).toEqual([{ competitionId: "q", quantity: 1 }]);
   });
 
@@ -118,11 +118,11 @@ describe("basket", () => {
 
   it("puts the basket aside for a card payment and restores it once", () => {
     addToBasket("a", 4);
-    setAside("V9-1");
+    setAside("CP-1");
     clearBasket();
-    expect(restoreAside("V9-1")).toBe(true);
+    expect(restoreAside("CP-1")).toBe(true);
     expect(readBasket()).toEqual([{ competitionId: "a", quantity: 4 }]);
-    expect(restoreAside("V9-1")).toBe(false);
+    expect(restoreAside("CP-1")).toBe(false);
   });
 });
 
@@ -143,9 +143,9 @@ describe("search titles and descriptions", async () => {
   it("keeps titles within 60 characters and says Win once", () => {
     expect(seo.competitionTitle({ title: "Win A Tesla" })).toBe("Win A Tesla");
     expect(seo.competitionTitle({ title: "£250 Cash" })).toBe("Win £250 Cash");
-    expect(seo.pageTitle("Short")).toBe("Short | Vault Nine Competitions");
+    expect(seo.pageTitle("Short")).toBe("Short | Brand Name");
     expect(seo.pageTitle("A Very Long Competition Title That Goes On And On Forever")).toBe("A Very Long Competition Title That Goes On And On Forever");
-    expect(seo.pageTitle("Win A Signed Championship Dartboard Set")).toBe("Win A Signed Championship Dartboard Set | Vault Nine");
+    expect(seo.pageTitle("Win A Signed Championship Dartboard Set")).toBe("Win A Signed Championship Dartboard Set | Brand Name");
     expect(seo.pageTitle("x".repeat(80)).length).toBeLessThanOrEqual(60);
   });
   it("describes a competition with its price in pence, how it's won and the postal route, never a count", () => {

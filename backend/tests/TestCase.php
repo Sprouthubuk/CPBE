@@ -23,7 +23,7 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
         Setting::put('sales_open', '1');
         // Requests come from the Astro site, so Sanctum treats them as first-party (cookie session).
-        $this->withHeader('Referer', 'https://vaultnine.test/');
+        $this->withHeader('Referer', 'https://platform.test/');
     }
 
     protected function tearDown(): void

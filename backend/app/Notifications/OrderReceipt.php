@@ -30,11 +30,11 @@ class OrderReceipt extends Notification
         if ($o->isDeposit()) {
             return (new MailMessage)->subject('Top Up Received · '.$o->number)
                 ->greeting('Thanks, '.$notifiable->first_name.'!')
-                ->line('Your top up is in your Vault Nine wallet, ready to play.')
+                ->line('Your top up is in your '.config('app.name').' wallet, ready to play.')
                 ->markdown('notifications::email', ['blocks' => [['rows', [['Order', $o->number]], 'Added', $money($o->total_pence)]]])
                 ->action('See Your Wallet', $site.'/account/wallet')
                 ->line('18+ UK only. Please play responsibly.')
-                ->salutation('The Vault Nine team');
+                ->salutation('The '.config('app.name').' team');
         }
 
         $blocks = [];
@@ -77,6 +77,6 @@ class OrderReceipt extends Notification
             ->markdown('notifications::email', ['blocks' => $blocks])
             ->action($instant ? 'Play Your Games' : 'See Your Order', $site.'/order/'.$o->number)
             ->line('Your tickets are also in My Tickets. 18+ UK only. Please play responsibly.')
-            ->salutation('The Vault Nine team');
+            ->salutation('The '.config('app.name').' team');
     }
 }

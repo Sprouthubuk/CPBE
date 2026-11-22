@@ -1,5 +1,5 @@
 {{--
-  Every notification email (Laravel's template, in Vault Nine's words and design). A notification can add
+  Every notification email (Laravel's template, in Brand Name's words and design). A notification can add
   blocks with ->markdown('notifications::email', ['blocks' => [...]]): ['tickets', title, sub, numbers] or
   ['rows', [[label, value], ...], totalLabel?, totalValue?]. They sit between the intro and the button.
 --}}
@@ -44,7 +44,7 @@
 @if (! empty($salutation))
 {{ $salutation }}
 @else
-The Vault Nine team
+The {{ config('app.name') }} team
 @endif
 
 {{-- Subcopy --}}

@@ -1,4 +1,4 @@
-# Vault Nine premium games
+# Brand Name premium games
 
 Nine instant-win reveal games built on one shell: PixiJS 8 for the scene, GSAP for motion, Howler for sound,
 TypeScript throughout. They live inside the front end and are installed with it (`frontend/package.json`).
@@ -46,7 +46,7 @@ play endpoint itself when given an `orderNumber`.
 `shell/Shell.ts` gives every game the same top bar (back, ticket count, total won, sound), a tap-to-reveal
 button, Reveal All and Skip, the win overlay with the "Verified fair" link (`proofUrl`), the results summary and
 screen-reader announcements. Buttons and text are real HTML; only the scene is canvas. Sounds are off until the
-player turns them on (remembered in `v9-games-sound`); reduced motion shortens or removes every animation.
+player turns them on (remembered in `cp-games-sound`); reduced motion shortens or removes every animation.
 
 A game is a `GameScene` (`load`, `present`, `revealNow`, `celebrate`, `dismiss`, `destroy`). To add one: make a
 folder `<id-with-dashes>/` with `scene.ts` and an `index.ts` exporting `mount`, add it to `PREMIUM_GAMES` in

@@ -13,12 +13,12 @@ const back = ref && new URL(ref).host === Astro.url.host ? new URL(ref).pathname
     <h1 class="sr-only">Menu</h1>
     {me ? (
       <>
-        <a href="/account" class="card card-ye card-p row g12 v9-rise" style="text-decoration:none;color:#fff"><span class="av" style="border:1px solid #2FD36B;color:#2FD36B">{me.firstName.slice(0, 1)}</span><span style="flex:1"><b class="d" style="font-size:18px;display:block">{me.firstName} {me.lastName}</b><span class="hint">View account</span></span><span class="d ny" style="font-size:24px">{formatMoney(me.wallet.totalPence)}</span></a>
-        <div class="r2 v9-rise v9-d1"><a class="btn btn-y v9-cta" href="/account/wallet#top-up">Top Up</a><a class="btn btn-o" href="/account/tickets">My Tickets</a></div>
+        <a href="/account" class="card card-ye card-p row g12 cp-rise" style="text-decoration:none;color:#fff"><span class="av" style="border:1px solid #2FD36B;color:#2FD36B">{me.firstName.slice(0, 1)}</span><span style="flex:1"><b class="d" style="font-size:18px;display:block">{me.firstName} {me.lastName}</b><span class="hint">View account</span></span><span class="d ny" style="font-size:24px">{formatMoney(me.wallet.totalPence)}</span></a>
+        <div class="r2 cp-rise cp-d1"><a class="btn btn-y cp-cta" href="/account/wallet#top-up">Top Up</a><a class="btn btn-o" href="/account/tickets">My Tickets</a></div>
       </>
-    ) : <div class="r2 v9-rise"><a class="btn btn-y v9-cta" href="/join">Join</a><a class="btn btn-o" href="/login">Log In</a></div>}
-    <div class="eyebrow">Play</div><nav class="card v9-rise v9-d2" style="overflow:hidden" aria-label="Play">{main.map(([n, h, i]) => <a class="li" href={h}><span class="ico"><Icon name={i} size={18} /></span>{n}<span class="chev"><Icon name="chev" size={18} /></span></a>)}</nav>
-    <div class="eyebrow">Help</div><nav class="card v9-rise v9-d3" style="overflow:hidden" aria-label="Help">{help.map(([n, h, i]) => <a class="li" href={h}><span class="ico"><Icon name={i} size={18} /></span>{n}<span class="chev"><Icon name="chev" size={18} /></span></a>)}</nav>
+    ) : <div class="r2 cp-rise"><a class="btn btn-y cp-cta" href="/join">Join</a><a class="btn btn-o" href="/login">Log In</a></div>}
+    <div class="eyebrow">Play</div><nav class="card cp-rise cp-d2" style="overflow:hidden" aria-label="Play">{main.map(([n, h, i]) => <a class="li" href={h}><span class="ico"><Icon name={i} size={18} /></span>{n}<span class="chev"><Icon name="chev" size={18} /></span></a>)}</nav>
+    <div class="eyebrow">Help</div><nav class="card cp-rise cp-d3" style="overflow:hidden" aria-label="Help">{help.map(([n, h, i]) => <a class="li" href={h}><span class="ico"><Icon name={i} size={18} /></span>{n}<span class="chev"><Icon name="chev" size={18} /></span></a>)}</nav>
     {me && <form method="post" action="/logout" style="display:flex;justify-content:flex-end"><button class="btn btn-o btn-sm" type="submit"><Icon name="logout" size={16} /> Log Out</button></form>}
   </div></section>
 </Layout>

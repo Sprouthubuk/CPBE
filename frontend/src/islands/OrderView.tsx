@@ -100,14 +100,14 @@ export default function OrderView({ number, initial }: { number: string; initial
 
   return (
     <div className="stack g16">
-      <div className="stack g8 v9-rise" style={{ textAlign: "center", alignItems: "center" }}>
-        <span className="v9-pop" style={{ width: 64, height: 64, borderRadius: 999, border: "1px solid #2FD36B", color: "#2FD36B", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 30px rgba(47,211,107,.45)" }}><Svg name="check" size={32} stroke={2.6} /></span>
-        <h1 className="h1">You’re <span className="np v9-flicker">In!</span></h1>
+      <div className="stack g8 cp-rise" style={{ textAlign: "center", alignItems: "center" }}>
+        <span className="cp-pop" style={{ width: 64, height: 64, borderRadius: 999, border: "1px solid #2FD36B", color: "#2FD36B", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 30px rgba(47,211,107,.45)" }}><Svg name="check" size={32} stroke={2.6} /></span>
+        <h1 className="h1">You’re <span className="np cp-flicker">In!</span></h1>
         <p className="p">Payment confirmed · {order.lines.reduce((n, l) => n + l.quantity, 0)} tickets · {formatMoney(order.totalPence)}</p>
       </div>
 
       {instant.map((l) => (
-        <div key={l.competitionId} className="card card-hot card-p stack g16 v9-rise v9-d2" data-testid="instant-line">
+        <div key={l.competitionId} className="card card-hot card-p stack g16 cp-rise cp-d2" data-testid="instant-line">
           <div className="row g12"><img src={l.imageSmall} alt="" style={{ width: 64, height: 64, borderRadius: 14, objectFit: "cover" }} /><div style={{ flex: 1 }}><div className="d" style={{ fontSize: 20 }}>{l.title}</div><div className="hint">{l.quantity} {l.quantity === 1 ? "game" : "games"}</div></div></div>
           <div className="stack g8"><span className="eyebrow">Your ticket numbers</span><div className="row wrapx g8">{l.tickets.slice(0, 60).map((t) => <span key={t} className="tn">#{t}</span>)}{l.tickets.length > 60 && <a className="tap" href="/account/tickets">+{formatCount(l.tickets.length - 60)} more in My Tickets</a>}</div></div>
         </div>
@@ -115,7 +115,7 @@ export default function OrderView({ number, initial }: { number: string; initial
 
       {order.toPlay > 0 && !play && !done && (
         <div className="stack g8">
-          <button type="button" className="btn btn-y btn-lg btn-block v9-cta" onClick={start} disabled={busy} data-testid="play">{busy ? <span className="spin" /> : <><Svg name="play" size={18} /> Play My {order.toPlay} {order.toPlay === 1 ? "Game" : "Games"}</>}</button>
+          <button type="button" className="btn btn-y btn-lg btn-block cp-cta" onClick={start} disabled={busy} data-testid="play">{busy ? <span className="spin" /> : <><Svg name="play" size={18} /> Play My {order.toPlay} {order.toPlay === 1 ? "Game" : "Games"}</>}</button>
           <p className="hint" style={{ textAlign: "center", margin: 0 }}>Your results were fixed the moment you paid — the games just show them.</p>
         </div>
       )}
@@ -135,7 +135,7 @@ export default function OrderView({ number, initial }: { number: string; initial
       )}
 
       {draws.map((l) => (
-        <div key={`${l.competitionId}:${l.bundleLabel ?? ""}`} className="card card-cy card-p stack g12 v9-rise v9-d3" data-testid="draw-line">
+        <div key={`${l.competitionId}:${l.bundleLabel ?? ""}`} className="card card-cy card-p stack g12 cp-rise cp-d3" data-testid="draw-line">
           {/* Picture and name on one row; the ticket numbers get the full width underneath (phones too). */}
           <div className="row g12" style={{ alignItems: "center" }}>
             <img src={l.imageSmall} alt="" width={64} height={64} style={{ width: 64, height: 64, borderRadius: 14, objectFit: "cover", flexShrink: 0 }} />
@@ -151,7 +151,7 @@ export default function OrderView({ number, initial }: { number: string; initial
 
       {instant.length === 0 && <NextDraw exclude={order.lines.map((l) => l.competitionId)} />}
 
-      <div className="r2 v9-rise v9-d4"><a className="btn btn-o" href="/account/tickets">My Tickets</a><a className="btn btn-p" href="/competitions">Play More</a></div>
+      <div className="r2 cp-rise cp-d4"><a className="btn btn-o" href="/account/tickets">My Tickets</a><a className="btn btn-p" href="/competitions">Play More</a></div>
       <p className="hint" style={{ textAlign: "center", margin: 0 }}>Receipt sent to your email · results are saved in My Tickets</p>
     </div>
   );
@@ -196,7 +196,7 @@ function NextDraw({ exclude }: { exclude: string[] }) {
   }
 
   return (
-    <div className="card card-p stack g12 v9-rise v9-d4" data-testid="next-draw">
+    <div className="card card-p stack g12 cp-rise cp-d4" data-testid="next-draw">
       <span className="eyebrow">Another Live Draw</span>
       <div className="row g12">
         <img src={c.imageSmall} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover" }} />

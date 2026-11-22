@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Browser, startSite, type Site } from "../e2e/harness";
 
 /**
- * Meta tracking through the real stack: the cookie banner's choice reaches Laravel as the v9_consent cookie,
+ * Meta tracking through the real stack: the cookie banner's choice reaches Laravel as the cp_consent cookie,
  * a sale is kept for the Conversions API only with consent, and a signed-in page gives the Pixel hashes only.
  */
 let site: Site;
@@ -15,7 +15,7 @@ const rows = () => JSON.parse(site.artisan!(["tinker", "--execute", "echo json_e
 
 async function player(consent: boolean) {
   const b = new Browser(site.origin);
-  if (consent) { b.jar.set("v9_consent", "accepted"); b.jar.set("_fbp", "fb.1.1763700000000.1234567890"); }
+  if (consent) { b.jar.set("cp_consent", "accepted"); b.jar.set("_fbp", "fb.1.1763700000000.1234567890"); }
   expect((await b.api("/api/auth/login", { email: "player@example.com", password: "password123" })).status).toBe(200);
   return b;
 }
@@ -49,7 +49,7 @@ describe("Meta tracking", () => {
     expect(kept[0]).toMatchObject({ event_name: "Purchase", event_id: number, status: "ready" });
     expect(kept[0].context.fbp).toBe("fb.1.1763700000000.1234567890");
     // Nothing is sent without the server token, and the order tells the Pixel the same real-money value.
-    site.artisan!(["vault:meta-events"]);
+    site.artisan!(["platform:meta-events"]);
     expect(rows()[0].status).toBe("ready");
     const order = (await b.api(`/api/orders/${number}`)).body;
     expect(order.trackValuePence).toBe(order.totalPence);

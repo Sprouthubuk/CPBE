@@ -12,7 +12,7 @@ const socials: [string | null, string, string][] = [
   <div class="wrap ft-in">
     <div class="ft-grid">
       <div class="ft-brand">
-        <img src="/logo-sm.webp" alt="Vault Nine Competitions" style="width:150px;height:auto;display:block" width="300" height="175" loading="lazy">
+        <img src="/logo-sm.webp" alt="Brand Name" style="width:150px;height:auto;display:block" width="300" height="175" loading="lazy">
         <p>Every entry. Every chance. Built by darts players, for darts players.</p>
         {socials.some(([u]) => u) && <div class="ft-soc">{socials.filter(([u]) => u).map(([u, l, i]) => <a href={u!} aria-label={l} rel="noopener" target="_blank"><Icon name={i} size={18} /></a>)}</div>}
       </div>
@@ -30,6 +30,6 @@ const socials: [string | null, string, string][] = [
         <li><img src="/payments/google-pay.svg" alt="Google Pay" width="48" height="19" /></li>
       </ul>
     </div>
-    <p class="ft-legal">Vault Nine Competitions is a prize competition operator in the United Kingdom. You must be 18 or over and a UK resident to enter. A free postal entry route is available on every competition, with the same chance of winning as a paid entry. © {new Date().getFullYear()} {COMPANY.tradingName} is a trading name of {COMPANY.legalName}, registered in England and Wales, company number {COMPANY.number}. Registered office: {COMPANY.registeredOffice.join(", ")}.{site.supportEmail && <> {site.supportEmail}</>}</p>
+    <p class="ft-legal">Brand Name is a prize competition operator in the United Kingdom. You must be 18 or over and a UK resident to enter. A free postal entry route is available on every competition, with the same chance of winning as a paid entry. © {new Date().getFullYear()} {COMPANY.tradingName} is a trading name of {COMPANY.legalName}, registered in England and Wales, company number {COMPANY.number}. Registered office: {COMPANY.registeredOffice.join(", ")}.{site.supportEmail && <> {site.supportEmail}</>}</p>
   </div>
 </footer>

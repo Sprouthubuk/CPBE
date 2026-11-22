@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\ArchiveCompetition;
 use App\Models\BundleTier;
 use App\Models\Competition;
 use App\Models\Page;
@@ -61,22 +60,6 @@ class DemoSeeder extends Seeder
         $make(['slug' => 'pro-dartboard-bundle', 'title' => 'Pro Dartboard Bundle', 'type' => 'draw', 'image' => 'competitions/board.webp', 'price_pence' => 49,
             'end_prize_name' => 'Pro Dartboard & Surround', 'end_prize_value_pence' => 6000, 'cash_alternative_pence' => 5000, 'max_tickets' => 999, 'max_per_person' => 999, 'bundles_enabled' => true, 'max_bundle_share_pct' => 10, 'prize_cost_pence' => 4000]);
 
-        // A small sample of the old site's archive (the real one comes from resources/archive on deploy).
-        if (! ArchiveCompetition::query()->exists()) {
-            $old = ArchiveCompetition::query()->create(['legacy_id' => 'demo-old-draw', 'slug' => 'old-tax-free-cash', 'title' => '£250 Tax-Free Cash – Live Draw',
-                'kind' => 'draw', 'image' => 'competitions/cash.webp', 'price_pence' => 99, 'drawn_at' => now()->subDays(1)->setTime(20, 0)]);
-            $old->winners()->create(['legacy_id' => 'demo-old-w1', 'kind' => 'main', 'name' => 'Abbie F.', 'town' => 'Barrow-in-Furness',
-                'prize_name' => '£250 Tax-Free Cash', 'value_pence' => 25000, 'ticket_number' => 2, 'won_at' => now()->subDays(1)->setTime(20, 3)]);
-            $pop = ArchiveCompetition::query()->create(['legacy_id' => 'demo-old-instant', 'slug' => 'old-double-top-pop', 'title' => 'Double Top Pop – Instant Win',
-                'kind' => 'instant', 'image' => 'competitions/claw.webp', 'price_pence' => 1, 'drawn_at' => now()->subDays(1)->setTime(20, 0)]);
-            $pop->winners()->create(['legacy_id' => 'demo-old-i1', 'kind' => 'instant', 'name' => 'Jamie D.', 'prize_name' => '£0.05 Tiny Pop',
-                'value_pence' => 5, 'ticket_number' => 3, 'won_at' => now()->subDays(2)]);
-            foreach ([[$old, ['Sam K.', 'Abbie F.', 'Entrant']], [$pop, ['Lou', 'Kim S.', 'Jamie D.']]] as [$c, $names]) {
-                foreach ($names as $i => $n) {
-                    $c->entries()->create(['ticket_number' => $i + 1, 'name' => $n, 'source' => $n === 'Entrant' ? 'postal' : 'paid']);
-                }
-            }
-        }
 
         foreach (['terms' => 'Terms & Conditions', 'privacy' => 'Privacy Policy', 'cookies' => 'Cookie Policy', 'free-entry' => 'Free Entry Terms', 'complaints' => 'Complaints'] as $slug => $title) {
             Page::query()->firstOrCreate(['slug' => $slug], ['title' => $title, 'version' => 'sample',

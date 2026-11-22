@@ -22,7 +22,7 @@ const [first, ...rest] = title.split(" ");
   </div></aside>
   <div class="stack g16" style="min-width:0">
     {back && <a href="/account" class="row g8 mob" style="color:#C9D3CE;text-decoration:none;font-weight:800;font-size:14px;min-height:44px"><Icon name="back" size={18} />Account</a>}
-    <div class="v9-rise"><div class="eyebrow">{eyebrow}</div><h1 class="h1" style="font-size:40px">{rest.length ? <>{first}{" "}<span class={`${glow} v9-flicker`}>{rest.join(" ")}</span></> : <span class={`${glow} v9-flicker`}>{title}</span>}</h1></div>
+    <div class="cp-rise"><div class="eyebrow">{eyebrow}</div><h1 class="h1" style="font-size:40px">{rest.length ? <>{first}{" "}<span class={`${glow} cp-flicker`}>{rest.join(" ")}</span></> : <span class={`${glow} cp-flicker`}>{title}</span>}</h1></div>
     <slot />
   </div>
 </div></section>

@@ -1,6 +1,8 @@
-# Vault Nine Competitions — v2
+# CPBE — bespoke competition platform
 
-UK prize competitions at vaultninecompetitions.co.uk. Replaces the Lovable build (`Sprouthubuk/vaultninecompetitions`).
+The RaffleLabs Bespoke Package build for Hamid Reza Mousavizadeh's UK prize competition business
+(brand and domain to be confirmed). Started from the Sprout Hub competition engine; scope is the SOW of
+16 November 2026, mapped to the code in `docs/scope.md`.
 
 | Folder | What |
 | --- | --- |
@@ -8,7 +10,7 @@ UK prize competitions at vaultninecompetitions.co.uk. Replaces the Lovable build
 | `backend/` | Laravel 12 API + Filament admin (`/admin`), Verity draw engine, Cashflows payments, wallet |
 | `shared/` | Values both halves must agree on (game and skin ids) |
 | `docs/api.md` | The contract between them |
-| `docs/lovable-import.md` | Moving players and balances from the Lovable site |
+| `docs/scope.md` | Each SOW deliverable and where it lives |
 | `deploy/` | Laravel Forge: nginx routing, deploy script, Astro daemon |
 
 ## Run it locally
@@ -29,7 +31,7 @@ npm run dev               # http://localhost:4321, proxying /api to :8000
 # or without PHP: npm run mock-api (an in-memory stand-in for the API) and npm run dev
 ```
 
-First real admin on the server: `php artisan vault:make-admin you@example.com`.
+First real admin on the server: `php artisan platform:make-admin you@example.com`.
 
 ## Bundles ("Buy X Get Y Free")
 
@@ -63,7 +65,7 @@ their first order gets 10 free tickets for a live draw of their choice (a vouche
 the referrer (up to 10 a month), or bonus credit if set. Fraud checks block same card / device / IP /
 address / email pattern; many friends from one IP or device go to a review queue. **Off by default.**
 
-- **Before switching on:** load the draft terms with `php artisan vault:legal-pages --drafts`, have them
+- **Before switching on:** load the draft terms with `php artisan platform:legal-pages --drafts`, have them
   reviewed, and edit them in Admin → Pages (`referral-terms`).
 - **Switch on / settings:** Admin → Settings → **Refer A Friend**.
 - **Review queue and report:** Admin → Marketing → **Referrals** (approve / reject with a reason).
@@ -75,7 +77,7 @@ cd backend && php artisan test         # wallet, orders, Cashflows, Verity, API,
 cd frontend && npx astro check         # types
 cd frontend && npm run build && npm test             # unit, islands, reveal-game integrity, journeys on the mock API
 cd frontend && npm run build && npm run test:fullstack  # the built site against the real Laravel + Verity
-cd frontend && npm run build && npm run test:visual     # every page at 4 sizes in Chrome; screenshots in /tmp/v9-shots
+cd frontend && npm run build && npm run test:visual     # every page at 4 sizes in Chrome; screenshots in /tmp/cp-shots
 ```
 
 The end-to-end tests start the built Astro server, an API (the mock, or real Laravel for

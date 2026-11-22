@@ -42,7 +42,7 @@ final class CompetitionPresenter
             'topPrizePence' => $top ?: null,
             'subtitle' => $c->subtitle ?? ($c->isInstant() ? number_format((int) $c->prizes->sum('quantity')).' instant wins' : null),
             'soldPercent' => $this->state->soldPercent($c),
-            // Vault Nine shows players the entry cap and what's left (owner, 22 Nov 2026).
+            // Brand Name shows players the entry cap and what's left (owner, 22 Nov 2026).
             'maxTickets' => (int) $c->max_tickets,
             'ticketsLeft' => $this->state->left($c),
             'prizeCount' => $c->isInstant() ? (int) $c->prizes->sum('quantity') : null,

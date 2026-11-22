@@ -14,18 +14,18 @@ use Illuminate\Support\Facades\Log;
  * Meta Conversions API: the server tells Meta about a sale, a top up or a sign-up, so a buyer who pays on the
  * Cashflows page and never comes back (or blocks the pixel) is still counted.
  *
- * - Only for a visitor who pressed "Accept" in the cookie banner (the `v9_consent` cookie), and only when a
+ * - Only for a visitor who pressed "Accept" in the cookie banner (the `cp_consent` cookie), and only when a
  *   Pixel ID is set in the admin. Nothing is kept or sent otherwise.
  * - Each event carries the same id as the browser pixel's (the order number, or reg-{user id}), so Meta
  *   counts it once.
  * - Purchase value is real money only: card, deposit and winnings, never bonus credit.
  * - Personal details leave only as SHA-256 hashes, as Meta requires. They are read from the account when the
  *   event is sent, never stored in the event row.
- * - Sent by `vault:meta-events` every minute; a failure is retried, and Meta only takes events up to 7 days old.
+ * - Sent by `platform:meta-events` every minute; a failure is retried, and Meta only takes events up to 7 days old.
  */
 final class MetaEvents
 {
-    public const CONSENT_COOKIE = 'v9_consent';
+    public const CONSENT_COOKIE = 'cp_consent';
 
     private const MAX_AGE_DAYS = 7;
 

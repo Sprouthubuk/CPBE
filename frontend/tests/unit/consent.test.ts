@@ -39,21 +39,21 @@ describe("marketing cookies and the Meta Pixel", () => {
     const c = await import("../../src/lib/consent");
     c.saveConsent("accepted");
     c.startPixel("123456789012345");
-    c.trackPurchaseOnce("V9-ABCD1234", 250);
-    c.trackPurchaseOnce("V9-ABCD1234", 250);
+    c.trackPurchaseOnce("CP-ABCD1234", 250);
+    c.trackPurchaseOnce("CP-ABCD1234", 250);
     const purchases = window.fbq!.queue.filter((q) => q[1] === "Purchase");
     expect(purchases).toHaveLength(1);
     expect(purchases[0][2]).toEqual({ value: 2.5, currency: "GBP", content_type: "product" });
     // The order number is the event id the server also uses, so Meta counts the sale once.
-    expect(purchases[0][3]).toEqual({ eventID: "V9-ABCD1234" });
+    expect(purchases[0][3]).toEqual({ eventID: "CP-ABCD1234" });
   });
 
   it("sends the contents of a purchase and never a sale worth nothing", async () => {
     const c = await import("../../src/lib/consent");
     c.saveConsent("accepted");
     c.startPixel("123456789012345");
-    c.trackPurchaseOnce("V9-FREE0001", 0);
-    c.trackPurchaseOnce("V9-ABCD9999", 1050, [{ slug: "cash-flights", quantity: 10 }, { slug: "cash-flights", quantity: 5 }, { slug: "lush", quantity: 2 }]);
+    c.trackPurchaseOnce("CP-FREE0001", 0);
+    c.trackPurchaseOnce("CP-ABCD9999", 1050, [{ slug: "cash-flights", quantity: 10 }, { slug: "cash-flights", quantity: 5 }, { slug: "lush", quantity: 2 }]);
     const purchases = window.fbq!.queue.filter((q) => q[1] === "Purchase");
     expect(purchases).toHaveLength(1);
     expect(purchases[0][2]).toMatchObject({ value: 10.5, content_ids: ["cash-flights", "lush"], num_items: 17 });
@@ -62,20 +62,20 @@ describe("marketing cookies and the Meta Pixel", () => {
   it("tells the server about the choice with a cookie, and Reject removes Meta's cookies", async () => {
     const c = await import("../../src/lib/consent");
     c.saveConsent("accepted");
-    expect(document.cookie).toContain("v9_consent=accepted");
+    expect(document.cookie).toContain("cp_consent=accepted");
     document.cookie = "_fbp=fb.1.1763700000000.1234567890; Path=/";
     document.cookie = "_fbc=fb.1.1763700000000.IwAR0abcdefghijklmnop; Path=/";
     c.saveConsent("rejected");
-    expect(document.cookie).toContain("v9_consent=rejected");
+    expect(document.cookie).toContain("cp_consent=rejected");
     expect(document.cookie).not.toContain("_fbp");
     expect(document.cookie).not.toContain("_fbc");
   });
 
   it("gives a visitor who chose before the cookie existed the cookie on their next page", async () => {
-    localStorage.setItem("v9-cookie-consent", JSON.stringify({ choice: "accepted", at: "2026-11-01T00:00:00Z", version: 1 }));
+    localStorage.setItem("cp-cookie-consent", JSON.stringify({ choice: "accepted", at: "2026-11-01T00:00:00Z", version: 1 }));
     const c = await import("../../src/lib/consent");
     c.syncConsentCookie();
-    expect(document.cookie).toContain("v9_consent=accepted");
+    expect(document.cookie).toContain("cp_consent=accepted");
   });
 
   it("matches a signed-in player with hashes only, the same external id as the server", async () => {
@@ -95,13 +95,13 @@ describe("marketing cookies and the Meta Pixel", () => {
     c.trackAddToCart("cash-flights", 10, 250);
     c.trackInitiateCheckout(250, [{ slug: "cash-flights", quantity: 10 }]);
     c.trackInitiateCheckout(250, [{ slug: "cash-flights", quantity: 10 }]);
-    c.trackDepositOnce("VD-ABCD1234", 1000);
-    c.trackDepositOnce("VD-ABCD1234", 1000);
+    c.trackDepositOnce("CD-ABCD1234", 1000);
+    c.trackDepositOnce("CD-ABCD1234", 1000);
     c.track("CompleteRegistration", {}, "reg-42");
     const q = window.fbq!.queue;
     expect(q.find((x) => x[1] === "AddToCart")![2]).toMatchObject({ value: 2.5, content_ids: ["cash-flights"] });
     expect(q.filter((x) => x[1] === "InitiateCheckout")).toHaveLength(1);
-    expect(q.filter((x) => x[1] === "Deposit")).toEqual([["trackCustom", "Deposit", { value: 10, currency: "GBP" }, { eventID: "VD-ABCD1234" }]]);
+    expect(q.filter((x) => x[1] === "Deposit")).toEqual([["trackCustom", "Deposit", { value: 10, currency: "GBP" }, { eventID: "CD-ABCD1234" }]]);
     expect(q.find((x) => x[1] === "CompleteRegistration")![3]).toEqual({ eventID: "reg-42" });
   });
 
@@ -109,8 +109,8 @@ describe("marketing cookies and the Meta Pixel", () => {
     document.body.innerHTML = `<div id="cookie-banner" data-pixel="123456789012345"></div>`;
     const c = await import("../../src/lib/consent");
     c.trackAddToCart("cash-flights", 10, 250);
-    c.trackPurchaseOnce("V9-ABCD1234", 250);
-    c.trackDepositOnce("VD-ABCD1234", 1000);
+    c.trackPurchaseOnce("CP-ABCD1234", 250);
+    c.trackDepositOnce("CD-ABCD1234", 1000);
     expect(window.fbq).toBeUndefined();
     expect(metaScripts()).toHaveLength(0);
   });

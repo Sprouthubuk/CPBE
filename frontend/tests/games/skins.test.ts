@@ -1,5 +1,5 @@
 // Game skins (src/games/arcade/skins). A skin re-draws a game; it must never change what the
-// game shows. Vault Nine starts with the classic skin only (the themed skins of the build this
+// game shows. Brand Name starts with the classic skin only (the themed skins of the build this
 // site started from were removed); these checks keep the skin lists in step and stop any skin
 // added later from deciding anything.
 //

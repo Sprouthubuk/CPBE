@@ -5,7 +5,7 @@ import type { GameTicket, PrizeTier } from "./types";
  * (a RaffleLabs client) only needs its own adapter. Order and outcomes are taken exactly as given.
  */
 
-/** Vault Nine's `POST /api/orders/{number}/play` response (see docs/api.md). */
+/** Brand Name's `POST /api/orders/{number}/play` response (see docs/api.md). */
 export interface RevealOutcomeLike {
   outcome: {
     tickets: readonly {

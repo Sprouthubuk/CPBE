@@ -17,7 +17,7 @@ describe("serverApi cookies", () => {
         sentCookies.push(String((init.headers as Record<string, string>).Cookie ?? ""));
         const headers = new Headers({ "Content-Type": "application/json" });
         headers.append("Set-Cookie", `XSRF-TOKEN=x${n}; path=/; secure; samesite=lax`);
-        headers.append("Set-Cookie", `v9_session=s${n}; path=/; secure; httponly; samesite=lax`);
+        headers.append("Set-Cookie", `cp_session=s${n}; path=/; secure; httponly; samesite=lax`);
         return new Response("{}", { status: 200, headers });
       }),
     );
@@ -29,13 +29,13 @@ describe("serverApi cookies", () => {
     await api.get("/api/winners");
 
     expect(sentCookies[0]).toBe("");
-    expect(sentCookies[1]).toBe("XSRF-TOKEN=x1; v9_session=s1");
-    expect(sentCookies[2]).toBe("XSRF-TOKEN=x2; v9_session=s2");
+    expect(sentCookies[1]).toBe("XSRF-TOKEN=x1; cp_session=s1");
+    expect(sentCookies[2]).toBe("XSRF-TOKEN=x2; cp_session=s2");
 
     const out = latestSetCookies(setCookies);
     expect(out).toHaveLength(2);
     expect(out).toContain("XSRF-TOKEN=x3; path=/; secure; samesite=lax");
-    expect(out).toContain("v9_session=s3; path=/; secure; httponly; samesite=lax");
+    expect(out).toContain("cp_session=s3; path=/; secure; httponly; samesite=lax");
   });
 
   it("keeps the visitor's other cookies and sends the newest XSRF token on a write", async () => {
@@ -49,11 +49,11 @@ describe("serverApi cookies", () => {
         return new Response("{}", { status: 200, headers });
       }),
     );
-    const api = serverApi(new Request("https://example.test/", { headers: { cookie: "v9_consent=1; XSRF-TOKEN=old; v9_session=abc" } }));
+    const api = serverApi(new Request("https://example.test/", { headers: { cookie: "cp_consent=1; XSRF-TOKEN=old; cp_session=abc" } }));
     await api.get("/api/me");
     await api.post("/api/basket", {});
     const h = calls[1].headers as Record<string, string>;
-    expect(h.Cookie).toBe("v9_consent=1; XSRF-TOKEN=new%3D; v9_session=abc");
+    expect(h.Cookie).toBe("cp_consent=1; XSRF-TOKEN=new%3D; cp_session=abc");
     expect(h["X-XSRF-TOKEN"]).toBe("new=");
   });
 

@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 
 class SendMetaEvents extends Command
 {
-    protected $signature = 'vault:meta-events';
+    protected $signature = 'platform:meta-events';
 
     protected $description = 'Send paid orders, top ups and sign-ups to Meta (Conversions API), for visitors who accepted marketing cookies.';
 

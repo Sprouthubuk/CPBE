@@ -14,7 +14,7 @@ use Sprouthub\Verity\Services\Redraws;
  * winner id: a lower place, or a redraw's replacement) is not paid, and Verity redraws it from a
  * future drand round, with the reason on the public audit chain. Verity runs one redraw per
  * competition at a time, so this is called after every end-draw result and every minute
- * (vault:end-prize-rules) until nothing is left to redraw. Verity's redraw limit
+ * (platform:end-prize-rules) until nothing is left to redraw. Verity's redraw limit
  * (VERITY_MAX_REDRAWS) still applies: past it the place is forfeited, as its rules say.
  */
 class EndPrizeRules

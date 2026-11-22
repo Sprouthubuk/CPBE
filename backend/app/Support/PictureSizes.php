@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 /**
  * Smaller WebP copies of an uploaded competition picture, so a card doesn't download a 650 KB original
  * to show it at 288px. Copies sit beside the uploads on the public disk (variants/…-400.webp) and are
- * made when a picture is saved (Competition::saved) or by `php artisan vault:picture-sizes`.
+ * made when a picture is saved (Competition::saved) or by `php artisan platform:picture-sizes`.
  * A picture without copies still works: the API just sends the original.
  */
 class PictureSizes

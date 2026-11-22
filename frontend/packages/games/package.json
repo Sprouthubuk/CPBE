@@ -1,8 +1,8 @@
 {
-  "name": "@vaultnine/games",
+  "name": "@platform/games",
   "private": true,
   "version": "0.1.0",
-  "description": "Vault Nine premium instant-win reveal games. Presentation only: results come from the server.",
+  "description": "Brand Name premium instant-win reveal games. Presentation only: results come from the server.",
   "type": "module",
   "main": "index.ts",
   "sideEffects": ["*.css"],

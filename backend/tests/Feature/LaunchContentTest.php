@@ -8,13 +8,13 @@ use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
-/** What a real server gets from `db:seed` and `vault:legal-pages`. */
+/** What a real server gets from `db:seed` and `platform:legal-pages`. */
 class LaunchContentTest extends TestCase
 {
     public function test_legal_pages_load_from_the_old_site_wording_and_show_on_the_api(): void
     {
         Page::query()->delete(); // the migration has already loaded them once
-        $this->artisan('vault:legal-pages')->assertSuccessful();
+        $this->artisan('platform:legal-pages')->assertSuccessful();
 
         foreach (['terms', 'free-entry', 'privacy', 'cookies', 'complaints'] as $slug) {
             $page = Page::query()->findOrFail($slug);
@@ -23,7 +23,7 @@ class LaunchContentTest extends TestCase
             $this->getJson("/api/pages/{$slug}")->assertOk()->assertJsonPath('title', $page->title);
         }
         $terms = Page::query()->findOrFail('terms')->html;
-        $this->assertStringContainsString('DRAFT – Vault Nine to confirm', $terms);
+        $this->assertStringContainsString('DRAFT – Brand Name to confirm', $terms);
         $this->assertStringContainsString('<h2 id="1-who-we-are">1. Who We Are</h2>', $terms);
         // Version 2.0 (18 Nov 2026): none of the old template wording, nothing the site doesn't do.
         $all = strtolower(Page::query()->pluck('html')->implode(' '));
@@ -41,13 +41,13 @@ class LaunchContentTest extends TestCase
         Page::query()->create(['slug' => 'terms', 'title' => 'Terms & Conditions', 'version' => '2.0', 'html' => '<p>Edited by the owner</p>']);
         Page::query()->create(['slug' => 'privacy', 'title' => 'Privacy Policy', 'version' => 'sample', 'html' => '<p>Sample</p>']);
 
-        $this->artisan('vault:legal-pages')->assertSuccessful();
+        $this->artisan('platform:legal-pages')->assertSuccessful();
 
         $this->assertSame('<p>Edited by the owner</p>', Page::query()->findOrFail('terms')->html);
         $this->assertStringNotContainsString('Sample', Page::query()->findOrFail('privacy')->html);
 
-        $this->artisan('vault:legal-pages', ['--force' => true])->assertSuccessful();
-        $this->assertStringContainsString('DRAFT – Vault Nine to confirm', Page::query()->findOrFail('terms')->html);
+        $this->artisan('platform:legal-pages', ['--force' => true])->assertSuccessful();
+        $this->assertStringContainsString('DRAFT – Brand Name to confirm', Page::query()->findOrFail('terms')->html);
     }
 
     public function test_db_seed_makes_no_accounts(): void
