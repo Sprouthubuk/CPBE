@@ -1,0 +1,4 @@
+/* Barlow (SIL OFL), served from here so the admin loads nothing from a font CDN. */
+@font-face { font-family: "Barlow"; src: url("barlow-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("barlow-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Barlow"; src: url("barlow-latin-700-normal.woff2") format("woff2"); font-weight: 700 900; font-display: swap; }

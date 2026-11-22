@@ -1,0 +1,165 @@
+/*
+ * Vault Nine admin: the site's black-and-neon look on top of Filament.
+ * Colours come from the panel (AdminPanelProvider: pink primary, purple-black greys, forced dark);
+ * this adds the glow, the headline font, softer cards and the branded sign-in page.
+ */
+:root {
+  --v9-pink: #2FD36B;
+  --v9-cyan: #2FD36B;
+  --v9-yellow: #2FD36B;
+  --v9-ink: #07090A;
+  --v9-card: #111715;
+  --v9-card-2: #0B100E;
+  --v9-line: rgba(255, 255, 255, 0.08);
+  --v9-glow-pink: 0 0 0 1px rgba(47,211,107, 0.35), 0 0 28px rgba(47,211,107, 0.18);
+}
+
+/* Page: near-black with soft pink and cyan light. */
+.fi-body {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(47,211,107, 0.12), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(47,211,107, 0.08), transparent 60%),
+    var(--v9-ink) !important;
+  background-attachment: fixed !important;
+}
+
+/* Headings in the site's display font. */
+.fi-header-heading,
+.fi-simple-header-heading,
+.fi-wi-stats-overview-stat-value,
+.fi-section-header-heading.v9-display,
+.v9-display {
+  font-family: "system-ui", system-ui, sans-serif !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.01em;
+}
+.fi-header-heading {
+  font-size: 2rem !important;
+  color: #fff;
+  text-shadow: 0 0 22px rgba(47,211,107, 0.45);
+}
+
+/* Brand in the sidebar. */
+.v9-brand { display: inline-flex; align-items: center; gap: 0.6rem; }
+.v9-brand-logo { height: 2.75rem; width: auto; filter: drop-shadow(0 0 10px rgba(47,211,107, 0.35)); }
+.v9-brand-tag {
+  font: 800 0.68rem/1 "Barlow", sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--v9-cyan);
+  border: 1px solid rgba(47,211,107, 0.5);
+  border-radius: 999px;
+  padding: 0.3rem 0.55rem;
+  box-shadow: 0 0 12px rgba(47,211,107, 0.2);
+}
+
+/* Sidebar and top bar: dark glass with a neon edge. */
+.fi-sidebar,
+.fi-main-sidebar {
+  background: rgba(10, 6, 14, 0.82) !important;
+  border-right: 1px solid var(--v9-line);
+  backdrop-filter: blur(14px);
+}
+.fi-topbar,
+.fi-topbar > nav {
+  background: rgba(7,9,10, 0.7) !important;
+  backdrop-filter: blur(14px);
+  box-shadow: none !important;
+  border-bottom: 1px solid var(--v9-line);
+}
+.fi-sidebar-group-btn .fi-sidebar-group-label,
+.fi-sidebar-group-label {
+  font-size: 0.68rem !important;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #9AA8A1 !important;
+}
+.fi-sidebar-item-btn {
+  border-radius: 12px !important;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+  background: linear-gradient(90deg, rgba(47,211,107, 0.22), rgba(47,211,107, 0.06)) !important;
+  box-shadow: inset 3px 0 0 var(--v9-pink), 0 0 18px rgba(47,211,107, 0.12);
+}
+.fi-sidebar-item.fi-active .fi-sidebar-item-label { color: #fff !important; }
+
+/* Cards: sections, tables, stats. */
+.fi-section:not(.fi-section-not-contained),
+.fi-ta-ctn,
+.fi-wi-chart .fi-section,
+.fi-fo-tabs,
+.fi-sc-tabs {
+  background: linear-gradient(180deg, var(--v9-card-2), var(--v9-card)) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 0 0 1px var(--v9-line), 0 18px 40px rgba(0, 0, 0, 0.35) !important;
+}
+.fi-ta-header-cell {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #C9D3CE !important;
+}
+.fi-ta-row:hover { background: rgba(47,211,107, 0.05) !important; }
+
+/* Stats: neon tiles. */
+.fi-wi-stats-overview-stat {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px !important;
+  background: linear-gradient(180deg, var(--v9-card-2), var(--v9-card)) !important;
+  box-shadow: 0 0 0 1px var(--v9-line), 0 18px 40px rgba(0, 0, 0, 0.35) !important;
+}
+.fi-wi-stats-overview-stat::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--v9-pink), var(--v9-cyan));
+  opacity: 0.85;
+}
+.fi-wi-stats-overview-stat-value { font-size: 2.1rem !important; color: #fff; }
+.fi-wi-stats-overview-stat-label {
+  font-size: 0.72rem !important;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #C9D3CE !important;
+}
+
+/* Buttons: pink pills with a glow. */
+.fi-btn { border-radius: 999px !important; font-weight: 800 !important; }
+.fi-btn.fi-color-primary:not(.fi-btn-outlined) {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 6px 22px rgba(47,211,107, 0.35) !important;
+}
+.fi-badge { border-radius: 999px !important; font-weight: 800 !important; }
+
+/* Inputs: dark, rounded, pink focus. */
+.fi-input-wrp {
+  border-radius: 14px !important;
+  background: rgba(7,9,10, 0.6) !important;
+}
+.fi-input-wrp:focus-within { box-shadow: 0 0 0 2px rgba(47,211,107, 0.6), 0 0 18px rgba(47,211,107, 0.2) !important; }
+
+/* Sign-in: the logo over a glowing card. */
+.fi-simple-layout {
+  background:
+    radial-gradient(700px 420px at 50% -5%, rgba(47,211,107, 0.28), transparent 65%),
+    radial-gradient(600px 380px at 50% 105%, rgba(47,211,107, 0.16), transparent 65%),
+    var(--v9-ink) !important;
+}
+.fi-simple-main {
+  background: linear-gradient(180deg, var(--v9-card-2), var(--v9-card)) !important;
+  border-radius: 28px !important;
+  box-shadow: var(--v9-glow-pink), 0 30px 60px rgba(0, 0, 0, 0.5) !important;
+}
+.fi-simple-layout .v9-brand { flex-direction: column; gap: 0.8rem; }
+.fi-simple-layout .v9-brand-logo { height: 5.5rem; }
+.fi-simple-header-heading { font-size: 1.9rem !important; }
+
+/* Dashboard extras. */
+.v9-progress { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; min-width: 120px; }
+.v9-progress > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--v9-pink), var(--v9-cyan)); box-shadow: 0 0 10px rgba(47,211,107, 0.5); }
+.v9-progress-label { font-size: 0.75rem; color: #C9D3CE; margin-top: 4px; }
+.fi-main-sidebar, .fi-sidebar { min-height: 100vh; }
+.fi-header-subheading { color: #C9D3CE !important; }
+.fi-simple-layout .fi-logo { height: auto !important; margin-bottom: 0.75rem; }

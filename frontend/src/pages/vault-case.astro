@@ -1,0 +1,24 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Icon from "../components/Icon.astro";
+import VaultCaseBuilder from "../islands/VaultCaseBuilder";
+const gb = Astro.locals.site.vaultCase;
+// Off: the page doesn't exist. On but fewer than two draws to pack: the box shows, waiting to open.
+if (!gb) return Astro.rewrite("/404");
+---
+<Layout title="The Vault Case" active="comps" description="Set a budget and we pack you a case of live draw tickets, with bonus tickets on top. 18+ UK only, free postal entry on every draw.">
+  <section class="sec" style="padding-top:20px"><div class="wrap stack g16">
+    <div class="stack g8"><div class="eyebrow">Vault Case</div><h1 class="h1">The <span class="np">Vault</span> Case</h1>
+      <p class="p" style="margin:0">Set a budget and we'll pack you a case of darts: each dart is a bundle of tickets for a different live draw{gb.bonusPct > 0 ? <>, plus <b class="ny">{gb.bonusPct}% bonus tickets</b> free</> : null}. Same prices as each competition page.</p></div>
+    <VaultCaseBuilder client:load available={gb.available} chipsPence={gb.chipsPence} minPence={gb.minPence} maxPence={gb.maxPence} bonusPct={gb.bonusPct} />
+  </div></section>
+  <section class="sec" style="padding-top:0"><div class="mid stack g16" style="max-width:640px">
+    <h2 class="h2">How It Works</h2>
+    <div class="tl v9-stagger">
+      <div class="v9-card"><span class="d np" style="font-size:26px;width:38px">01</span><div><div style="font-weight:900">Pick A Budget And A Mix</div><div class="hint" style="font-size:13px">From £{gb.minPence / 100} to £{gb.maxPence / 100}. Biggest prizes, most tickets, or a surprise.</div></div></div>
+      <div class="v9-card"><span class="d nc" style="font-size:26px;width:38px">02</span><div><div style="font-weight:900">Unzip It</div><div class="hint" style="font-size:13px">We pick two to four live draws and the best bundles your budget buys. Don't like it? Repack it.</div></div></div>
+      <div class="v9-card"><span class="d ny" style="font-size:26px;width:38px">03</span><div><div style="font-weight:900">Check Out</div><div class="hint" style="font-size:13px">Your case goes in your basket. Ticket numbers are given at random, as always.</div></div></div>
+    </div>
+    <div class="notice notice-c"><Icon name="info" size={18} /><span>You never pay more than your budget. Any change too small for another ticket isn't charged.</span></div>
+  </div></section>
+</Layout>

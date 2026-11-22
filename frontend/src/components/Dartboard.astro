@@ -1,0 +1,15 @@
+---
+// The dartboard drawn in code (green and red rings): the placeholder behind product pictures,
+// on cards and on the hero. Decorative.
+interface Props { class?: string; spin?: boolean }
+const { class: cls = "", spin = false } = Astro.props;
+---
+<svg class={`${cls} ${spin ? "v9-slow" : ""}`} viewBox="0 0 200 200" aria-hidden="true">
+  <circle cx="100" cy="100" r="96" fill="#111715"></circle>
+  <circle cx="100" cy="100" r="86" fill="none" stroke="#1B9A47" stroke-width="10" stroke-dasharray="13.5 13.5"></circle>
+  <circle cx="100" cy="100" r="86" fill="none" stroke="#D7322B" stroke-width="10" stroke-dasharray="13.5 13.5" stroke-dashoffset="13.5"></circle>
+  <circle cx="100" cy="100" r="54" fill="none" stroke="#1B9A47" stroke-width="7" stroke-dasharray="8.48 8.48"></circle>
+  <circle cx="100" cy="100" r="54" fill="none" stroke="#D7322B" stroke-width="7" stroke-dasharray="8.48 8.48" stroke-dashoffset="8.48"></circle>
+  <circle cx="100" cy="100" r="11" fill="#1B9A47"></circle>
+  <circle cx="100" cy="100" r="5" fill="#D7322B"></circle>
+</svg>

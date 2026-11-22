@@ -1,0 +1,188 @@
+---
+import { gameName } from "../../lib/gameLabels";
+import Layout from "../../layouts/Layout.astro";
+import CompCard from "../../components/CompCard.astro";
+import Countdown from "../../components/Countdown.astro";
+import Dartboard from "../../components/Dartboard.astro";
+import PostalBox from "../../components/PostalBox.astro";
+import Icon from "../../components/Icon.astro";
+import TicketPicker from "../../islands/TicketPicker";
+import type { CompetitionDetail, CompetitionSummary, WinningNumbersPage } from "../../lib/types";
+import { formatPence, formatCount } from "../../lib/money";
+import { ukDateTime, ukShortDay } from "../../lib/time";
+import { splitTitle } from "../../lib/titles";
+import { breadcrumbLd, competitionDescription, competitionTitle, pageTitle } from "../../lib/seo";
+
+const { api, site, me } = Astro.locals;
+const slug = Astro.params.slug!;
+const othersCall = () => api.get<{ data: CompetitionSummary[] }>("/api/competitions?status=live");
+const early = api.hasSession() ? othersCall() : null;
+early?.catch(() => undefined); // still rejects where it is awaited; this only stops an early failure crashing Node
+const c = await api.maybe<CompetitionDetail>(`/api/competitions/${encodeURIComponent(slug)}`);
+if (!c) return Astro.rewrite("/404");
+const numbersCall = c.type === "instant" && c.verityRef ? api.maybe<WinningNumbersPage>(`/api/competitions/${encodeURIComponent(slug)}/winning-numbers`) : Promise.resolve(null);
+numbersCall.catch(() => undefined);
+const { data: others } = await (early ?? othersCall());
+const numbers = await numbersCall.catch(() => null);
+const more = others.filter((o) => o.id !== c.id && o.type === c.type).slice(0, 3);
+const isDraw = c.type === "draw";
+const prizesLeft = c.prizes.reduce((n, p) => n + (p.quantity - p.won), 0);
+const prizesWon = c.prizes.reduce((n, p) => n + p.won, 0);
+const prizesTotal = prizesLeft + prizesWon;
+const open = c.status === "live";
+const opensLater = c.status === "scheduled" && c.opensAt ? c.opensAt : null;
+const presets = c.presets?.length ? c.presets : isDraw ? [1, 5, 10, 25] : [5, 10, 25, 50];
+const endCount = c.endPrize?.count ?? 0;
+const endPrizeLine = c.endPrize ? `${endCount > 1 ? `${endCount} × ` : ""}${formatPence(c.endPrize.valuePence, { short: false })}` : "";
+const [lead, tail] = splitTitle(c.title);
+const category = isDraw ? (c.tags.includes("kit") ? "Cases & Kit" : c.tags.includes("darts") ? "Darts" : null) : null;
+---
+<Layout title={c.title} fullTitle={pageTitle(competitionTitle(c))} active={isDraw ? "competitions" : "instant"} description={competitionDescription(c)} shareImage={c.image} jsonLd={[breadcrumbLd(new URL(Astro.site ?? Astro.url).origin, [["Home", "/"], [isDraw ? "Live Draws" : "Instant Wins", `/competitions?type=${isDraw ? "draw" : "instant"}`], [c.title, `/competitions/${c.slug}`]])]}>
+<main class="wrap" style="padding-top:20px">
+  <a href="/competitions" class="row g8 mob" style="color:var(--text-2);text-decoration:none;font-weight:700;font-size:14px;min-height:44px"><Icon name="back" size={18} />All Competitions</a>
+  <nav aria-label="Breadcrumb" class="dsk crumbs" style="font-size:13px;color:var(--muted);margin-bottom:12px"><a href="/">Home</a> / <a href={`/competitions?type=${c.type}`}>{isDraw ? "Live Draws" : "Instant Wins"}</a> / <span style="color:var(--text)">{c.title}</span></nav>
+  <div class="pdp">
+    <div class="pdp-media v9-in">
+      <div class={`pdp-hero v9-tilt ${isDraw ? "" : "vc-tile"}`} style={isDraw ? undefined : "border-color:var(--brand-green)"}>
+        {isDraw ? <Dartboard class="vc-board" spin /> : <svg class="vc-stripes" viewBox="0 0 120 120" aria-hidden="true" preserveAspectRatio="none"><polygon points="60,120 85,40 98,40 73,120" fill="#1B9A47" opacity=".55"></polygon><polygon points="78,120 103,40 116,40 91,120" fill="#1B9A47" opacity=".8"></polygon><polygon points="96,120 121,40 134,40 109,120" fill="#2FD36B"></polygon></svg>}
+        <img src={c.image} srcset={c.imageSrcset ?? undefined} sizes="(min-width:960px) 600px, 100vw" alt={c.title} width="640" height="640" fetchpriority="high">
+        <span class={`vc-badge ${isDraw ? "" : "inst"}`} style="top:16px;left:16px;font-size:12px">{isDraw ? "Live draw" : <><Icon name="bolt" size={12} stroke={2.6} />Instant win{prizesTotal ? ` · ${formatCount(prizesTotal)} prizes` : ""}</>}</span>
+        {!isDraw && c.topPrizePence && <span class="vc-upto" style="left:24px;bottom:24px;font-size:24px">Win up to <b>{formatPence(c.topPrizePence, { short: false })}</b></span>}
+      </div>
+    </div>
+    <div class="stack g16 v9-stg">
+      <div class="eyebrow" style="color:var(--green)">{isDraw ? `Live draw${category ? ` · ${category}` : ""}` : `Instant win${prizesTotal ? ` · ${formatCount(prizesTotal)} prizes` : ""}`}{!isDraw && gameName(c) ? ` · ${gameName(c)}` : ""}</div>
+      <h1 class="h1" style="margin:0;font-size:clamp(44px,10vw,72px)">{lead}{tail && <>{" "}<span class="np">{tail}</span></>}</h1>
+      <div class="pdp-tags">
+        {!isDraw && c.topPrizePence && <span class="g2">Top prize {formatPence(c.topPrizePence, { short: false })}</span>}
+        {!isDraw && prizesTotal > 0 && <span class="g1">{formatCount(prizesLeft)} prizes left</span>}
+        {c.cashAlternativePence && <span class="g1">{formatPence(c.cashAlternativePence, { short: false })} cash alternative</span>}
+        {isDraw && c.drawAt && <span class="g1">Draw {ukDateTime(c.drawAt)}</span>}
+        {opensLater && <span class="g1">Opens {ukDateTime(opensLater)}</span>}
+        <span>Closes {ukDateTime(c.closesAt)}</span>
+        {isDraw && <span>Max {formatCount(c.maxTickets)} entries</span>}
+      </div>
+      <div class="panel">
+        <div class="panel-hd"><span>{opensLater ? "Entries open in" : isDraw ? "Throw starts in" : "Closes in"}</span>{isDraw && !opensLater && <b>Winner picked at random</b>}</div>
+        <Countdown until={opensLater ?? (isDraw && c.drawAt ? c.drawAt : c.closesAt)} />
+        <div class="bar" style="margin-top:14px" data-sold-bar={c.slug}><div style={`width:${c.soldPercent > 0 ? Math.max(c.soldPercent, 2) : 0}%`}></div></div>
+        <div class="panel-ml">
+          {isDraw
+            ? <><span><strong>{formatCount(c.maxTickets - c.ticketsLeft)}</strong> sold{c.status === "sold_out" ? " · Sold out" : c.soldPercent >= 90 ? " · Almost gone!" : ""}</span><span><strong>{formatCount(c.ticketsLeft)}</strong> of {formatCount(c.maxTickets)} left</span></>
+            : <><span data-sold-text={c.slug}><strong>{c.status === "sold_out" ? "Sold out" : `${c.soldPercent}% sold`}</strong>{c.status !== "sold_out" && c.soldPercent >= 90 && " · Almost gone!"}</span><span>Results fixed when you buy</span></>}
+        </div>
+      </div>
+      <TicketPicker client:load competitionId={c.id} slug={c.slug} type={c.type} pricePence={c.pricePence} presets={presets} popularPreset={c.popularPreset ?? null} minTickets={c.minTickets ?? 1} bundles={c.bundles ?? []} soldPercent={c.soldPercent} soldOut={c.status === "sold_out"} open={open} opensAt={opensLater} salesOpen={site.salesOpen} signedIn={!!me} playBlock={me?.playBlock ?? null} />
+      <PostalBox />
+      {c.type === "draw" && site.vaultCase?.available && <a class="tap" href="/vault-case" style="font-weight:700;text-decoration:none" data-testid="gb-link">Can't decide? Try a Vault Case →</a>}
+    </div>
+  </div>
+
+  {!isDraw && (
+    <section class="v9-sec">
+      <div class="game-box">
+        <div class="stack g12">
+          <div class="eyebrow">The game{gameName(c) ? ` · ${gameName(c)}` : ""}</div>
+          <h2 class="h2" style="font-size:clamp(36px,8vw,52px)">One ticket. <span class="np">One throw.</span></h2>
+          <p class="p" style="margin:0;font-size:16px;line-height:1.6">Every ticket gets one go at the {gameName(c) ?? "reveal game"}. Your result is fixed by Verity the moment you pay: the game just reveals it. Land a winning number and the prize is yours on the spot.</p>
+        </div>
+        <div class="row" style="justify-content:center">
+          <svg viewBox="0 0 220 220" width="260" height="260" role="img" aria-label="A dart landing in the treble ring of a dartboard" style="max-width:100%;height:auto">
+            <circle cx="110" cy="110" r="104" fill="#111715" stroke="#24302A" stroke-width="2"></circle>
+            <circle cx="110" cy="110" r="92" fill="none" stroke="#1B9A47" stroke-width="12" stroke-dasharray="14.45 14.45"></circle>
+            <circle cx="110" cy="110" r="92" fill="none" stroke="#D7322B" stroke-width="12" stroke-dasharray="14.45 14.45" stroke-dashoffset="14.45"></circle>
+            <circle cx="110" cy="110" r="76" fill="#0A0F0D"></circle>
+            <circle cx="110" cy="110" r="58" fill="none" stroke="#1B9A47" stroke-width="9" stroke-dasharray="9.11 9.11"></circle>
+            <circle cx="110" cy="110" r="58" fill="none" stroke="#D7322B" stroke-width="9" stroke-dasharray="9.11 9.11" stroke-dashoffset="9.11"></circle>
+            <circle cx="110" cy="110" r="13" fill="#1B9A47"></circle><circle cx="110" cy="110" r="6" fill="#D7322B"></circle>
+            <circle class="v9-impact" cx="128" cy="62" r="6" fill="none" stroke="#2FD36B" stroke-width="2"></circle>
+            <g class="v9-throw"><line x1="128" y1="62" x2="196" y2="16" stroke="#C9D3CE" stroke-width="4" stroke-linecap="round"></line><polygon points="190,8 212,4 204,26" fill="#2FD36B"></polygon><circle cx="128" cy="62" r="4" fill="#F4F7F5"></circle></g>
+          </svg>
+        </div>
+      </div>
+    </section>
+  )}
+
+  {!isDraw && c.prizes.length > 0 && (
+    <section class="v9-sec">
+      <h2 class="h2" style="margin-bottom:12px">Instant <span class="np">Wins</span></h2>
+      <div class="row wrapx g16" style="margin-bottom:10px">
+        <span class="iw-left"><span class="ic"><Icon name="bolt" size={16} stroke={2.6} /></span><span><b class="d">{formatCount(prizesLeft)}</b> <small>Instant prizes left to win</small></span></span>
+        {numbers && numbers.total > 0 && <a class="tap" style="font-weight:700" href={`/competitions/${c.slug}/winning-numbers`}>See all {formatCount(numbers.total)} winning numbers →</a>}
+      </div>
+      <p class="p" style="font-size:14px;margin:0 0 20px;color:var(--muted)">Every winning ticket number is public from the start. Tickets are given out at random when you pay: land a winning number and it's yours.</p>
+      <div class="iw-grid v9-kids" data-testid="instant-prizes">
+        {c.prizes.map((p) => {
+          const left = p.quantity - p.won;
+          const done = left <= 0;
+          return (
+            <a class={`iw v9-card ${done ? "done" : ""}`} href={`/competitions/${c.slug}/winning-numbers?${new URLSearchParams({ prize: p.name })}`}>
+              <span class="iw-val">{formatPence(p.valuePence, { short: false })}</span>
+              <div class="iw-b">
+                <span class="row between g8" style="align-items:baseline">
+                  <span class="iw-n">{p.name}</span>
+                  {done ? <span class="iw-c"><b>All found</b></span> : <span class="iw-c"><b>{formatCount(left)}</b> <small>Left</small></span>}
+                </span>
+                <div class="bar" style="height:4px"><div style={`width:${p.quantity ? Math.max((p.won / p.quantity) * 100, p.won ? 3 : 0) : 0}%`}></div></div>
+                <span class="row between g8 iw-f"><span>{formatCount(p.won)} of {formatCount(p.quantity)} found</span><span class="iw-l">Winning tickets →</span></span>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+      {c.endPrize && (
+        <div class="postal" style="margin-top:14px;align-items:center" data-testid="end-prize">
+          <span class="d" style="font-size:32px;color:var(--green);white-space:nowrap">{endPrizeLine}</span>
+          <div><b>{endCount > 1 ? "End prizes" : "End prize"}: {c.endPrize.name}</b><p style="font-size:13px">Drawn {c.drawAt ? `live ${ukDateTime(c.drawAt)}` : "at the close"} from every entry, instant winners included{endCount > 1 ? ". One end prize per person" : ""}.</p></div>
+        </div>
+      )}
+    </section>
+  )}
+
+  {isDraw && (
+    <section class="v9-sec">
+      <div class="eyebrow" style="margin-bottom:6px">How draw night works</div>
+      <h2 class="h2" style="margin-bottom:20px">Drawn <span class="np">Live</span>, Totally Random</h2>
+      <ol class="steps-n v9-kids">
+        <li class="v9-card"><span class="n">01</span><span><b>Entries close</b><small>{ukDateTime(c.closesAt)}</small></span></li>
+        <li class="v9-card"><span class="n">02</span><span><b>Entry list public</b><small>Every ticket number is listed from the first sale</small></span></li>
+        <li class="v9-card"><span class="n">03</span><span><b>Drawn live</b><small>A random draw anyone can verify, streamed on Facebook{c.drawAt ? ` at ${ukShortDay(c.drawAt)}` : ""}</small></span></li>
+        <li class="v9-card"><span class="n">04</span><span><b>Prize on its way</b><small>We contact the winner{c.cashAlternativePence ? ` (or pay the ${formatPence(c.cashAlternativePence, { short: false })} cash alternative)` : ""} and ship it tracked</small></span></li>
+      </ol>
+    </section>
+  )}
+
+  <section class="v9-sec">
+    <h2 class="h2" style="margin-bottom:20px">More <span class="np">Information</span></h2>
+    <div class="panel stack g16" style="padding:24px" data-testid="more-information">
+      <div class="info-d" set:html={c.description.replace(/</g, "&lt;").replace(/\n/g, "<br>")}></div>
+      {c.howToPlay && <p class="info-d" style="margin:0"><b>How to play:</b>{" "}{c.howToPlay}</p>}
+      <div class="info-f">
+        <span>18+ UK residents only{(c.minTickets ?? 1) > 1 ? ` · Minimum ${formatCount(c.minTickets)} tickets per order` : ""}. Every ticket has the same chance: bundle and free tickets are entered exactly like paid tickets, and so are free postal entries.</span>
+        <span class="row wrapx" style="gap:4px 16px">
+          <a class="tap" href="/free-entry">Free postal entry</a>
+          <a class="tap" href={`/entry-lists/${c.slug}`}>Entry list</a>
+          {c.verifyUrl && <a class="tap" href={c.verifyUrl}>Fair play record {c.verityRef}</a>}
+          <a class="tap" href="/legal/terms">T&amp;Cs</a>
+        </span>
+        {c.commitment && <span class="mono" style="word-break:break-all;font-size:12px">Seed fingerprint <span style="color:var(--green)">{c.commitment}</span></span>}
+      </div>
+    </div>
+  </section>
+
+  {more.length > 0 && <section class="v9-sec" style="padding-bottom:88px"><h2 class="h2" style="margin-bottom:20px">{isDraw ? <>More <span class="np">Draws</span></> : <>You Might <span class="np">Also Like</span></>}</h2><div class="grid-cards v9-kids">{more.map((o) => <CompCard c={o} />)}</div></section>}
+</main>
+{open && <div class="mob" style="height:72px" aria-hidden="true"></div>}
+<script define:vars={{ slug: c.slug, title: c.title, price: c.pricePence }}>
+  window.addEventListener("load", () => window.ggTrack?.("ViewContent", { content_ids: [slug], content_name: title, content_type: "product", value: price / 100, currency: "GBP" }));
+  // The ticket picker re-reads % sold every minute; keep the bar and its words in step.
+  window.addEventListener("v9-sold", (e) => {
+    const { slug: s, percent } = e.detail || {};
+    if (s !== slug) return;
+    const bar = document.querySelector(`[data-sold-bar="${slug}"] > div`);
+    if (bar) bar.style.width = `${percent > 0 ? Math.max(percent, 2) : 0}%`;
+    const text = document.querySelector(`[data-sold-text="${slug}"]`);
+    if (text) text.innerHTML = `<strong>${percent}% sold</strong>${percent >= 90 && percent < 100 ? " · Almost gone!" : ""}`;
+  });
+</script>
+</Layout>

@@ -1,0 +1,59 @@
+---
+// A competition card: the live draw card (CompCard.dc.html) or the instant win card (InstantCard.dc.html).
+// The whole card is one link (the title's link stretches over it); the free postal link sits above it.
+import Icon from "./Icon.astro";
+import Dartboard from "./Dartboard.astro";
+import type { CompetitionSummary } from "../lib/types";
+import { formatCount, formatPence } from "../lib/money";
+import { ukWhen } from "../lib/time";
+interface Props { c: CompetitionSummary }
+const { c } = Astro.props;
+const live = c.type === "draw";
+const href = `/competitions/${c.slug}`;
+const open = c.status === "live";
+const soon = c.status === "scheduled" && c.opensAt ? c.opensAt : null;
+const sold = Math.max(0, Math.min(100, c.soldPercent));
+const msLeft = new Date(c.closesAt).getTime() - Date.now();
+const urgent = open && msLeft > 0 && msLeft < 36 * 36e5;
+const badge = soon ? ["Opens " + ukWhen(soon), "off"] : c.status === "sold_out" ? ["Sold out", "off"] : !open ? ["Closed", "off"]
+  : urgent ? ["Ending soon", "urgent"] : live ? ["Live draw", ""] : ["Instant win", "inst"];
+const money = (p: number) => formatPence(p, { short: false });
+const when = live || c.endPrize ? (c.drawAt ?? c.closesAt) : c.closesAt;
+const whenLabel = live ? "Live draw" : c.endPrize ? "End draw" : "Ends";
+const cta = !open && !soon ? "View" : soon ? "See the prizes" : live ? "Enter now" : "Play now";
+// The instant-win tile: the top prize in big figures over green stripes (shown when there is no picture yet).
+const big = c.topPrizePence ? String(Math.round(c.topPrizePence / 100)) : "";
+---
+<article class="vc">
+  <div class={`vc-im ${live ? "" : "vc-tile"}`}>
+    {live ? <Dartboard class="vc-board" /> : (
+      <>
+        <svg class="vc-stripes" viewBox="0 0 120 120" aria-hidden="true" preserveAspectRatio="none"><polygon points="60,120 85,40 98,40 73,120" fill="#1B9A47" opacity=".55"></polygon><polygon points="78,120 103,40 116,40 91,120" fill="#1B9A47" opacity=".8"></polygon><polygon points="96,120 121,40 134,40 109,120" fill="#2FD36B"></polygon></svg>
+        {big && <div class="vc-big" aria-hidden="true"><b>{big}</b></div>}
+      </>
+    )}
+    {c.imageSmall && <img src={c.imageSmall} srcset={c.imageSrcset ?? undefined} sizes="(min-width:1240px) 300px, (min-width:600px) 45vw, 100vw" alt={c.title} loading="lazy" decoding="async" width="400" height="400">}
+    <span class={`vc-badge ${badge[1]}`}>{badge[1] === "inst" && <Icon name="bolt" size={12} stroke={2.6} />}{badge[0]}</span>
+    {!live && c.topPrizePence ? <span class="vc-upto">Win up to <b>{money(c.topPrizePence)}</b></span> : null}
+  </div>
+  <div class="vc-bd">
+    <div class="vc-pr">
+      <span class="vc-price">{formatPence(c.pricePence)}</span>
+      {live ? <span class="vc-chip">MAX {formatCount(c.maxTickets)}</span>
+        : c.prizeCount ? <span class="vc-chip"><Icon name="bolt" size={11} stroke={3} />{formatCount(c.prizeCount)} PRIZES</span> : null}
+    </div>
+    <h3><a href={href}>{c.title}</a></h3>
+    {!live && c.endPrize && <div class="vc-extra">+ {c.endPrize.count > 1 ? `${c.endPrize.count} × ` : ""}{money(c.endPrize.valuePence)} end prize</div>}
+    {live && c.topPrizePence ? <div class="vc-extra">Worth {money(c.topPrizePence)}</div> : null}
+    <div class="vc-when">{whenLabel}{" "}<strong>{ukWhen(when)}</strong></div>
+    <div class="vc-meter">
+      <div class={`bar ${urgent ? "hot" : ""}`}><div style={`width:${sold > 0 ? Math.max(sold, 2) : 0}%`}></div></div>
+      <div class="vc-ml">
+        {live ? <span><strong>{formatCount(c.ticketsLeft)}</strong> of {formatCount(c.maxTickets)} left</span> : <span><strong>{sold}%</strong> sold</span>}
+        {open && sold >= 90 ? <span class="ag">Almost gone!</span> : c.featuredBundle ? <span class="offer">{c.featuredBundle.label}</span> : null}
+      </div>
+    </div>
+    <a class={`vc-go ${!open && !soon ? "off" : ""}`} href={href} tabindex="-1" aria-hidden="true">{cta}<Icon name={live ? "arrow" : "bolt"} size={16} stroke={2.5} /></a>
+    <p class="vc-post">Or <a href="/free-entry">enter free by post</a></p>
+  </div>
+</article>

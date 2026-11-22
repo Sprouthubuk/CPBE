@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vault Nine — All Competitions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&amp;family=Barlow:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap">
+<style>
+body{margin:0;background:#07090A}
+a{color:#2FD36B}a:hover{color:#7BEBA3}
+@keyframes v9up{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes v9spin{to{transform:rotate(360deg)}}
+@keyframes v9float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes v9marquee{to{transform:translateX(-50%)}}
+@keyframes v9pulse{0%{box-shadow:0 0 0 0 rgba(47,211,107,.6)}100%{box-shadow:0 0 0 10px rgba(47,211,107,0)}}
+@keyframes v9fill{from{transform:scaleX(0)}}
+@keyframes v9shine{from{transform:translateX(-150%) skewX(-20deg)}to{transform:translateX(350%) skewX(-20deg)}}
+@keyframes v9tick{0%{color:#B6FFD0;text-shadow:0 0 18px rgba(47,211,107,.9)}100%{color:#2FD36B;text-shadow:none}}
+.v9-in{animation:v9up .9s cubic-bezier(.16,1,.3,1) both}
+.v9-stagger>*{animation:v9up .8s cubic-bezier(.16,1,.3,1) both}
+.v9-stagger>*:nth-child(2){animation-delay:.07s}.v9-stagger>*:nth-child(3){animation-delay:.14s}.v9-stagger>*:nth-child(4){animation-delay:.21s}.v9-stagger>*:nth-child(5){animation-delay:.28s}.v9-stagger>*:nth-child(6){animation-delay:.35s}.v9-stagger>*:nth-child(7){animation-delay:.42s}.v9-stagger>*:nth-child(8){animation-delay:.49s}.v9-stagger>*:nth-child(n+9){animation-delay:.56s}
+.v9-spin{animation:v9spin 90s linear infinite}
+.v9-float{animation:v9float 6s ease-in-out infinite}
+.v9-live{animation:v9pulse 1.6s ease-out infinite}
+.v9-bar{transform-origin:left center;animation:v9fill 1.6s cubic-bezier(.16,1,.3,1) .4s both}
+.v9-tick{animation:v9tick 1s ease-out infinite}
+.v9-tilt{transition:transform .6s cubic-bezier(.16,1,.3,1),box-shadow .6s}
+.v9-tilt:hover{transform:perspective(1000px) rotateY(-5deg) rotateX(3deg) scale(1.015);box-shadow:0 30px 80px -30px rgba(47,211,107,.45)}
+.v9-btn{position:relative;overflow:hidden;transition:transform .25s cubic-bezier(.16,1,.3,1),filter .25s}
+.v9-btn:hover{transform:translateY(-2px);filter:brightness(1.07)}
+.v9-btn:active{transform:scale(.98)}
+.v9-btn::after{content:"";position:absolute;top:0;bottom:0;left:0;width:35%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);transform:translateX(-150%) skewX(-20deg);pointer-events:none}
+.v9-btn:hover::after{animation:v9shine .9s ease}
+.v9-pill{transition:background-color .25s,border-color .25s,color .25s,transform .25s cubic-bezier(.16,1,.3,1)}
+.v9-pill:hover{transform:translateY(-2px);border-color:#2FD36B !important}
+.v9-pill:active{transform:scale(.97)}
+.v9-card{transition:transform .45s cubic-bezier(.16,1,.3,1),border-color .45s}
+.v9-card:hover{transform:translateY(-4px);border-color:#2FD36B !important}
+@supports (animation-timeline:view()){
+.v9-reveal{animation:v9up linear both;animation-timeline:view();animation-range:entry 0% cover 22%}
+.v9-kids>*{animation:v9up linear both;animation-timeline:view();animation-range:entry 5% cover 25%}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none !important;transition:none !important}}
+</style>
+</helmet>
+<div style="font-family: Barlow, system-ui, sans-serif; color: #F4F7F5; background: #07090A; min-height: 100vh">
+<dc-import name="Header" active="competitions" hint-size="100%,112px"></dc-import>
+<main style="max-width: 1240px; margin: 0 auto; padding: 48px 24px 88px">
+<div class="v9-in" style="font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #9AA8A1; margin-bottom: 8px">9 live now · new comps every week</div>
+<h1 class="v9-in" style="animation-delay: .08s; margin: 0 0 28px; font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 900; font-size: 80px; line-height: 0.88; text-transform: uppercase">All <span style="color: #2FD36B">Competitions</span></h1>
+
+<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px">
+<label style="flex: 1 1 360px; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 16px; background: #0E1311; border: 1px solid #24302A; border-radius: 8px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9AA8A1" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search competitions</span>
+<input type="search" placeholder="Search darts, players, cases or cash" style="flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #F4F7F5; font-family: Barlow, sans-serif; font-size: 16px">
+</label>
+<label style="display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 16px; background: #0E1311; border: 1px solid #24302A; border-radius: 8px; font-size: 14px; color: #9AA8A1">Sort
+<select style="background: transparent; border: 0; color: #F4F7F5; font-family: Barlow, sans-serif; font-weight: 700; font-size: 15px">
+<option>Ending soon</option><option>Lowest price</option><option>Newest</option><option>Most entries left</option>
+</select>
+</label>
+</div>
+
+<div role="group" aria-label="Filter competitions" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px">
+<sc-for list="{{chips}}" as="f" hint-placeholder-count="6">
+<button type="button" class="v9-pill" onClick="{{f.pick}}" aria-pressed="{{f.on}}" style="{{f.style}}">{{f.label}} <span style="opacity: 0.75; font-weight: 600">{{f.n}}</span></button>
+</sc-for>
+</div>
+
+<div class="v9-stagger" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="8">
+<sc-if value="{{it.instant}}" hint-placeholder-val="{{false}}">
+<dc-import name="InstantCard" item="{{it}}" hint-size="100%,540px"></dc-import>
+</sc-if>
+<sc-if value="{{it.live}}" hint-placeholder-val="{{true}}">
+<dc-import name="CompCard" item="{{it}}" hint-size="100%,540px"></dc-import>
+</sc-if>
+</sc-for>
+</div>
+
+<div class="v9-reveal" style="margin-top: 40px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; background: #0E1311; border: 1px solid #1E2723; border-radius: 12px; padding: 20px 24px">
+<div>
+<div style="font-family: 'Barlow Condensed', sans-serif; font-style: italic; font-weight: 900; font-size: 26px; text-transform: uppercase">Never miss a drop</div>
+<div style="font-size: 14px; color: #C9D3CE">New comps land in the WhatsApp VIP group first, with discount codes.</div>
+</div>
+<a href="#" class="v9-btn" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 24px; background: #2FD36B; color: #04140A; border-radius: 6px; font-weight: 800; text-decoration: none">Join the VIP group</a>
+</div>
+</main>
+<dc-import name="Footer" hint-size="100%,640px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2400}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { filter: 'all' }; }
+  renderVals() {
+    const all = [
+      { kind: 'instant', tags: ['instant', 'under1'], name: 'Checkout Cash', big: '170', sub: 'Checkout', top: '£170', price: '25p', prizes: 170, end: '£250 end prize', draw: 'Sun 29 Nov, 8pm' },
+      { kind: 'live', tags: ['live', 'darts'], title: 'Olly Croft OBE — Limited Edition', short: 'Olly Croft OBE', price: '£1.49', was: '£1.99', max: 299, left: 298, draw: 'Wed 25 Nov, 8pm', offer: 'Buy 10 Get 5 Free', urgent: false },
+      { kind: 'live', tags: ['live', 'darts', 'under1'], title: 'Marvel Iron Man 90% SP Steel Tip Darts 23g', short: 'Iron Man 90% 23g', price: '£0.99', was: '£1.99', max: 299, left: 272, draw: 'Wed 25 Nov, 8pm', offer: 'Buy 10 Get 5 Free', urgent: true },
+      { kind: 'live', tags: ['live', 'darts', 'under1'], title: 'Gerwyn Price RD Ultra Darts 23g', short: 'Gerwyn Price RD Ultra', price: '£0.79', was: '£0.99', max: 499, left: 471, draw: 'Wed 25 Nov, 8pm', offer: 'Buy 20 Get 10 Free', urgent: true },
+      { kind: 'instant', tags: ['instant', 'under1'], name: '180 Club', big: '180', sub: 'Club', top: '£180', price: '49p', prizes: 180, end: '£180 end prize', draw: 'Sun 29 Nov, 8pm' },
+      { kind: 'live', tags: ['live', 'kit', 'under1'], title: 'Pick Your Marvel Boa Case', short: 'Marvel Boa Case', price: '£0.39', was: '£0.79', max: 199, left: 196, draw: 'Wed 25 Nov, 8pm', offer: 'Buy 20 Get 10 Free', urgent: true },
+      { kind: 'live', tags: ['live', 'darts', 'under1'], title: 'Marvel Hulk 90% SP Steel Tip Darts 24g', short: 'Hulk 90% 24g', price: '£0.99', was: '£1.99', max: 299, left: 274, draw: 'Wed 25 Nov, 8pm', offer: 'Buy 10 Get 5 Free', urgent: true },
+      { kind: 'instant', tags: ['instant', 'under1'], name: 'Bullseye Bonanza', big: '501', sub: 'Bullseye', top: '£50', price: '10p', prizes: 501, end: '£100 end prize', draw: 'Wed 2 Dec, 8pm' },
+      { kind: 'live', tags: ['live', 'darts', 'under1'], title: 'Winmau Gian van Veen W-Max 90% Switch Point 24g', short: 'GvV W-Max 24g', price: '£0.79', was: '£0.99', max: 349, left: 349, draw: 'Sun 29 Nov, 8pm', offer: 'Buy 20 Get 10 Free', urgent: false }
+    ];
+    const defs = [
+      { id: 'all', label: 'All' }, { id: 'instant', label: 'Instant Wins' }, { id: 'live', label: 'Live Draws' },
+      { id: 'darts', label: 'Darts' }, { id: 'kit', label: 'Cases & Kit' }, { id: 'under1', label: 'Under £1' }
+    ];
+    const count = (id) => id === 'all' ? all.length : all.filter(x => x.tags.includes(id)).length;
+    const chips = defs.map(d => {
+      const on = this.state.filter === d.id;
+      return { ...d, n: count(d.id), on: on ? 'true' : 'false', pick: () => this.setState({ filter: d.id }),
+        style: "min-height: 44px; padding: 0 16px; border-radius: 999px; cursor: pointer; font-family: Barlow, sans-serif; font-weight: 700; font-size: 14px; " + (on ? 'background: #2FD36B; color: #04140A; border: 1px solid #2FD36B;' : 'background: #0E1311; color: #F4F7F5; border: 1px solid #2B3A32;') };
+    });
+    const items = all.filter(x => this.state.filter === 'all' || x.tags.includes(this.state.filter))
+      .map(x => ({ ...x, instant: x.kind === 'instant', live: x.kind === 'live' }));
+    return { chips, items };
+  }
+}
+</script>
+</body>
+</html>

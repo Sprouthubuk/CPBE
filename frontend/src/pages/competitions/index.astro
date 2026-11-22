@@ -1,0 +1,80 @@
+---
+import { gameName } from "../../lib/gameLabels";
+import Layout from "../../layouts/Layout.astro";
+import CompCard from "../../components/CompCard.astro";
+import Icon from "../../components/Icon.astro";
+import type { CompetitionSummary } from "../../lib/types";
+
+const { api } = Astro.locals;
+const q = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 60);
+const type = Astro.url.searchParams.get("type") ?? "all";
+const sort = Astro.url.searchParams.get("sort") ?? "ending";
+const { data: all } = await api.get<{ data: CompetitionSummary[] }>("/api/competitions?status=live");
+
+const TYPES: [string, string, (c: CompetitionSummary) => boolean][] = [
+  ["all", "All", () => true],
+  ["instant", "Instant Wins", (c) => c.type === "instant"],
+  ["draw", "Live Draws", (c) => c.type === "draw"],
+  // Tags are set per competition in the admin ("darts", "kit").
+  ["darts", "Darts", (c) => c.tags.includes("darts")],
+  ["kit", "Cases & Kit", (c) => c.tags.includes("kit")],
+  ["under1", "Under £1", (c) => c.pricePence < 100],
+];
+const t = TYPES.find((x) => x[0] === type) ?? TYPES[0];
+// Each category is its own search result (canonical keeps ?type); a search or a re-sort is not.
+const SEO: Record<string, { title: string; h1: [string, string]; description: string }> = {
+  all: { title: "Live UK Competitions & Raffles | Vault Nine Competitions", h1: ["All", "Competitions"], description: "Every live Vault Nine competition: instant win games and live draw raffles for cash, tech and more, from 1p a ticket. 18+ UK, free postal entry." },
+  instant: { title: "Instant Win Competitions UK | Vault Nine Competitions", h1: ["Instant Win", "Competitions"], description: "Instant win competitions: buy a ticket, play the reveal game and see straight away if you've won cash or a prize. 18+ UK, free postal entry." },
+  draw: { title: "Live Draw Competitions & Raffles | Vault Nine Competitions", h1: ["Live Draw", "Competitions"], description: "Prize draws and raffles drawn live when they close. Pick your tickets, watch the draw and see every winner published. 18+ UK, free postal entry." },
+  darts: { title: "Darts Competitions | Vault Nine Competitions", h1: ["Darts", "Competitions"], description: "Win pro darts sets from the top brands in live draws with capped entries. 18+ UK only, free postal entry on every competition." },
+  kit: { title: "Darts Cases & Kit Competitions | Vault Nine", h1: ["Cases &", "Kit"], description: "Win darts cases, boards and kit in live draws with capped entries. 18+ UK only, free postal entry on every competition." },
+  under1: { title: "Competitions Under £1 | Vault Nine Competitions", h1: ["Under", "£1"], description: "Darts prize competitions with tickets under £1: instant win games and live draws. 18+ UK only, free postal entry." },
+};
+const seo = SEO[t[0]] ?? SEO.all;
+let list = all.filter(t[2]);
+if (q) list = list.filter((c) => `${c.title} ${c.gameLabel ?? ""} ${gameName(c) ?? ""}`.toLowerCase().includes(q.toLowerCase()));
+const sorters: Record<string, (a: CompetitionSummary, b: CompetitionSummary) => number> = {
+  ending: (a, b) => a.closesAt.localeCompare(b.closesAt),
+  price: (a, b) => a.pricePence - b.pricePence,
+  prize: (a, b) => (b.topPrizePence ?? 0) - (a.topPrizePence ?? 0),
+  newest: (a, b) => b.closesAt.localeCompare(a.closesAt),
+  left: (a, b) => b.ticketsLeft - a.ticketsLeft,
+};
+list = [...list].sort(sorters[sort] ?? sorters.ending);
+const link = (k: string) => {
+  const u = new URLSearchParams();
+  if (k !== "all") u.set("type", k);
+  if (q) u.set("q", q);
+  if (sort !== "ending") u.set("sort", sort);
+  const s = u.toString();
+  return `/competitions${s ? "?" + s : ""}`;
+};
+---
+<Layout title="All Competitions" fullTitle={seo.title} active={t[0] === "instant" ? "instant" : "competitions"} description={seo.description} canonicalKeys={["type"]} noindex={!!q}>
+  <section class="wrap" style="padding:40px 0 88px">
+    <div class="eyebrow v9-in" style="margin-bottom:8px">{all.length} live now · new comps every week</div>
+    <h1 class="h1 v9-in" style="animation-delay:.08s;margin:0 0 28px">{seo.h1[0]}{" "}<span class="np">{seo.h1[1]}</span></h1>
+    <form class="search-row" method="get" action="/competitions" role="search">
+      {type !== "all" && <input type="hidden" name="type" value={type}>}
+      <label class="q"><Icon name="search" size={18} /><span class="sr-only">Search competitions</span><input type="search" name="q" value={q} placeholder="Search darts, players, cases or cash"></label>
+      <label>Sort
+        <select name="sort" onchange="this.form.submit()">
+          <option value="ending" selected={sort === "ending"}>Ending soon</option>
+          <option value="price" selected={sort === "price"}>Lowest price</option>
+          <option value="newest" selected={sort === "newest"}>Newest</option>
+          <option value="left" selected={sort === "left"}>Most entries left</option>
+          <option value="prize" selected={sort === "prize"}>Biggest prize</option>
+        </select>
+      </label>
+      <noscript><button class="btn btn-o" type="submit">Go</button></noscript>
+    </form>
+    <div class="row wrapx g8" role="group" aria-label="Filter competitions" style="margin-bottom:28px">{TYPES.filter(([k, , f]) => k === t[0] || ["all", "instant", "draw"].includes(k) || all.some(f)).map(([k, label, f]) => <a class={`chip v9-pill ${k === t[0] ? "on" : ""}`} href={link(k)} aria-current={k === t[0] ? "true" : undefined}>{label} <span style="opacity:.75;font-weight:600">{all.filter(f).length}</span></a>)}</div>
+    {list.length ? <div class="grid-cards v9-stg">{list.map((c) => <CompCard c={c} />)}</div> : <div class="card empty">No competitions match that. <a class="tap" href="/competitions">Show all</a></div>}
+    {Astro.locals.site.socials.whatsapp && (
+      <div class="vip" style="margin-top:40px">
+        <div><b>Never miss a drop</b><span>New comps land in the WhatsApp VIP group first, with discount codes.</span></div>
+        <a class="btn btn-y" href={Astro.locals.site.socials.whatsapp} rel="noopener" target="_blank">Join the VIP group</a>
+      </div>
+    )}
+  </section>
+</Layout>

@@ -1,0 +1,79 @@
+<?php
+
+namespace App\Services;
+
+use App\Exceptions\RefusedException;
+use App\Models\VaultCase;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+/**
+ * Builds, holds and releases Vault Cases. A box holds its tickets for vault_case_hold_minutes so the
+ * price shown is honoured; shaking again releases the old box first. Paying goes through the normal
+ * basket and checkout (Pricing / Orders), which re-check everything.
+ */
+final class VaultCases
+{
+    public function __construct(private VaultCasePacker $packer, private CompetitionState $state) {}
+
+    public function build(int $budget, string $mode, ?User $user, ?string $replaces = null, ?int $seed = null): VaultCase
+    {
+        if (! Settings::vaultCaseOn()) {
+            throw new RefusedException('The Vault Case is not available right now.', 'vault_case_off');
+        }
+        $min = Settings::bounded('vault_case_min_pence', 100, 100000);
+        $max = max($min, Settings::bounded('vault_case_max_pence', 100, 100000));
+        if ($budget < $min || $budget > $max || $budget % 100 !== 0) {
+            throw new RefusedException('Choose a budget between £'.($min / 100).' and £'.($max / 100).'.', 'vault_case_budget');
+        }
+        if (! in_array($mode, VaultCasePacker::MODES, true)) {
+            throw new RefusedException('Choose how to pack your box.', 'vault_case_mode');
+        }
+
+        return DB::transaction(function () use ($budget, $mode, $user, $replaces, $seed) {
+            if ($replaces) {
+                $this->release($replaces);
+            }
+            $packed = $this->packer->pack($budget, $mode, $user?->id, $seed);
+            if ($packed['lines'] === []) {
+                throw new RefusedException("We couldn't pack a box with that budget right now. Try a bigger budget or another time.", 'vault_case_empty');
+            }
+            $lines = array_map(fn ($l) => [
+                'competition_id' => $l['competition']->id, 'bundle_tier_id' => $l['bundle']['id'] ?? null, 'bundle_label' => $l['bundle']['label'] ?? null,
+                'singles' => $l['singles'], 'paid' => $l['paid'], 'free' => $l['free'], 'bonus' => $l['bonus'], 'line_pence' => $l['linePence'], 'notice' => $l['notice'] ?? null,
+            ], $packed['lines']);
+
+            return VaultCase::query()->create([
+                'id' => Str::lower(Str::random(32)), 'user_id' => $user?->id, 'budget_pence' => $budget, 'mode' => $mode, 'lines' => $lines,
+                'total_pence' => $packed['totalPence'], 'tickets' => array_sum(array_map(fn ($l) => $l['paid'] + $l['free'] + $l['bonus'], $lines)),
+                'status' => 'built', 'expires_at' => now()->addMinutes(Settings::bounded('vault_case_hold_minutes', 1, 60)),
+            ]);
+        });
+    }
+
+    /** Let a box's tickets go (shaken again, or emptied). A box already in an order is left alone. */
+    public function release(string $id): void
+    {
+        VaultCase::query()->whereKey($id)->whereIn('status', VaultCase::HOLDING)->update(['status' => 'released']);
+    }
+
+    /** The player put the box in their basket: the hold restarts from now. */
+    public function added(string $id, ?User $user): ?VaultCase
+    {
+        $box = VaultCase::query()->find($id);
+        if (! $box || ! in_array($box->status, VaultCase::HOLDING, true)) {
+            return null;
+        }
+        $box->forceFill(['status' => 'added', 'user_id' => $box->user_id ?? $user?->id,
+            'expires_at' => now()->addMinutes(Settings::bounded('vault_case_hold_minutes', 1, 60))])->save();
+
+        return $box;
+    }
+
+    /** Boxes whose hold has passed stop holding tickets (their bonus is still honoured at checkout). */
+    public function expire(): int
+    {
+        return VaultCase::query()->where('status', 'built')->where('expires_at', '<=', now())->update(['status' => 'expired']);
+    }
+}

@@ -1,0 +1,35 @@
+---
+import Icon from "./Icon.astro";
+import { COMPANY } from "../lib/company";
+const site = Astro.locals.site;
+const s = site.socials;
+const socials: [string | null, string, string][] = [
+  [s.facebook, "Facebook", "fb"], [s.instagram, "Instagram", "ig"], [s.tiktok ?? null, "TikTok", "tiktok"], [s.whatsapp ?? null, "WhatsApp VIP group", "whatsapp"],
+];
+---
+<footer class="ft">
+  <div class="ft-stripe" aria-hidden="true"></div>
+  <div class="wrap ft-in">
+    <div class="ft-grid">
+      <div class="ft-brand">
+        <img src="/logo-sm.webp" alt="Vault Nine Competitions" style="width:150px;height:auto;display:block" width="300" height="175" loading="lazy">
+        <p>Every entry. Every chance. Built by darts players, for darts players.</p>
+        {socials.some(([u]) => u) && <div class="ft-soc">{socials.filter(([u]) => u).map(([u, l, i]) => <a href={u!} aria-label={l} rel="noopener" target="_blank"><Icon name={i} size={18} /></a>)}</div>}
+      </div>
+      <nav aria-label="Play"><h2>Play</h2><a href="/competitions">All Competitions</a><a href="/competitions?type=instant">Instant Wins</a><a href="/competitions?type=draw">Live Draws</a><a href="/winners">Winners</a><a href="/instant-winners">Instant Winners</a></nav>
+      <nav aria-label="Help"><h2>Help</h2><a href="/how-it-works">How It Works</a><a href="/faq">FAQs</a><a href="/contact">Contact Us</a><a href="/account">My Account</a><a href="/entry-lists">Entry Lists</a></nav>
+      <nav aria-label="The rules"><h2>The Rules</h2><a href="/legal/terms">Terms &amp; Conditions</a><a href="/free-entry">Free Postal Entry</a><a href="/legal/privacy">Privacy Policy</a><a href="/legal/cookies">Cookie Policy</a><a href="/legal/cookies" data-cookie-settings>Cookie Settings</a></nav>
+      <nav aria-label="Safer play"><h2>Safer Play</h2><a href="/account/safer-play">Set Limits</a><a href="/account/safer-play">Take A Break</a><a href="/legal/complaints">Complaints</a></nav>
+    </div>
+    <div class="ft-badges">
+      <div class="row wrapx g8"><span class="b">18+ UK ONLY</span><a class="b" href="/free-entry">FREE POSTAL ENTRY</a></div>
+      <ul class="pay-marks" aria-label="We accept">
+        <li><img src="/payments/visa.svg" alt="Visa" width="44" height="14" /></li>
+        <li><img src="/payments/mastercard.svg" alt="Mastercard" width="30" height="23" /></li>
+        <li><img src="/payments/apple-pay.svg" alt="Apple Pay" width="46" height="19" /></li>
+        <li><img src="/payments/google-pay.svg" alt="Google Pay" width="48" height="19" /></li>
+      </ul>
+    </div>
+    <p class="ft-legal">Vault Nine Competitions is a prize competition operator in the United Kingdom. You must be 18 or over and a UK resident to enter. A free postal entry route is available on every competition, with the same chance of winning as a paid entry. © {new Date().getFullYear()} {COMPANY.tradingName} is a trading name of {COMPANY.legalName}, registered in England and Wales, company number {COMPANY.number}. Registered office: {COMPANY.registeredOffice.join(", ")}.{site.supportEmail && <> {site.supportEmail}</>}</p>
+  </div>
+</footer>
