@@ -25,6 +25,12 @@ final class Pricing
      */
     public function price(array $lines, ?User $user, ?string $promoCode): array
     {
+        // A member can buy within their early-access hours before a competition opens (SOW 2.12).
+        return $this->state->forPlayer($user, fn () => $this->priceNow($lines, $user, $promoCode));
+    }
+
+    private function priceNow(array $lines, ?User $user, ?string $promoCode): array
+    {
         // Singles are merged per competition; a competition carries at most one bundle (the last one chosen).
         $singles = [];
         $bundleIds = [];

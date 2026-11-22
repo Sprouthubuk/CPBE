@@ -115,6 +115,56 @@ final class Orders
         return $order->refresh();
     }
 
+    /**
+     * A membership payment (SOW 2.12): $payWith wallet (cash and winnings, never bonus credit), card (the payment
+     * page; a first payment is the parent of later renewals) or stored (charged next with chargeRenewal()).
+     */
+    public function membershipPayment(User $user, \App\Models\Membership $m, \App\Models\MembershipTier $tier, int $pence, string $kind, string $payWith): Order
+    {
+        $order = DB::transaction(function () use ($user, $m, $tier, $pence, $kind, $payWith) {
+            $this->wallet->lock($user->id);
+            $this->check->assertAllowed($user->refresh(), $payWith === 'wallet' ? 0 : $pence, true);
+            $order = Order::query()->create([
+                'number' => Order::newNumber('CM'), 'user_id' => $user->id, 'order_type' => 'membership', 'status' => 'created',
+                'total_pence' => $pence, 'card_pence' => $payWith === 'wallet' ? 0 : $pence,
+                'membership_id' => $m->id, 'membership_kind' => $kind, 'membership_tier_id' => $tier->id,
+            ]);
+            if ($payWith === 'wallet') {
+                $this->wallet->spendForOrder($order, $pence, 0, 'membership'); // basket 0: no bonus credit
+                $this->markPaid($order, null);
+            }
+
+            return $order;
+        });
+        if ($payWith === 'card') {
+            $this->openPaymentPage($order, $user, in_array($kind, ['join', 'resume'], true) ? \App\Services\Memberships::PERIOD_DAYS : null);
+        }
+
+        return $order->refresh();
+    }
+
+    /** A renewal charged against the membership's first card payment. True when it was paid. */
+    public function chargeRenewal(\App\Models\Membership $m, Order $order): bool
+    {
+        $answer = $m->gateway_parent_ref ? $this->gateway->chargeRecurring($m->gateway_parent_ref, $order, \App\Services\Memberships::PERIOD_DAYS) : null;
+        if ($answer && $answer->status === 'paid' && $answer->jobReference
+            && ($why = $answer->matches($answer->jobReference, $order->number, $order->card_pence)) === null) {
+            DB::transaction(function () use ($order, $answer) {
+                $o = Order::query()->lockForUpdate()->findOrFail($order->id);
+                $o->forceFill(['gateway_ref' => $answer->jobReference])->save();
+                $this->markPaid($o, $answer->cardType, $answer->cardToken);
+            });
+
+            return true;
+        }
+        if (isset($why) && $why) {
+            Log::error('Recurring answer does not match the order; not confirmed', ['order' => $order->number, 'why' => $why]);
+        }
+        $this->closeUnpaid($order, 'failed');
+
+        return false;
+    }
+
     /** A wallet top up by card. */
     public function deposit(User $user, int $amountPence): Order
     {
@@ -213,7 +263,9 @@ final class Orders
         if ($order->promo_code) {
             PromoCode::query()->where('code', $order->promo_code)->increment('uses');
         }
-        if ($order->isDeposit()) {
+        if ($order->order_type === 'membership') {
+            app(Memberships::class)->orderPaid($order);
+        } elseif ($order->isDeposit()) {
             $this->wallet->credit($order->user_id, 'deposit', $order->total_pence, 'Top up · Card', 'order:'.$order->id.':deposit', $order->id);
         } else {
             $this->fulfilment->fulfil($order);
@@ -234,16 +286,20 @@ final class Orders
         });
     }
 
-    private function openPaymentPage(Order $order, User $user): void
+    private function openPaymentPage(Order $order, User $user, ?int $recurringDays = null): void
     {
         $site = rtrim((string) config('app.frontend_url'), '/');
-        $success = $order->isDeposit() ? "{$site}/account/wallet?deposit={$order->number}" : "{$site}/order/{$order->number}";
+        $success = match ($order->order_type) {
+            'deposit' => "{$site}/account/wallet?deposit={$order->number}",
+            'membership' => "{$site}/account/membership?paid={$order->number}",
+            default => "{$site}/order/{$order->number}",
+        };
         try {
             $job = $this->gateway->createPaymentJob($order, $user->email, [
                 'success' => $success,
                 'failed' => "{$site}/payment/failed?order={$order->number}",
                 'cancelled' => "{$site}/payment/cancelled?order={$order->number}",
-            ]);
+            ], $recurringDays);
         } catch (\Throwable $e) {
             Log::warning('Payment page not opened', ['order' => $order->number]);
             $order->forceFill(['status' => 'pending_payment'])->save();

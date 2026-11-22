@@ -14,9 +14,9 @@ final class CashflowsGateway implements PaymentGateway
 {
     public function __construct(private string $baseUrl, private string $configurationId, private string $apiKey) {}
 
-    public function createPaymentJob(Order $order, string $email, array $returnUrls): array
+    public function createPaymentJob(Order $order, string $email, array $returnUrls, ?int $recurringDays = null): array
     {
-        $body = json_encode([
+        $body = json_encode(array_filter([
             'type' => 'Payment',
             'amountToCollect' => number_format($order->card_pence / 100, 2, '.', ''),
             'currency' => 'GBP',
@@ -27,7 +27,10 @@ final class CashflowsGateway implements PaymentGateway
                 'returnUrlFailed' => $returnUrls['failed'],
                 'returnUrlCancelled' => $returnUrls['cancelled'],
             ],
-        ], JSON_UNESCAPED_SLASHES);
+            // A membership's first payment is the parent of its renewals (Cashflows "recurring payments").
+            'options' => $recurringDays ? ['IsRecurringPaymentJobParent'] : null,
+            'recurrenceCriteria' => $recurringDays ? self::recurrence($recurringDays) : null,
+        ], fn ($v) => $v !== null), JSON_UNESCAPED_SLASHES);
         $res = Http::timeout(15)->withHeaders($this->headers($body))->withBody($body, 'application/json')
             ->post($this->baseUrl.'/api/gateway/payment-jobs');
         $data = $res->json('data') ?? $res->json() ?? [];
@@ -39,6 +42,41 @@ final class CashflowsGateway implements PaymentGateway
         }
 
         return ['reference' => $ref, 'redirectUrl' => $url];
+    }
+
+    public function chargeRecurring(string $parentReference, Order $order, int $recurringDays): ?GatewayAnswer
+    {
+        $body = json_encode([
+            'amountToCollect' => number_format($order->card_pence / 100, 2, '.', ''),
+            'currency' => 'GBP',
+            'locale' => 'en_GB',
+            'parentPaymentJobReference' => $parentReference,
+            'order' => ['orderNumber' => $order->number],
+            'recurrenceCriteria' => self::recurrence($recurringDays),
+        ], JSON_UNESCAPED_SLASHES);
+        try {
+            $res = Http::timeout(20)->withHeaders($this->headers($body))->withBody($body, 'application/json')
+                ->post($this->baseUrl.'/api/gateway/payment-jobs');
+        } catch (\Throwable) {
+            return null;
+        }
+        if ($res->status() >= 500 || $res->status() === 0) {
+            return null;
+        }
+        if (! $res->successful()) {
+            // Refused (e.g. GenericRejectionOfPayment): a failed renewal, never a retry of the same job.
+            Log::warning('Cashflows refused a recurring payment', ['order' => $order->number, 'status' => $res->status()]);
+
+            return new GatewayAnswer(null, $order->number, null, 'GBP', 'failed');
+        }
+
+        return self::parse($res->json() ?? []);
+    }
+
+    /** @return array<string, string> */
+    private static function recurrence(int $days): array
+    {
+        return ['recurrenceType' => 'Subscription', 'recurringExpiry' => now()->addYears(10)->format('Y-m-d'), 'recurringFrequency' => (string) $days];
     }
 
     public function lookup(string $jobReference): ?GatewayAnswer

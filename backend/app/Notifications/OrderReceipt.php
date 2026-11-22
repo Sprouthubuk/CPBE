@@ -27,6 +27,17 @@ class OrderReceipt extends Notification
         $o = $this->order->loadMissing('lines.competition');
         $site = rtrim((string) config('app.frontend_url'), '/');
         $money = fn (int $p) => '£'.number_format($p / 100, 2);
+        if ($o->order_type === 'membership') {
+            $tier = \App\Models\MembershipTier::query()->find($o->membership_tier_id);
+
+            return (new MailMessage)->subject(($o->membership_kind === 'renewal' ? 'Membership Renewed · ' : 'Membership Payment · ').$o->number)
+                ->greeting('Thanks, '.$notifiable->first_name.'!')
+                ->line('Your '.($tier?->name ?? '').' membership payment has gone through.')
+                ->markdown('notifications::email', ['blocks' => [['rows', [['Order', $o->number], ['Membership', (string) $tier?->name]], 'Paid', $money($o->total_pence)]]])
+                ->action('See Your Membership', $site.'/account/membership')
+                ->line('You can cancel any time from your account. 18+ UK only. Please play responsibly.')
+                ->salutation('The '.config('app.name').' team');
+        }
         if ($o->isDeposit()) {
             return (new MailMessage)->subject('Top Up Received · '.$o->number)
                 ->greeting('Thanks, '.$notifiable->first_name.'!')

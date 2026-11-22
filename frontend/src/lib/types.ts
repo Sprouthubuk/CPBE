@@ -98,6 +98,8 @@ export interface SiteInfo {
   referrals: { rewardType: "tickets" | "credit"; rewardTickets: number; rewardCreditPence: Pence; minPurchasePence: Pence } | null;
   /** True while any loyalty programme is switched on (SOW 2.11). */
   loyalty: boolean;
+  /** True while any membership tier is open to join (SOW 2.12). */
+  memberships: boolean;
 }
 
 export interface WalletBalances {
@@ -230,6 +232,35 @@ export interface LoyaltyProgrammeView {
   rewards: { id: number; name: string; description: string | null; type: "site_credit" | "free_entries" | "bonus_entries" | "custom"; pointsCost: number;
     creditPence: Pence | null; tickets: number | null; minTier: string | null; available: boolean; affordable: boolean }[];
   history: { points: number; kind: "earn" | "bonus" | "redeem" | "expire" | "reverse" | "adjust" | "refund"; reason: string; at: string; expiresAt: string | null }[];
+}
+
+/** A membership tier (SOW 2.12). `ineligible` says why this player can't join it, or null. */
+export interface MembershipTierView {
+  id: number;
+  name: string;
+  description: string | null;
+  pricePence: Pence;
+  perks: string[];
+  ineligible: string | null;
+}
+
+/** GET /api/me/membership; the membership actions return this plus `order` and `redirectUrl`. */
+export interface MyMembership {
+  membership: {
+    id: number;
+    status: "active" | "past_due";
+    tier: MembershipTierView;
+    payWith: "card" | "wallet";
+    perksOn: boolean;
+    periodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+    nextTier: string | null;
+    nextAttemptAt: string | null;
+    startedAt: string | null;
+  } | null;
+  tiers: MembershipTierView[];
+  order?: { number: string; status: OrderStatus };
+  redirectUrl?: string | null;
 }
 
 export interface MyLoyalty {

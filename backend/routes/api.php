@@ -61,6 +61,12 @@ Route::middleware('throttle:api')->group(function () {
         Route::post('orders/{number}/return', [OrderController::class, 'return']);
         Route::post('orders/{number}/play', [OrderController::class, 'play']);
         Route::get('me/referrals', [ReferralController::class, 'mine']);
+        Route::get('me/membership', [\App\Http\Controllers\Api\MembershipController::class, 'mine']);
+        Route::post('me/membership', [\App\Http\Controllers\Api\MembershipController::class, 'join'])->middleware('throttle:money');
+        Route::post('me/membership/change', [\App\Http\Controllers\Api\MembershipController::class, 'change'])->middleware('throttle:money');
+        Route::post('me/membership/cancel', [\App\Http\Controllers\Api\MembershipController::class, 'cancel']);
+        Route::post('me/membership/keep', [\App\Http\Controllers\Api\MembershipController::class, 'keep']);
+        Route::post('me/membership/pay', [\App\Http\Controllers\Api\MembershipController::class, 'payNow'])->middleware('throttle:money');
         Route::get('me/loyalty', [\App\Http\Controllers\Api\LoyaltyController::class, 'mine']);
         Route::post('me/loyalty/redeem', [\App\Http\Controllers\Api\LoyaltyController::class, 'redeem'])->middleware('throttle:money');
         Route::get('me/vouchers/{voucher}/draws', [ReferralController::class, 'draws']);

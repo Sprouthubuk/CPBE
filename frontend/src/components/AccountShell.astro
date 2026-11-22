@@ -7,6 +7,7 @@ const links = [
   ["Dashboard", "/account", "home", "account"],
   ["My Tickets", "/account/tickets", "ticket", "tickets"],
   ["Wallet", "/account/wallet", "wallet", "wallet"],
+  ...(Astro.locals.site?.memberships ? [["Membership", "/account/membership", "card", "membership"]] : []),
   ...(Astro.locals.site?.loyalty ? [["My Rewards", "/account/loyalty", "trophy", "loyalty"]] : []),
   ...(Astro.locals.site?.referrals ? [["Refer A Friend", "/account/refer", "gift", "refer"]] : []),
   ["Safer Play", "/account/safer-play", "shield", "safer-play"],

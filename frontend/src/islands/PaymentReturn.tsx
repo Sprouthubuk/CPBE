@@ -11,7 +11,7 @@ export default function PaymentReturn({ number, leftAs }: { number: string; left
     if (!number) { setState("closed"); return; }
     api<OrderView>(`/api/orders/${encodeURIComponent(number)}/return`, { json: { leftAs } })
       .then((o) => {
-        if (o.status === "paid") { window.location.replace(`/order/${encodeURIComponent(number)}`); setState("paid"); return; }
+        if (o.status === "paid") { window.location.replace(number.startsWith("CM-") ? `/account/membership?paid=${encodeURIComponent(number)}` : `/order/${encodeURIComponent(number)}`); setState("paid"); return; }
         restoreAside(number);
         setState("closed");
       })

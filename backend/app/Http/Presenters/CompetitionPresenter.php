@@ -59,6 +59,11 @@ final class CompetitionPresenter
 
     public function detail(Competition $c, ?User $user): array
     {
+        return $this->state->forPlayer($user, fn () => $this->detailNow($c, $user));
+    }
+
+    private function detailNow(Competition $c, ?User $user): array
+    {
         $v = $this->state->verity($c);
         $prizes = [];
         if ($c->isInstant()) {

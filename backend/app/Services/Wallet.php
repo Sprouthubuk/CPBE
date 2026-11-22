@@ -91,7 +91,7 @@ final class Wallet
             if ($amount > 0) {
                 LedgerEntry::query()->create([
                     'user_id' => $order->user_id, 'bucket' => $bucket, 'direction' => 'debit', 'amount_pence' => $amount,
-                    'reason' => 'Tickets · '.$order->number, 'reference' => "order:{$order->id}:{$tag}:{$bucket}", 'order_id' => $order->id,
+                    'reason' => ($order->order_type === 'membership' ? 'Membership · ' : 'Tickets · ').$order->number, 'reference' => "order:{$order->id}:{$tag}:{$bucket}", 'order_id' => $order->id,
                 ]);
             }
         }

@@ -22,6 +22,7 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
         Setting::put('sales_open', '1');
+        \App\Payments\FakeGateway::$recurringResult = 'paid';
         // Requests come from the Astro site, so Sanctum treats them as first-party (cookie session).
         $this->withHeader('Referer', 'https://platform.test/');
     }

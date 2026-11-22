@@ -67,6 +67,8 @@ class PublicController extends Controller
             ] : null,
             // Loyalty (SOW 2.11): true while any programme is switched on.
             'loyalty' => \App\Models\LoyaltyProgramme::query()->active()->exists(),
+            // Memberships (SOW 2.12): true while any tier is open to join.
+            'memberships' => \App\Models\MembershipTier::query()->where('active', true)->exists(),
             'referrals' => Settings::referralsOn() ? [
                 'rewardType' => Setting::get('referral_reward_type') === 'credit' ? 'credit' : 'tickets',
                 'rewardTickets' => Settings::bounded('referral_reward_tickets', 1, 1000),

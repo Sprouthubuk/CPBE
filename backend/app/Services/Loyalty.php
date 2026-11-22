@@ -79,6 +79,7 @@ class Loyalty
         }
         $order->loadMissing('lines');
         $lineTotal = max(1, (int) $order->lines->sum('line_pence'));
+        $member = 100 + (int) (app(Memberships::class)->perkTier($order->user_id)?->loyalty_bonus_pct ?? 0);
         foreach ($this->programmes() as $p) {
             $tier = $this->tierFor($order->user_id, $p);
             $bonuses = $p->bonusEvents->filter(fn (LoyaltyBonusEvent $e) => $e->kind === 'competition' && $e->isOn())->keyBy('competition_id');
@@ -88,6 +89,7 @@ class Loyalty
                 $share = intdiv($real * (int) $line->line_pence, $lineTotal);
                 $points += self::pointsFor($p, $tier, $share, $bonuses->get($line->competition_id)?->multiplier_pct ?? 100);
             }
+            $points = intdiv($points * $member, 100); // a membership's loyalty bonus (SOW 2.12)
             if ($points > 0) {
                 $this->write($order->user_id, $p, $points, 'earn', 'Order '.$order->number, "order:{$order->id}:p{$p->id}", $order->id);
             }
@@ -262,6 +264,7 @@ class Loyalty
     public function estimate(?User $user, array $pencePerCompetition, int $totalPence): array
     {
         $sum = max(1, array_sum($pencePerCompetition));
+        $member = 100 + (int) ($user ? (app(Memberships::class)->perkTier($user)?->loyalty_bonus_pct ?? 0) : 0);
         $out = [];
         foreach ($this->programmes() as $p) {
             $tier = $user ? $this->tierFor($user->id, $p) : null;
@@ -270,6 +273,7 @@ class Loyalty
             foreach ($pencePerCompetition as $cid => $pence) {
                 $points += self::pointsFor($p, $tier, intdiv($totalPence * $pence, $sum), $bonuses->get($cid)?->multiplier_pct ?? 100);
             }
+            $points = intdiv($points * $member, 100);
             if ($points > 0) {
                 $out[] = ['programme' => $p->name, 'points' => $points];
             }

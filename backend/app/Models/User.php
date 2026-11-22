@@ -59,6 +59,16 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     {
         // Customer accounts are never deleted: their money, entries and wins hang off them.
         static::deleting(fn () => throw new \DomainException('Accounts are closed, never deleted.'));
+        // Self-exclusion, a break, a hold or a closed account ends a membership at once: no more charges (SOW 2.8, 2.12).
+        static::updated(function (User $u) {
+            foreach (['self_excluded_until' => 'self-excluded', 'cool_off_until' => 'took a break', 'on_hold_at' => 'account on hold', 'closed_at' => 'account closed'] as $col => $why) {
+                if ($u->wasChanged($col) && $u->$col !== null && (! $u->$col instanceof \DateTimeInterface || $u->$col > now())) {
+                    app(\App\Services\Memberships::class)->stopFor($u, $why);
+
+                    return;
+                }
+            }
+        });
     }
 
     public function canAccessPanel(Panel $panel): bool

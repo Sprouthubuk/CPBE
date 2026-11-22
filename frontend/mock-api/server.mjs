@@ -239,6 +239,7 @@ route("GET", "/api/site", (req, res) => send(res, 200, { salesOpen: true, minDep
   // Both features are on in the mock so the pages can be seen and tested; the real site starts with them off.
   vaultCase: process.env.MOCK_FEATURES === "off" ? null : { available: true, chipsPence: [500, 1000, 2000, 5000], minPence: 500, maxPence: 10000, bonusPct: 10 },
   loyalty: process.env.MOCK_FEATURES !== "off",
+  memberships: process.env.MOCK_FEATURES !== "off",
   referrals: process.env.MOCK_FEATURES === "off" ? null : { rewardType: "tickets", rewardTickets: 10, rewardCreditPence: 200, minPurchasePence: 500 } }));
 route("GET", "/api/competitions", (req, res, { query }) => send(res, 200, { data: COMPS.filter((c) => !query.get("type") || c.type === query.get("type")) }));
 route("GET", "/api/competitions/:slug", (req, res, { params, user }) => { const c = bySlug.get(params.slug); return c ? send(res, 200, detail(c, user)) : fail(res, 404, "Not found"); });
@@ -376,6 +377,29 @@ route("GET", "/api/me/referrals", authed((req, res, { user }) => {
   user.referralCode ??= crypto.randomBytes(4).toString("hex").toUpperCase().replace(/[01IO]/g, "Z");
   const friends = [...users.values()].filter((x) => x.referredBy === user.email);
   send(res, 200, { code: user.referralCode, link: `${SITE}/r/${user.referralCode}`, stats: { invited: friends.length, qualified: 0, rewards: 0, leftThisMonth: 10, cap: 10 }, rewardType: "tickets", rewardTickets: 10, rewardCreditPence: 200, minPurchasePence: 500, vouchers: user.vouchers ?? [], friends: friends.map((f) => ({ name: `${f.firstName} ${f.lastName.slice(0, 1)}.`, status: "pending", joinedAt: iso(Date.now()) })) });
+}));
+const MEMBERSHIP_TIERS = [
+  { id: 1, name: "Silver", description: "Free entries and credit every month.", pricePence: 999, perks: ["10 free entries every month", "£2.00 bonus credit every month"], ineligible: null },
+  { id: 2, name: "Gold", description: null, pricePence: 1999, perks: ["25 free entries every month", "Enter new competitions 24 hours early"], ineligible: null },
+];
+const membershipView = (user) => ({ membership: user.membership ?? null, tiers: MEMBERSHIP_TIERS });
+route("GET", "/api/me/membership", authed((req, res, { user }) => send(res, 200, membershipView(user))));
+route("POST", "/api/me/membership", authed(async (req, res, { user }) => {
+  const b = await readJson(req);
+  const tier = MEMBERSHIP_TIERS.find((t) => t.id === b.tierId);
+  if (!tier) return fail(res, 404, "Not found.");
+  if (user.membership) return fail(res, 422, "You already have a membership. Change it from your account.");
+  if (b.payWith === "wallet" && total(user) < tier.pricePence) return fail(res, 422, "Your wallet’s cash balance doesn’t cover this. Bonus credit can’t be used for memberships.");
+  user.membership = { id: 1, status: "active", tier, payWith: b.payWith, perksOn: true, periodEnd: new Date(Date.now() + 30 * 864e5).toISOString(), cancelAtPeriodEnd: false, nextTier: null, nextAttemptAt: null, startedAt: new Date().toISOString() };
+  send(res, 201, { ...membershipView(user), order: { number: "CM-DEMO", status: "paid" }, redirectUrl: null });
+}));
+route("POST", "/api/me/membership/cancel", authed((req, res, { user }) => { if (!user.membership) return fail(res, 422, "You don’t have a membership."); user.membership.cancelAtPeriodEnd = true; send(res, 200, membershipView(user)); }));
+route("POST", "/api/me/membership/keep", authed((req, res, { user }) => { if (!user.membership) return fail(res, 422, "You don’t have a membership."); user.membership.cancelAtPeriodEnd = false; send(res, 200, membershipView(user)); }));
+route("POST", "/api/me/membership/change", authed(async (req, res, { user }) => {
+  const b = await readJson(req); const tier = MEMBERSHIP_TIERS.find((t) => t.id === b.tierId);
+  if (!user.membership || !tier) return fail(res, 422, "You don’t have a membership.");
+  if (tier.pricePence < user.membership.tier.pricePence) user.membership.nextTier = tier.name; else user.membership.tier = tier;
+  send(res, 200, membershipView(user));
 }));
 route("GET", "/api/me/loyalty", authed((req, res, { user }) => {
   user.points ??= 120;

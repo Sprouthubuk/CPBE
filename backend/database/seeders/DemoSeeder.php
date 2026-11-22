@@ -61,6 +61,24 @@ class DemoSeeder extends Seeder
             'end_prize_name' => 'Pro Dartboard & Surround', 'end_prize_value_pence' => 6000, 'cash_alternative_pence' => 5000, 'max_tickets' => 999, 'max_per_person' => 999, 'bundles_enabled' => true, 'max_bundle_share_pct' => 10, 'prize_cost_pence' => 4000]);
 
 
+        // Sample loyalty programme and membership tiers (SOW 2.11, 2.12), so their pages have something to show.
+        if (! \App\Models\LoyaltyProgramme::query()->exists()) {
+            $club = \App\Models\LoyaltyProgramme::query()->create(['name' => 'Rewards Club', 'active' => true, 'points_per_pound' => 10, 'expiry_days' => 365,
+                'description' => 'Earn points on every order and swap them for credit and free entries.']);
+            $club->tiers()->createMany([['name' => 'Bronze', 'threshold_points' => 0, 'multiplier_pct' => 100, 'benefits' => 'Standard points'],
+                ['name' => 'Silver', 'threshold_points' => 2000, 'multiplier_pct' => 125, 'benefits' => '1.25x points'],
+                ['name' => 'Gold', 'threshold_points' => 10000, 'multiplier_pct' => 150, 'benefits' => '1.5x points']]);
+            $club->rewards()->createMany([['name' => '£1 Site Credit', 'type' => 'site_credit', 'points_cost' => 500, 'credit_pence' => 100],
+                ['name' => '5 Free Entries', 'type' => 'free_entries', 'points_cost' => 1500, 'tickets' => 5]]);
+            $club->bonusEvents()->create(['kind' => 'signup', 'points' => 100]);
+        }
+        if (! \App\Models\MembershipTier::query()->exists()) {
+            \App\Models\MembershipTier::query()->create(['name' => 'Silver', 'price_pence' => 999, 'active' => true, 'sort' => 1,
+                'monthly_free_tickets' => 10, 'monthly_bonus_credit_pence' => 200, 'loyalty_bonus_pct' => 25, 'description' => 'Free entries and credit every month.']);
+            \App\Models\MembershipTier::query()->create(['name' => 'Gold', 'price_pence' => 1999, 'active' => true, 'sort' => 2,
+                'monthly_free_tickets' => 25, 'monthly_bonus_credit_pence' => 500, 'early_access_hours' => 24, 'loyalty_bonus_pct' => 50]);
+        }
+
         foreach (['terms' => 'Terms & Conditions', 'privacy' => 'Privacy Policy', 'cookies' => 'Cookie Policy', 'free-entry' => 'Free Entry Terms', 'complaints' => 'Complaints'] as $slug => $title) {
             Page::query()->firstOrCreate(['slug' => $slug], ['title' => $title, 'version' => 'sample',
                 'html' => '<h2>Sample wording</h2><p>This is placeholder text for a developer’s machine. The real wording is entered in the admin.</p>']);
