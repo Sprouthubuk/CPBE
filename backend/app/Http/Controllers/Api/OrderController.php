@@ -113,6 +113,8 @@ class OrderController extends Controller
             'lines.*.quantity' => ['required_without:lines.*.bundleId', 'nullable', 'integer', 'min:0', 'max:100000'],
             'lines.*.bundleId' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'lines.*.boxId' => ['sometimes', 'nullable', 'string', 'max:40', 'regex:/^[a-z0-9]+$/'],
+            'lines.*.skillAnswer' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:9'],
+            'lines.*.via' => ['sometimes', 'nullable', 'in:'.implode(',', \App\Services\Conversion::VIA)],
             'promoCode' => ['sometimes', 'nullable', 'string', 'max:32'],
         ]);
     }

@@ -15,7 +15,7 @@
 /node_modules
 /public/build
 /public/css/filament/*
-!/public/css/filament/vaultnine/
+!/public/css/filament/platform/
 /public/fonts/filament
 /public/hot
 /public/js/filament

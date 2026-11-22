@@ -171,7 +171,7 @@ class BundlesTest extends TestCase
 
     public function test_competitions_show_the_entry_cap_and_whats_left_but_nothing_private(): void
     {
-        // Vault Nine shows max entries and entries left (owner, 22 Nov 2026). Per-person limits and
+        // Brand Name shows max entries and entries left (owner, 22 Nov 2026). Per-person limits and
         // internal fields stay private, and the basket still doesn't hand out a max quantity.
         $u = $this->player();
         $this->topUp($u, 5000);

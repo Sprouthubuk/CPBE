@@ -1,4 +1,8 @@
-# CLAUDE.md — Vault Nine Competitions v2
+# CLAUDE.md — CPBE (bespoke competition platform, RaffleLabs Bespoke Package)
+
+Built by Sprout Hub Limited for Hamid Reza Mousavizadeh's competition business. The scope is the
+Statement of Work dated 16 November 2026 (sections 2 and 3); `docs/scope.md` maps each SOW item to the code.
+Anything not in the SOW is a change request: don't build it without Liam's say-so.
 
 Read before every task. If a request conflicts with this, stop and ask.
 
@@ -7,12 +11,12 @@ Read before every task. If a request conflicts with this, stop and ask.
 - Plan first for anything non-trivial. For a bug, write a failing test first.
 - Before every commit: `cd backend && php artisan test`, then
   `cd frontend && npx astro check && npm run build && npm test && npm run test:fullstack && npm run test:visual`
-  (the last saves screenshots of every page at four sizes to /tmp/v9-shots — look at the ones you changed — and
+  (the last saves screenshots of every page at four sizes to /tmp/cp-shots — look at the ones you changed — and
   runs `tests/visual/journey.test.ts`: a real phone browser joins, confirms the email, pays by card, plays, buys from
   the wallet, tops up and recovers from a declined and a cancelled card, failing on any page or console error, and `tests/visual/mobile-audit.test.ts`: crawls every page at 390px and 320px,
   signed out and in, and fails on errors, sideways scroll, taps under 40px, inputs under 16px or unlabelled, broken images or a
   missing h1, then checks the same pages on 768px and 1024px tablets and a 1440px desktop; findings and page weights go to
-  /tmp/v9-audit).
+  /tmp/cp-audit).
 - `docs/api.md` + `frontend/src/lib/types.ts` are the contract. Change both together, and the mock
   API (`frontend/mock-api/server.mjs`) and the Laravel tests with them.
 
@@ -30,14 +34,14 @@ Read before every task. If a request conflicts with this, stop and ask.
   Reveal games are presentation only (`frontend/src/games/`); `tests/games` proves a board can only
   show the result it was given.
 - One play check on every path: sales switch (off by default), staff can't play, 18+, email
-  verified, self-exclusion, break, hold, spend limits. No credit-card cap and no limit per person
-  (owner's decision, 18 Nov 2026).
+  verified, self-exclusion, break, hold, spend limits (daily, weekly, monthly). No credit-card cap. No limit per person by default;
+  SOW 2.2 adds an optional "Limit per player" on each competition (empty = none).
   Self-exclusion and breaks always apply at once — no check or delay in front of them.
 - At fulfilment only WINNING entries are played through Verity (`Fulfilment::playAll`: entries with an
   `instant_ticket_id`), so an order's cost doesn't grow with its ticket count; never go back to
   `Verity::playGroup` per ticket at checkout (`tests/Feature/BigOrdersTest` holds a query budget).
 - End prizes: `end_prize_count` places, one per person. A repeat win isn't paid and is redrawn through
-  Verity (`EndPrizeRules`, also every minute via `vault:end-prize-rules`). `end_prize_type` site_credit
+  Verity (`EndPrizeRules`, also every minute via `platform:end-prize-rules`). `end_prize_type` site_credit
   pays winnings once (reference `verity-winner:{id}`); physical opens a claim for a person.
 - A paid order that couldn't get all its tickets is flagged for a person, never auto-refunded.
 - Bundles ("Buy X Get Y Free", live draws only): priced and sized only by `App\Services\Bundles` /
@@ -46,7 +50,7 @@ Read before every task. If a request conflicts with this, stop and ask.
   tier is badged "Our Pick" (owner, 19 Nov 2026): never "Best Value" (it isn't the cheapest per ticket) or
   "Most Popular" (not backed by sales data). Promo codes apply to singles only. Unpaid orders
   hold tickets for `Order::HOLD_MINUTES` (15).
-- Ticket counts (Vault Nine, owner 22 Nov 2026, replacing the old % only rule): competition summaries carry
+- Ticket counts (carried from the base build): competition summaries carry
   `maxTickets` (the entry cap) and `ticketsLeft`, and cards and competition pages show "Max N" and "N of M left"
   beside `soldPercent` (rounded down; 100 only when sold out), "Almost gone!" from 90% and "Sold Out".
   Per-person limits, odds and the promo cap are never public
@@ -65,20 +69,22 @@ Read before every task. If a request conflicts with this, stop and ask.
 - Never invent winners, reviews or trust figures. Free postal route always visible.
 - All dates shown in UK time (`frontend/src/lib/time.ts`).
 
-## Vault Nine (carried rules above are unchanged)
-- This build started as a copy of another site's engine. Nothing of that site's brand, company or data
-  may come back: `frontend/tests/unit/no-old-brand.test.ts` reads every tracked file.
+## Brand and content (nothing decided yet)
+- This build started as a copy of other sites' engines. Nothing of their brands, companies or data may come
+  back: `frontend/tests/unit/no-old-brand.test.ts` reads every tracked file.
+- The brand isn't designed yet. The name is the placeholder "Brand Name" (`APP_NAME`, `frontend/src/lib/seo.ts`,
+  `frontend/src/lib/company.ts`) and the logos say "LOGO TBC". The current look and palette are a temporary stand-in
+  until the bespoke design (SOW 2.1, 3.1) replaces `src/styles.css`. A launch build refuses to run while the brand or
+  any company detail is still a placeholder (`astro.config.mjs`).
 - Free postal entry is prominent everywhere a player buys: the top bar, every card ("Or enter free by post"),
   the "No purchase necessary" box (`components/PostalBox.astro`) beside every buy panel, the basket and checkout,
   and the footer badges. Wording: "Enter free by post with exactly the same chance of winning."
   Postal entries are never capped below paid entries (Meta's advertising review depends on it).
 - Company details live only in `frontend/src/lib/company.ts` and the legal pages, all "TBC" until Liam
-  gives them: never guess them. A launch build (`PUBLIC_SEARCH_INDEXING=on`) refuses to build while any is TBC (`astro.config.mjs`).
+  gives them: never guess them.
 - Never copy secrets or `.env` values from another site; Liam adds every key in Forge himself.
-- Game skins: the classic look only, for now. The Vault Case and Refer a Friend stay off.
-- Design: docs/design/vault-nine-v2-handoff.md (and the `.dc.html` mock-ups beside it) (tokens in `:root` at the top of `src/styles.css`; Barlow, Barlow Condensed and
-  JetBrains Mono self-hosted in `public/fonts`). Draws are live every Wednesday and Sunday at 9:30pm on Facebook (owner,
-  22 Nov 2026). Never put up member counts, review links, brand logos or sample winners until Liam confirms them.
+- Game skins: the classic look only, for now. The Vault Case stays off.
+- Never put up member counts, review links, brand logos or sample winners until Liam confirms them.
 
 ## Backend (backend/)
 - Money moves only through `app/Services`: `Wallet` (ledger), `Orders` (checkout, deposits, gateway sync,
@@ -90,18 +96,13 @@ Read before every task. If a request conflicts with this, stop and ask.
 - Never write to `verity_*` tables or edit `vendor/sprouthub/verity-engine` (its fingerprints are checked).
 - Competition terms are fixed once published to Verity (`Competition::LOCKED_WHEN_PUBLISHED`).
 - Customer accounts are never deleted (model refuses); admin actions carry a reason and are logged.
-- Players from the old Lovable site come in only through `vault:import-lovable` (Admin → Import Players runs it as
-  `ImportPlayersJob`): files on the private disk only, a passing check before the import, deleted afterwards.
-- The old site's public record (competitions, winners, entry lists) is a read-only archive at `/previous`
-  (`archive_*` tables, `vault:import-archive` from `resources/archive/*.csv` on every deploy; docs/old-site-archive.md).
-  Masked names only; never a Verity record, never linked to `/verify`, never mixed into the live lists.
 - Admin is Filament at `/admin` (`app/Filament`); admins and staff can't play.
 - Tests: `tests/Feature` (Verity runs for real on its local beacon; Cashflows is `FakeGateway`).
 - `DemoSeeder` is for laptops and tests only and refuses production.
-- Emails are Laravel notifications in the Vault Nine mail theme (`resources/views/vendor/mail`, `vendor/notifications/email.blade.php`):
+- Emails are Laravel notifications in the platform mail theme (`resources/views/vendor/mail`, `vendor/notifications/email.blade.php`):
   near-black page, green-bordered card, green button, Barlow fonts, PNG logo, the 18+ / postal / Safer Play footer. Ticket numbers and money go in
   blocks (`['tickets', …]`, `['rows', …]`), never raw HTML in a line. Subjects in Title Case. `tests/Feature/EmailsTest`
-  checks every email; `EMAIL_PREVIEWS=/tmp/v9-emails php artisan test --filter=EmailsTest` writes them out to look at.
+  checks every email; `EMAIL_PREVIEWS=/tmp/cp-emails php artisan test --filter=EmailsTest` writes them out to look at.
 
 ## Front end
 - Astro drops a space between `{expr}` and a following tag inside `<>…</>`: write `{expr}{" "}<span>`.
@@ -109,8 +110,8 @@ Read before every task. If a request conflicts with this, stop and ask.
 - Title Case for every title. Mobile first (44px taps, 16px inputs, no sideways scroll at 320px).
 - Nothing third-party loads before a cookie choice. The only one is the Meta Pixel (`src/lib/consent.ts`, ID set in
   Admin → Settings), loaded after "Accept" in the cookie banner; its addresses are the only extra ones in the CSP.
-- Meta tracking: the banner's choice is copied to a `v9_consent` cookie; only with it does the server keep and send
-  events to the Conversions API (`App\Tracking\MetaEvents`, `vault:meta-events` every minute, token in `META_CAPI_TOKEN`
+- Meta tracking: the banner's choice is copied to a `cp_consent` cookie; only with it does the server keep and send
+  events to the Conversions API (`App\Tracking\MetaEvents`, `platform:meta-events` every minute, token in `META_CAPI_TOKEN`
   only). Browser and server share event ids (order number; `reg-{user id}`). Values are real money only, never bonus.
   Personal details leave only SHA-256 hashed (`MetaTrackingTest`); never log Meta's error message or the token.
 - Smooth games on slow phones: never animate or move anything under a `filter` (drop-shadow, blur), and take a board's
@@ -121,7 +122,7 @@ Read before every task. If a request conflicts with this, stop and ask.
   `.rg-skin-classic` block at the end of each game's CSS. `npm run test:games` plays every game (run the smoothness checks
   alone: `GAMES_WORKERS=1 … -g smoothness`). A new game needs its id in `shared/game-ids.json`, `src/games/gameIds.ts`,
   the admin and presenter labels, and a migration calling `GameIds::replaceDatabaseChecks()`.
-- Legal wording loads from `backend/resources/legal/*.html` on deploy (`vault:legal-pages`) and is then edited in the admin.
+- Legal wording loads from `backend/resources/legal/*.html` on deploy (`platform:legal-pages`) and is then edited in the admin.
 - Search: titles, descriptions and structured data come from `src/lib/seo.ts` (titles ≤ 60, descriptions ≤ 155, "Win …" for
   competitions, never a ticket count). Every public page needs its own `title` and `description` on `<Layout>`; private pages
   are `noindex` and left out of `sitemap.xml.ts` / disallowed in `robots.txt.ts`. `tests/e2e/seo.test.ts` checks every sitemap

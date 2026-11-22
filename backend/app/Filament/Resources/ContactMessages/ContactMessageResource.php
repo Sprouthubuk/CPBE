@@ -17,6 +17,12 @@ use Filament\Tables\Table;
 
 class ContactMessageResource extends Resource
 {
+    /** Admin roles (App\Support\Roles): the messages area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('messages');
+    }
+
     protected static ?string $model = ContactMessage::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedEnvelope;

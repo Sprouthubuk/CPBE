@@ -4,8 +4,9 @@ import react from "@astrojs/react";
 import fs from "node:fs";
 
 // A launch build (search indexing on) refuses to start while any company detail is still TBC.
-if (process.env.PUBLIC_SEARCH_INDEXING === "on" && fs.readFileSync(new URL("./src/lib/company.ts", import.meta.url), "utf8").includes("TBC")) {
-  throw new Error("Company details in src/lib/company.ts are still TBC: fill them in before launch (PUBLIC_SEARCH_INDEXING=on).");
+// The placeholder brand ("Brand Name") must be replaced everywhere before launch too.
+if (process.env.PUBLIC_SEARCH_INDEXING === "on" && /TBC|"Brand Name"/.test(fs.readFileSync(new URL("./src/lib/company.ts", import.meta.url), "utf8") + fs.readFileSync(new URL("./src/lib/seo.ts", import.meta.url), "utf8"))) {
+  throw new Error("Company details in src/lib/company.ts or the brand name are still placeholders: fill them in before launch (PUBLIC_SEARCH_INDEXING=on).");
 }
 
 const SITE = new URL(process.env.PUBLIC_SITE_URL || "http://localhost:4321");
@@ -24,7 +25,7 @@ const allowedDomains = [
 // /sanctum, /admin and /webhooks on the same domain; nginx routes the rest here.
 // /dev/reveal-games (every reveal game with sample purchases) exists only under `astro dev`: nothing of it is built.
 const devOnlyPages = {
-  name: "v9-dev-only-pages",
+  name: "cp-dev-only-pages",
   hooks: {
     "astro:config:setup": ({ command, injectRoute }) => {
       if (command === "dev") {

@@ -3,7 +3,7 @@
 // A launch build (PUBLIC_SEARCH_INDEXING=on) refuses to start while any value is still TBC (astro.config.mjs).
 
 export const COMPANY = {
-  tradingName: "Vault Nine Competitions",
+  tradingName: "Brand Name",
   legalName: "[Company name TBC]",
   number: "[TBC]",
   registeredOffice: ["[Registered office TBC]"],

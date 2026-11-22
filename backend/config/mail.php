@@ -116,11 +116,11 @@ return [
     ],
 
     /*
-    | Notification emails use Laravel's Markdown layout with the Vault Nine theme
-    | (resources/views/vendor/mail/html/themes/vaultnine.css).
+    | Notification emails use Laravel's Markdown layout with the Brand Name theme
+    | (resources/views/vendor/mail/html/themes/platform.css).
     */
     'markdown' => [
-        'theme' => env('MAIL_MARKDOWN_THEME', 'vaultnine'),
+        'theme' => env('MAIL_MARKDOWN_THEME', 'platform'),
         'paths' => [
             resource_path('views/vendor/mail'),
         ],

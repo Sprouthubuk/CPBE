@@ -8,6 +8,6 @@ import type { APIRoute } from "astro";
 export const GET: APIRoute = ({ params, redirect, cookies, locals }) => {
   const code = String(params.code ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
   if (!locals.site.referrals || code.length < 6) return redirect("/join", 302);
-  cookies.set("v9_ref", code, { path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax", httpOnly: false, secure: import.meta.env.PROD });
+  cookies.set("cp_ref", code, { path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax", httpOnly: false, secure: import.meta.env.PROD });
   return redirect(locals.me ? "/" : `/join?ref=${code}`, 302);
 };

@@ -1,16 +1,18 @@
 ---
 import { createHash } from "node:crypto";
-/** Asks once about marketing cookies (the Meta Pixel). Shown only when a Pixel ID is set in the admin. */
+/** Asks once about marketing cookies (the Meta Pixel, Google tags). Shown only when one of them is set up in the admin. */
 const pixelId = Astro.locals.site.metaPixelId ?? "";
+const google = Astro.locals.site.google;
+const who = [pixelId ? "Meta" : null, google ? "Google" : null].filter(Boolean).join(" and ");
 // Signed-in players: hashed here (SHA-256, as Meta asks), so the plain email never sits in the page for the Pixel.
 const me = Astro.locals.me;
 const sha = (v: string) => createHash("sha256").update(v).digest("hex");
 const em = me ? sha(me.email.trim().toLowerCase()) : undefined;
 const xid = me ? sha(String(me.id)) : undefined;
 ---
-{pixelId && (
-  <div class="ck" id="cookie-banner" data-pixel={pixelId} data-em={em} data-xid={xid} role="dialog" aria-live="polite" aria-label="Cookie choice" hidden>
-    <p class="ck-t"><b>Cookies</b> We use Meta's marketing cookies, and tell Meta when you sign up or buy, to see which of our adverts work. They stay off unless you accept. <a href="/legal/cookies">Cookie policy</a></p>
+{(pixelId || google) && (
+  <div class="ck" id="cookie-banner" data-pixel={pixelId} data-google={google ? JSON.stringify(google) : undefined} data-em={em} data-xid={xid} role="dialog" aria-live="polite" aria-label="Cookie choice" hidden>
+    <p class="ck-t"><b>Cookies</b> We use {who}'s analytics and marketing cookies, and tell {who} when you sign up or buy, to see which of our adverts work. They stay off unless you accept. <a href="/legal/cookies">Cookie policy</a></p>
     <div class="ck-b">
       <button type="button" class="ck-btn" data-choice="rejected">Reject</button>
       <button type="button" class="ck-btn is-on" data-choice="accepted">Accept</button>
@@ -19,12 +21,13 @@ const xid = me ? sha(String(me.id)) : undefined;
 )}
 <script>
   import { readConsent, saveConsent, startPixel, syncConsentCookie } from "../lib/consent";
+  import { startGoogle } from "../lib/google";
   syncConsentCookie();
   const banner = document.getElementById("cookie-banner");
   const id = banner?.dataset.pixel ?? "";
-  if (banner && id) {
+  if (banner && (id || banner.dataset.google)) {
     if (readConsent() === null) banner.hidden = false;
-    else startPixel(id);
+    else { startPixel(id); startGoogle(); }
     banner.querySelectorAll<HTMLButtonElement>("[data-choice]").forEach((b) =>
       b.addEventListener("click", () => {
         const choice = b.dataset.choice as "accepted" | "rejected";
@@ -33,7 +36,7 @@ const xid = me ? sha(String(me.id)) : undefined;
         banner.hidden = true;
         // Withdrawing stops the Pixel straight away: reload without it.
         if (had === "accepted" && choice === "rejected") location.reload();
-        else startPixel(id);
+        else { startPixel(id); startGoogle(); }
       }),
     );
     document.querySelectorAll("[data-cookie-settings]").forEach((el) =>

@@ -28,7 +28,7 @@ class PrizeWon extends Notification
         $rows = [['Prize', (string) $c->prize_name], ['Competition', (string) $c->competition->title]];
         $m = (new MailMessage)->subject('You Won! '.$c->prize_name)
             ->greeting('Congratulations, '.$notifiable->first_name.'!')
-            ->line('You’re a Vault Nine winner!')
+            ->line('You’re a '.config('app.name').' winner!')
             ->markdown('notifications::email', ['blocks' => [$paid
                 ? ['rows', $rows, 'Added to winnings', '£'.number_format($c->value_pence / 100, 2)]
                 : ['rows', $rows]]]);
@@ -36,12 +36,12 @@ class PrizeWon extends Notification
             // A site-credit end prize: already paid.
             return $m->line('Your prize is already in your winnings balance. You can play with it or withdraw it.')
                 ->action('See Your Wallet', $site.'/account/wallet')
-                ->salutation('The Vault Nine team');
+                ->salutation('The '.config('app.name').' team');
         }
 
         return $m
             ->line('We’ll contact you at this email address to arrange your prize. Check your address in your account settings is up to date.')
             ->action('Your Account', $site.'/account/settings')
-            ->salutation('The Vault Nine team');
+            ->salutation('The '.config('app.name').' team');
     }
 }

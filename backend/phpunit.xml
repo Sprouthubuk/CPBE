@@ -19,7 +19,7 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
-        <env name="APP_NAME" value="Vault Nine Competitions"/>
+        <env name="APP_NAME" value="Brand Name"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
@@ -35,10 +35,10 @@
         <env name="VERITY_BEACON" value="local"/>
         <env name="VERITY_OWNER_PEPPER" value="test-pepper-0123456789abcdef"/>
         <env name="CASHFLOWS_DRIVER" value="fake"/>
-        <env name="APP_URL" value="https://vaultnine.test"/>
-        <env name="FRONTEND_URL" value="https://vaultnine.test"/>
-        <env name="SANCTUM_STATEFUL_DOMAINS" value="vaultnine.test"/>
-        <env name="SESSION_DOMAIN" value="vaultnine.test"/>
+        <env name="APP_URL" value="https://platform.test"/>
+        <env name="FRONTEND_URL" value="https://platform.test"/>
+        <env name="SANCTUM_STATEFUL_DOMAINS" value="platform.test"/>
+        <env name="SESSION_DOMAIN" value="platform.test"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
     </php>
 </phpunit>

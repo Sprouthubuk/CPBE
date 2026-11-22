@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 /** Make the smaller picture copies for every competition that doesn't have them yet. Safe to run on every deploy. */
 class PictureSizesCommand extends Command
 {
-    protected $signature = 'vault:picture-sizes {--force : Make them again even if they exist}';
+    protected $signature = 'platform:picture-sizes {--force : Make them again even if they exist}';
 
     protected $description = 'Make small WebP copies of competition pictures';
 

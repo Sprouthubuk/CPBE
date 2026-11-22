@@ -36,6 +36,9 @@ final class Publishing
         if (! $c->image) {
             $p[] = 'Add a picture.';
         }
+        if (\App\Models\Setting::bool('require_skill_question') && ! $c->hasSkillQuestion()) {
+            $p[] = 'Add the skill question every paid entry must answer.';
+        }
         if ($c->isInstant()) {
             $prizes = $c->prizes()->get();
             if ($prizes->isEmpty()) {
@@ -95,8 +98,11 @@ final class Publishing
                 'ticket_allocation' => 'random',
                 'meta' => ['host_id' => $c->id, 'image' => $c->image],
             ];
-            if ($c->opens_at && $c->opens_at->isFuture()) {
-                $terms['publish_at'] = $c->opens_at;
+            // Members with early access (SOW 2.12) can enter before the public opening time, so Verity goes
+            // live that much sooner; everyone else still sees it as scheduled until opens_at (CompetitionState).
+            $liveAt = $c->opens_at?->copy()->subHours(Memberships::maxEarlyAccessHours());
+            if ($liveAt && $liveAt->isFuture()) {
+                $terms['publish_at'] = $liveAt;
             }
             $v = Verity::publish($terms, $endPrizes, $instant);
             $c->forceFill(['verity_ref' => $v->ref, 'published_at' => now()])->saveQuietly();

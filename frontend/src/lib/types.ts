@@ -32,7 +32,7 @@ export interface CompetitionSummary {
   subtitle: string | null;
   /** Rounded down; 100 only when it has actually sold out. */
   soldPercent: number;
-  /** The entry cap (max tickets) and how many are left. Vault Nine shows both (owner, 22 Nov 2026). */
+  /** The entry cap (max tickets) and how many are left. Brand Name shows both (owner, 22 Nov 2026). */
   maxTickets: number;
   ticketsLeft: number;
   /** Instant wins: how many instant prizes there are in total. Null for draws. */
@@ -96,6 +96,16 @@ export interface SiteInfo {
   vaultCase: { available: boolean; chipsPence: Pence[]; minPence: Pence; maxPence: Pence; bonusPct: number } | null;
   /** Refer a Friend: null while the feature is off. */
   referrals: { rewardType: "tickets" | "credit"; rewardTickets: number; rewardCreditPence: Pence; minPurchasePence: Pence } | null;
+  /** True while any loyalty programme is switched on (SOW 2.11). */
+  loyalty: boolean;
+  /** True while any membership tier is open to join (SOW 2.12). */
+  memberships: boolean;
+  /** SOW 3.3: Google tags set in the admin (loaded only after cookie consent), or null. */
+  google: { gtmId: string | null; ga4Id: string | null; adsId: string | null; adsPurchaseLabel: string | null } | null;
+  /** SOW 2.16: the announcement bar text (and an optional link on this site) set in the admin, or null. */
+  announcement: { text: string; link: string | null } | null;
+  /** SOW 2.17: the language switcher (Weglot), or null while it isn't set up. */
+  translation: { weglotKey: string } | null;
 }
 
 export interface WalletBalances {
@@ -173,6 +183,10 @@ export interface BasketLine {
   bundleId?: number | null;
   /** Set when the line came from a Vault Case: the server adds the box's bonus tickets while the line still matches it. */
   boxId?: string | null;
+  /** SOW 2.2: the chosen answer (its index) to the competition's skill question, sent at checkout. */
+  skillAnswer?: number | null;
+  /** SOW 2.18: the conversion tool that put it in the basket, for reporting. */
+  via?: "upsell" | "repeat" | "recovery" | "recommendation";
 }
 
 export type VaultCaseMode = "surprise" | "big" | "most";
@@ -208,6 +222,61 @@ export interface Voucher {
   status: "available" | "redeemed" | "expired" | "clawed_back";
   expiresAt: string;
   competition: { title: string; slug: string } | null;
+  /** Bonus entries: the only draw this voucher can go into. */
+  forCompetition?: { title: string; slug: string } | null;
+}
+
+/** GET /api/me/loyalty (SOW 2.11). */
+export interface LoyaltyProgrammeView {
+  id: number;
+  name: string;
+  description: string | null;
+  balance: number;
+  lifetime: number;
+  pointsPerPound: number;
+  expiryDays: number | null;
+  expiringSoon: number;
+  tier: { name: string; benefits: string | null; multiplierPct: number } | null;
+  nextTier: { name: string; pointsToGo: number } | null;
+  tiers: { name: string; thresholdPoints: number; multiplierPct: number; benefits: string | null }[];
+  rewards: { id: number; name: string; description: string | null; type: "site_credit" | "free_entries" | "bonus_entries" | "custom"; pointsCost: number;
+    creditPence: Pence | null; tickets: number | null; minTier: string | null; available: boolean; affordable: boolean }[];
+  history: { points: number; kind: "earn" | "bonus" | "redeem" | "expire" | "reverse" | "adjust" | "refund"; reason: string; at: string; expiresAt: string | null }[];
+}
+
+/** A membership tier (SOW 2.12). `ineligible` says why this player can't join it, or null. */
+export interface MembershipTierView {
+  id: number;
+  name: string;
+  description: string | null;
+  pricePence: Pence;
+  perks: string[];
+  ineligible: string | null;
+}
+
+/** GET /api/me/membership; the membership actions return this plus `order` and `redirectUrl`. */
+export interface MyMembership {
+  membership: {
+    id: number;
+    status: "active" | "past_due";
+    tier: MembershipTierView;
+    payWith: "card" | "wallet";
+    perksOn: boolean;
+    periodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+    nextTier: string | null;
+    nextAttemptAt: string | null;
+    startedAt: string | null;
+  } | null;
+  tiers: MembershipTierView[];
+  order?: { number: string; status: OrderStatus };
+  redirectUrl?: string | null;
+}
+
+export interface MyLoyalty {
+  programmes: LoyaltyProgrammeView[];
+  redemptions: { id: number; reward: string | null; points: number; status: "done" | "pending" | "fulfilled" | "cancelled"; voucherId: number | null; at: string }[];
+  vouchers: Voucher[];
 }
 
 export interface MyReferrals {
@@ -220,6 +289,12 @@ export interface MyReferrals {
   minPurchasePence: Pence;
   vouchers: Voucher[];
   friends: { name: string; status: ReferralStatus; joinedAt: string }[];
+  /** SOW 2.13: the scheme new referrals join (its rewards replace the standard ones), or null. */
+  scheme: { name: string; qualifying: "first_order" | "any_order" | "membership"; minSpendPence: Pence; referrerReward: string; friendReward: string; endsAt: string | null } | null;
+  /** True when schemes are set up but none is running for this player right now. */
+  schemeClosed: boolean;
+  /** Rewards this player has earned: level 0 as a friend, 1 as the referrer, 2+ from further down the chain. */
+  rewards: { level: number; reward: string; status: "given" | "reversed"; at: string }[];
 }
 
 /** A bundle a live draw is selling now. Only what fits is sent; nothing about the ticket pool. */
@@ -258,6 +333,8 @@ export interface PricedLine {
   source: "vault_case" | null;
   vaultCaseId: string | null;
   problem: string | null;
+  /** SOW 2.2: the question every paid entry must answer (never the answer), or null. */
+  skillQuestion?: { question: string; options: string[] } | null;
   /** Neutral note that doesn't stop checkout, e.g. a Vault Case bonus the draw's promo cap no longer allows. */
   notice: string | null;
   /** The next bundle up, for "Upgrade to … for +£X". */
@@ -268,7 +345,10 @@ export interface PricedBasket {
   lines: PricedLine[];
   totalPence: Pence;
   ticketCount: number;
-  promo: { code: string; discountPence: Pence } | null;
+  /** A valid promo code (SOW 2.3): its discount and a label such as "20% off" or "£5.00 off". */
+  promo: { code: string; discountPence: Pence; label: string } | null;
+  /** Points the basket would earn in each switched-on loyalty programme, paid with real money (SOW 2.11). */
+  loyaltyPoints: { programme: string; points: number }[];
   /** What the wallet would pay if the player chooses wallet. */
   walletCanPayPence: Pence;
   walletCovers: boolean;
@@ -323,32 +403,11 @@ export interface DrawWinnerRow {
   ticketNumber: number | null;
   at: string;
   videoUrl: string | null;
+  /** The winner's photo, shown only with their consent (SOW 2.9). */
+  photoUrl: string | null;
   verifyUrl: string | null;
 }
 
-/** A competition from the old site's archive (read-only; not a Verity record). */
-export interface ArchiveCompetitionSummary {
-  slug: string;
-  title: string;
-  type: "instant" | "draw";
-  drawAt: string | null;
-  image: string;
-  imageSmall: string;
-  imageSrcset: string | null;
-}
-
-/** A winner on the old site: the masked name it showed, and the ticket that won. */
-export interface ArchiveWinnerRow {
-  id: string;
-  name: string;
-  town: string | null;
-  prizeName: string;
-  valuePence: number;
-  ticketNumber: number | null;
-  at: string | null;
-  competitionTitle: string | null;
-  competitionSlug: string | null;
-}
 
 export interface EntryRow {
   ticket: number;
@@ -383,8 +442,12 @@ export interface WinningNumbersPage {
 }
 
 export interface Limits {
+  /** SOW 2.8: daily, weekly and monthly deposit limits (null: none). */
+  dailyDepositPence: Pence | null;
   weeklyDepositPence: Pence | null;
-  pending: { weeklyDepositPence: Pence | null; appliesAt: string } | null;
+  monthlyDepositPence: Pence | null;
+  /** Raised or removed limits waiting 24 hours: only the periods that are changing are present. */
+  pending: { dailyDepositPence?: Pence | null; weeklyDepositPence?: Pence | null; monthlyDepositPence?: Pence | null; appliesAt: string } | null;
   coolOffUntil: string | null;
   selfExcludedUntil: string | null;
   reminders: { sessionMinutes: number | null; weeklySummary: boolean };

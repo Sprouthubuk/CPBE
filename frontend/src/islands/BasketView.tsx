@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, errorText } from "../lib/api";
-import { addBundle, onBasketChange, readBasket, removeFromBasket, setQuantity, upgradeLine } from "../lib/basket";
+import { addBundle, addLines, onBasketChange, readBasket, removeFromBasket, setQuantity, upgradeLine } from "../lib/basket";
 import { trackAddToCart } from "../lib/consent";
 import { lineMakeup } from "../lib/bundles";
 import { formatMoney } from "../lib/money";
@@ -22,8 +22,22 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
 
   useEffect(() => {
     setLines(readBasket());
+    // SOW 2.18: the checkout reminder email links here with ?recover=ORDER: its tickets go back in the basket.
+    const recover = new URLSearchParams(location.search).get("recover");
+    if (recover && /^CP-[A-Z0-9]{4,16}$/.test(recover) && signedIn) {
+      api<{ lines: BasketLine[] }>(`/api/orders/${encodeURIComponent(recover)}/repeat?via=recovery`)
+        .then((r) => { addLines(r.lines); history.replaceState(null, "", "/basket"); })
+        .catch(() => undefined);
+    }
     return onBasketChange(setLines);
   }, []);
+  // SOW 2.18: suggestions for this player (personalised when signed in), shown under the basket.
+  const [picks, setPicks] = useState<CompetitionSummary[]>([]);
+  useEffect(() => {
+    if (!lines?.length) return;
+    api<{ data: CompetitionSummary[] }>(`/api/recommendations?limit=3&exclude=${encodeURIComponent(lines.map((l) => l.competitionId).join(","))}`)
+      .then((r) => setPicks(r.data)).catch(() => undefined);
+  }, [lines?.map((l) => l.competitionId).join(",")]);
 
   useEffect(() => {
     if (!lines) return;
@@ -41,7 +55,7 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
       <span style={{ color: "#9AA8A1" }}><Svg name="cart" size={36} /></span>
       <div className="h3">Your Basket Is Empty</div>
       <p className="p">Pick a competition and your tickets will wait here.</p>
-      <a className="btn btn-y v9-cta" href="/competitions">Browse Competitions</a>
+      <a className="btn btn-y cp-cta" href="/competitions">Browse Competitions</a>
     </div>
   );
 
@@ -51,7 +65,7 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
       <div className="stack g12">
         {!priced && lines.map((l, i) => <div key={i} className="card card-p empty"><span className="spin" /></div>)}
         {priced?.lines.map((pl) => (
-          <div key={`${pl.competitionId}:${pl.bundleId ?? "s"}`} className="card card-p stack g12 v9-card" data-testid="basket-line">
+          <div key={`${pl.competitionId}:${pl.bundleId ?? "s"}`} className="card card-p stack g12 cp-card" data-testid="basket-line">
             <div className="row g12" style={{ alignItems: "flex-start" }}>
               <img src={pl.imageSmall} alt="" style={{ width: 76, height: 76, borderRadius: 14, objectFit: "cover", flexShrink: 0 }} />
               <div className="stack g8" style={{ flex: 1, minWidth: 0 }}>
@@ -88,6 +102,21 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
             )}
           </div>
         ))}
+        {picks.length > 0 && (
+          <div className="stack g8" data-testid="recommended">
+            <div className="eyebrow" data-exp="basket_upsell">Picked For You</div>
+            {picks.map((c) => (
+              <a key={c.id} className="card card-p row g12" style={{ alignItems: "center", textDecoration: "none", color: "inherit" }} href={`/competitions/${c.slug}?via=upsell`}>
+                <img src={c.imageSmall} alt="" style={{ width: 52, height: 52, borderRadius: 12, objectFit: "cover", flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 900, lineHeight: 1.15 }}>{c.title}</div>
+                  <div className="hint">{formatMoney(c.pricePence)} a ticket · {c.soldPercent}% sold</div>
+                </div>
+                <Svg name="chev" size={18} />
+              </a>
+            ))}
+          </div>
+        )}
         {(() => {
           const inBasket = new Set(lines.map((l) => l.competitionId));
           const picks = others.filter((c) => !inBasket.has(c.id)).slice(0, 2);
@@ -101,7 +130,7 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
                     <div style={{ fontWeight: 900, lineHeight: 1.15 }}>{c.title}</div>
                     <div className="hint">{c.featuredBundle!.label} · {c.featuredBundle!.tickets} tickets for {formatMoney(c.featuredBundle!.pricePence)}</div>
                   </div>
-                  <button type="button" className="btn btn-y" style={{ minHeight: 44 }} onClick={() => { addBundle(c.id, c.featuredBundle!.id); trackAddToCart(c.slug, c.featuredBundle!.tickets, c.featuredBundle!.pricePence); }}>Add</button>
+                  <button type="button" className="btn btn-y" style={{ minHeight: 44 }} onClick={() => { addBundle(c.id, c.featuredBundle!.id, "upsell"); trackAddToCart(c.slug, c.featuredBundle!.tickets, c.featuredBundle!.pricePence); }}>Add</button>
                 </div>
               ))}
             </div>
@@ -116,14 +145,15 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
               <input className="inp" placeholder="Enter code" aria-label="Promo code" value={promo} onChange={(e) => setPromo(e.target.value)} />
               <button type="submit" className="btn btn-o">Apply</button>
             </form>
-            {priced?.promo && <div className="hint" style={{ marginTop: 6 }}>{priced.promo.code}: −{formatMoney(priced.promo.discountPence)}</div>}
+            {priced?.promo && <div className="hint" style={{ marginTop: 6 }}>{priced.promo.code} ({priced.promo.label}): −{formatMoney(priced.promo.discountPence)}</div>}
           </details>
           <div className="row between" style={{ fontWeight: 800 }}><span className="muted">{priced?.ticketCount ?? "…"} tickets · {new Set(lines.map((l) => l.competitionId)).size} {new Set(lines.map((l) => l.competitionId)).size === 1 ? "comp" : "comps"}</span></div>
           <div className="row between" style={{ borderTop: "1px solid rgba(255,255,255,.1)", paddingTop: 12 }}><span className="d" style={{ fontSize: 22 }}>Total</span><span className="d ny" style={{ fontSize: 34 }} data-testid="basket-total">{priced ? formatMoney(priced.totalPence) : "…"}</span></div>
+          {(priced?.loyaltyPoints ?? []).map((l) => <div key={l.programme} className="hint" data-testid="basket-points">You’ll earn <b>{l.points.toLocaleString("en-GB")} {l.programme} points</b> when you pay by card or wallet balance.</div>)}
           {signedIn && priced?.walletCovers && <div className="notice notice-c"><Svg name="wallet" size={18} /><span>Your wallet covers this — checkout takes one tap.</span></div>}
           {(priced?.problems ?? []).map((p) => <div key={p} className="notice notice-p" role="alert"><Svg name="info" size={18} /><span>{p}</span></div>)}
           {error && <div className="notice notice-p" role="alert"><Svg name="info" size={18} /><span>{error}</span></div>}
-          <a className="btn btn-y btn-lg btn-block v9-cta" href={checkoutHref} aria-disabled={!priced || priced.problems.length > 0 || priced.lines.some((l) => l.problem) ? "true" : undefined}>Checkout · {priced ? formatMoney(priced.totalPence) : "…"}</a>
+          <a className="btn btn-y btn-lg btn-block cp-cta" href={checkoutHref} aria-disabled={!priced || priced.problems.length > 0 || priced.lines.some((l) => l.problem) ? "true" : undefined}>Checkout · {priced ? formatMoney(priced.totalPence) : "…"}</a>
           <a className="btn btn-o btn-block" href="/competitions">Keep Browsing</a>
           {vaultCase && lines.every((l) => !l.boxId) && <a className="tap" style={{ textAlign: "center", fontWeight: 800 }} href="/vault-case">Or let a Vault Case pick for you</a>}
         </div>

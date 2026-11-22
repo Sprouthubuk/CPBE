@@ -20,6 +20,12 @@ use Filament\Tables\Table;
 /** "Buy X Get Y Free" presets. Each live draw picks which of these it offers (Competitions → Bundles). */
 class BundleTierResource extends Resource
 {
+    /** Admin roles (App\Support\Roles): the marketing area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('marketing');
+    }
+
     protected static ?string $model = BundleTier::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedGift;

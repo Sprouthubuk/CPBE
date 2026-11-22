@@ -27,9 +27,8 @@ $FORGE_COMPOSER install --no-dev --no-interaction --prefer-dist --optimize-autol
 $FORGE_PHP artisan storage:link
 $FORGE_PHP artisan vendor:publish --tag=verity-assets --force
 $FORGE_PHP artisan migrate --force
-$FORGE_PHP artisan vault:import-archive || echo "!! The old-site archive didn't import: see the message above (the site still works)."
 $FORGE_PHP artisan optimize
-$FORGE_PHP artisan vault:picture-sizes   # small WebP copies for any picture that lacks them (quick when none are missing)
+$FORGE_PHP artisan platform:picture-sizes   # small WebP copies for any picture that lacks them (quick when none are missing)
 $FORGE_PHP artisan filament:optimize || true
 { echo "=== verity:check $(date -u +%FT%TZ)"; $FORGE_PHP artisan verity:check 2>&1; echo "exit $?"; } | tee -a storage/logs/verity-check-deploy.log || true
 cd ..

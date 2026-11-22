@@ -56,6 +56,14 @@ final class Orders
             if ($total < 1) {
                 throw new RefusedException('Nothing to pay for.', 'basket_problem');
             }
+            $answers = $this->skillAnswers($lines, $priced['competitions']);
+            // SOW 2.18: which conversion tool put each competition in the basket.
+            $via = [];
+            foreach ($lines as $l) {
+                if (in_array($l['via'] ?? null, Conversion::VIA, true)) {
+                    $via[(string) $l['competitionId']] = $l['via'];
+                }
+            }
             if ($payWith === 'wallet') {
                 if (! $priced['walletCovers']) {
                     throw new RefusedException("Your wallet doesn't cover this order.", 'not_enough_wallet');
@@ -71,14 +79,15 @@ final class Orders
             $this->check->assertAllowed($user, $cardPart);
 
             $order = Order::query()->create([
-                'number' => Order::newNumber('V9'), 'user_id' => $user->id, 'order_type' => 'tickets', 'status' => 'created',
+                'number' => Order::newNumber('CP'), 'user_id' => $user->id, 'order_type' => 'tickets', 'status' => 'created',
                 'total_pence' => $total, 'card_pence' => $cardPart, 'promo_code' => $priced['promo']['code'] ?? null,
                 'discount_pence' => $priced['promo']['discountPence'] ?? 0, 'request_id' => $requestId,
             ]);
             foreach ($priced['lines'] as $l) {
                 $order->lines()->create(['competition_id' => $l['competitionId'], 'quantity' => $l['quantity'], 'unit_pence' => $l['unitPence'], 'line_pence' => $l['linePence'],
                     'bundle_tier_id' => $l['bundleId'], 'bundle_label' => $l['bundleLabel'], 'paid_quantity' => $l['paidQuantity'], 'free_quantity' => $l['freeQuantity'],
-                    'bonus_quantity' => $l['bonusQuantity'], 'source' => $l['source'], 'vault_case_id' => $l['vaultCaseId']]);
+                    'bonus_quantity' => $l['bonusQuantity'], 'source' => $l['source'], 'vault_case_id' => $l['vaultCaseId'],
+                    'skill_answer' => $answers[$l['competitionId']] ?? null, 'via' => $via[$l['competitionId']] ?? null]);
                 if ($l['vaultCaseId']) {
                     VaultCase::query()->whereKey($l['vaultCaseId'])->update(['status' => 'ordered', 'order_id' => $order->id]);
                 }
@@ -99,13 +108,44 @@ final class Orders
     }
 
     /**
+     * SOW 2.2: every paid entry into a competition with a skill question needs the right answer. Refuses the
+     * whole order before anything is taken. Returns competition id => the answer given, to keep on the line.
+     *
+     * @param  array<int, array<string, mixed>>  $lines
+     * @param  \Illuminate\Support\Collection<string, Competition>  $competitions
+     * @return array<string, int>
+     */
+    private function skillAnswers(array $lines, $competitions): array
+    {
+        $given = [];
+        foreach ($lines as $l) {
+            if (array_key_exists('skillAnswer', $l) && $l['skillAnswer'] !== null) {
+                $given[(string) $l['competitionId']] = (int) $l['skillAnswer'];
+            }
+        }
+        foreach ($competitions as $c) {
+            if (! $c->hasSkillQuestion()) {
+                continue;
+            }
+            if (! array_key_exists($c->id, $given)) {
+                throw new RefusedException("Answer the question for {$c->title} to enter.", 'skill_answer_missing');
+            }
+            if (! $c->skillAnswerIsRight($given[$c->id])) {
+                throw new RefusedException("That answer for {$c->title} isn't right. Please try again.", 'skill_answer_wrong');
+            }
+        }
+
+        return $given;
+    }
+
+    /**
      * Free tickets (a referral voucher): a £0 order paid at once, so the tickets are issued by Verity in
      * the same way as any other order and the player sees them in My Tickets.
      */
     public function issueFree(User $user, Competition $c, int $tickets, string $source): Order
     {
         $order = Order::query()->create([
-            'number' => Order::newNumber('V9'), 'user_id' => $user->id, 'order_type' => 'tickets', 'status' => 'created',
+            'number' => Order::newNumber('CP'), 'user_id' => $user->id, 'order_type' => 'tickets', 'status' => 'created',
             'total_pence' => 0, 'card_pence' => 0, 'request_id' => $source.'-'.bin2hex(random_bytes(8)),
         ]);
         $order->lines()->create(['competition_id' => $c->id, 'quantity' => $tickets, 'unit_pence' => $c->price_pence, 'line_pence' => 0,
@@ -113,6 +153,56 @@ final class Orders
         $this->markPaid($order, null);
 
         return $order->refresh();
+    }
+
+    /**
+     * A membership payment (SOW 2.12): $payWith wallet (cash and winnings, never bonus credit), card (the payment
+     * page; a first payment is the parent of later renewals) or stored (charged next with chargeRenewal()).
+     */
+    public function membershipPayment(User $user, \App\Models\Membership $m, \App\Models\MembershipTier $tier, int $pence, string $kind, string $payWith): Order
+    {
+        $order = DB::transaction(function () use ($user, $m, $tier, $pence, $kind, $payWith) {
+            $this->wallet->lock($user->id);
+            $this->check->assertAllowed($user->refresh(), $payWith === 'wallet' ? 0 : $pence, true);
+            $order = Order::query()->create([
+                'number' => Order::newNumber('CM'), 'user_id' => $user->id, 'order_type' => 'membership', 'status' => 'created',
+                'total_pence' => $pence, 'card_pence' => $payWith === 'wallet' ? 0 : $pence,
+                'membership_id' => $m->id, 'membership_kind' => $kind, 'membership_tier_id' => $tier->id,
+            ]);
+            if ($payWith === 'wallet') {
+                $this->wallet->spendForOrder($order, $pence, 0, 'membership'); // basket 0: no bonus credit
+                $this->markPaid($order, null);
+            }
+
+            return $order;
+        });
+        if ($payWith === 'card') {
+            $this->openPaymentPage($order, $user, in_array($kind, ['join', 'resume'], true) ? \App\Services\Memberships::PERIOD_DAYS : null);
+        }
+
+        return $order->refresh();
+    }
+
+    /** A renewal charged against the membership's first card payment. True when it was paid. */
+    public function chargeRenewal(\App\Models\Membership $m, Order $order): bool
+    {
+        $answer = $m->gateway_parent_ref ? $this->gateway->chargeRecurring($m->gateway_parent_ref, $order, \App\Services\Memberships::PERIOD_DAYS) : null;
+        if ($answer && $answer->status === 'paid' && $answer->jobReference
+            && ($why = $answer->matches($answer->jobReference, $order->number, $order->card_pence)) === null) {
+            DB::transaction(function () use ($order, $answer) {
+                $o = Order::query()->lockForUpdate()->findOrFail($order->id);
+                $o->forceFill(['gateway_ref' => $answer->jobReference])->save();
+                $this->markPaid($o, $answer->cardType, $answer->cardToken);
+            });
+
+            return true;
+        }
+        if (isset($why) && $why) {
+            Log::error('Recurring answer does not match the order; not confirmed', ['order' => $order->number, 'why' => $why]);
+        }
+        $this->closeUnpaid($order, 'failed');
+
+        return false;
     }
 
     /** A wallet top up by card. */
@@ -129,7 +219,7 @@ final class Orders
             $this->check->assertAllowed($user->refresh(), $amountPence);
 
             return Order::query()->create([
-                'number' => Order::newNumber('VD'), 'user_id' => $user->id, 'order_type' => 'deposit', 'status' => 'created',
+                'number' => Order::newNumber('CD'), 'user_id' => $user->id, 'order_type' => 'deposit', 'status' => 'created',
                 'total_pence' => $amountPence, 'card_pence' => $amountPence,
             ]);
         });
@@ -213,12 +303,19 @@ final class Orders
         if ($order->promo_code) {
             PromoCode::query()->where('code', $order->promo_code)->increment('uses');
         }
-        if ($order->isDeposit()) {
+        if ($order->order_type === 'membership') {
+            app(Memberships::class)->orderPaid($order);
+        } elseif ($order->isDeposit()) {
             $this->wallet->credit($order->user_id, 'deposit', $order->total_pence, 'Top up · Card', 'order:'.$order->id.':deposit', $order->id);
         } else {
             $this->fulfilment->fulfil($order);
             VaultCase::query()->where('order_id', $order->id)->update(['status' => 'paid']);
             app(Referrals::class)->orderPaid($order);
+            app(Loyalty::class)->orderPaid($order);
+            app(Conversion::class)->orderPaid($order);
+            if ($order->total_pence > 0) {
+                DB::afterCommit(fn () => app(MarketingSync::class)->purchase($order));
+            }
         }
         if ($wasClosed) {
             $this->fulfilment->flag($order, 'Paid after the order had closed.');
@@ -233,16 +330,20 @@ final class Orders
         });
     }
 
-    private function openPaymentPage(Order $order, User $user): void
+    private function openPaymentPage(Order $order, User $user, ?int $recurringDays = null): void
     {
         $site = rtrim((string) config('app.frontend_url'), '/');
-        $success = $order->isDeposit() ? "{$site}/account/wallet?deposit={$order->number}" : "{$site}/order/{$order->number}";
+        $success = match ($order->order_type) {
+            'deposit' => "{$site}/account/wallet?deposit={$order->number}",
+            'membership' => "{$site}/account/membership?paid={$order->number}",
+            default => "{$site}/order/{$order->number}",
+        };
         try {
             $job = $this->gateway->createPaymentJob($order, $user->email, [
                 'success' => $success,
                 'failed' => "{$site}/payment/failed?order={$order->number}",
                 'cancelled' => "{$site}/payment/cancelled?order={$order->number}",
-            ]);
+            ], $recurringDays);
         } catch (\Throwable $e) {
             Log::warning('Payment page not opened', ['order' => $order->number]);
             $order->forceFill(['status' => 'pending_payment'])->save();

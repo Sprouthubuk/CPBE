@@ -1,0 +1,21 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import AccountShell from "../../components/AccountShell.astro";
+import MembershipPanel from "../../islands/MembershipPanel";
+import type { MyMembership, OrderView } from "../../lib/types";
+const { api, site } = Astro.locals;
+if (!site.memberships) return Astro.rewrite("/404");
+// Back from the payment page: ask the provider about the order before showing the membership.
+const paid = Astro.url.searchParams.get("paid");
+let notice: "paid" | "pending" | "failed" | null = null;
+if (paid && /^CM-[A-Z0-9]{4,16}$/.test(paid)) {
+  const order = await api.post<OrderView>(`/api/orders/${paid}/return`).catch(() => null);
+  notice = order?.status === "paid" ? "paid" : order && ["failed", "cancelled", "expired"].includes(order.status) ? "failed" : "pending";
+}
+const data = await api.get<MyMembership>("/api/me/membership");
+---
+<Layout title="Membership" active="account" noindex>
+  <AccountShell active="membership" title="Your Membership" eyebrow="Monthly Perks" glow="nc">
+    <MembershipPanel client:load initial={data} notice={notice} />
+  </AccountShell>
+</Layout>

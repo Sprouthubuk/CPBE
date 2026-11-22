@@ -23,6 +23,12 @@ use Illuminate\Database\Eloquent\Builder;
 /** Orders are read-only here: money moves only through the order services. */
 class OrderResource extends Resource
 {
+    /** Admin roles (App\Support\Roles): the orders area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('orders');
+    }
+
     protected static ?string $model = Order::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedReceiptPercent;
@@ -76,6 +82,22 @@ class OrderResource extends Resource
                         $o = app(Orders::class)->syncWithGateway($o);
                         Notification::make()->title('Order is '.$o->status)->send();
                     }),
+                Action::make('dispute')->label('Log a dispute')->icon(Heroicon::OutlinedShieldExclamation)->color('danger')
+                    ->visible(fn (Order $o) => $o->status === 'paid' && $o->card_pence > 0 && \App\Support\Roles::allows('finance'))
+                    ->schema([
+                        \Filament\Forms\Components\Select::make('kind')->options(\App\Models\Dispute::KINDS)->default('chargeback')->required(),
+                        \Filament\Forms\Components\TextInput::make('reference')->label('Provider case reference')->maxLength(80),
+                        \App\Filament\Support\Money::input('amount_pence', 'Amount')->default(fn (Order $o) => $o->card_pence)->required(),
+                        \Filament\Forms\Components\TextInput::make('reason')->label('Reason given')->required()->maxLength(200),
+                        \Filament\Forms\Components\DatePicker::make('respond_by')->label('Respond by'),
+                    ])
+                    ->action(function (Order $o, array $data) {
+                        app(\App\Services\Disputes::class)->log(auth()->user(), $o, $data);
+                        Notification::make()->success()->title('Dispute logged')->body('Open Disputes for its evidence pack.')->send();
+                    }),
+                Action::make('evidence')->label('Evidence pack')->icon(Heroicon::OutlinedDocumentText)
+                    ->visible(fn (Order $o) => $o->status !== 'created' && \App\Support\Roles::allows('finance'))
+                    ->url(fn (Order $o) => route('admin.evidence', $o->number))->openUrlInNewTab(),
                 Action::make('resolve')->label('Mark handled')->icon(Heroicon::OutlinedCheck)->color('success')
                     ->visible(fn (Order $o) => $o->needs_attention)
                     ->schema([Textarea::make('reason')->label('What was done')->required()->maxLength(300)])

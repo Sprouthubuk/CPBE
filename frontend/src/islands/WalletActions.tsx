@@ -85,7 +85,7 @@ export default function WalletActions({ minDepositPence, maxTopUpPence, minWithd
         {custom && invalid && <span className="err">Enter between {formatMoney(minDepositPence)} and {formatMoney(maxTopUpPence)}.</span>}
         {blocked && <div className="notice notice-p" role="alert"><Svg name="info" size={18} /><span>{blocked}</span></div>}
         {error && <div className="notice notice-p" role="alert"><Svg name="info" size={18} /><span>{error}</span></div>}
-        <button type="button" className="btn btn-y btn-lg btn-block v9-cta" disabled={busy || invalid || !!blocked} onClick={topUp}>{busy ? <span className="spin" /> : `Top Up ${chosen && !invalid ? formatMoney(chosen) : ""} By Card`}</button>
+        <button type="button" className="btn btn-y btn-lg btn-block cp-cta" disabled={busy || invalid || !!blocked} onClick={topUp}>{busy ? <span className="spin" /> : `Top Up ${chosen && !invalid ? formatMoney(chosen) : ""} By Card`}</button>
         <div className="hint" style={{ textAlign: "center" }}><Svg name="lock" size={12} /> Secure payment via Cashflows</div>
       </div>
       <div className="card card-p stack g12" id="withdraw">

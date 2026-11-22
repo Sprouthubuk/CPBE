@@ -3,8 +3,8 @@ import { afterAll, beforeAll, it, expect } from "vitest";
 // Crawls every page a visitor can reach on a phone (390px, then 320px, then tablets and a desktop) and the member pages signed in,
 // and fails on page or console errors, broken requests, sideways scroll, taps under 40px, inputs under 16px
 // or without a label, images with no size/alt or broken, and pages without exactly one h1.
-// Writes what it found and page weights to $AUDIT_DIR (default /tmp/v9-audit).
-const OUT = process.env.AUDIT_DIR ?? "/tmp/v9-audit";
+// Writes what it found and page weights to $AUDIT_DIR (default /tmp/cp-audit).
+const OUT = process.env.AUDIT_DIR ?? "/tmp/cp-audit";
 import { chromium, type Page, type BrowserContext } from "playwright";
 import fs from "node:fs";
 import { startSite } from "../e2e/harness";
@@ -82,7 +82,7 @@ let site: Awaited<ReturnType<typeof startSite>>;
 let b: Awaited<ReturnType<typeof chromium.launch>>;
 const seen = new Set<string>();
 // The 404 page answers 404 on purpose; an unknown order on the payment pages is refused on purpose.
-const expected = (f: Finding) => (f.page === "/this-page-does-not-exist" && /404/.test(f.kind + f.detail)) || (f.page.includes("V9-NOPE") && /40[34]/.test(f.kind + f.detail));
+const expected = (f: Finding) => (f.page === "/this-page-does-not-exist" && /404/.test(f.kind + f.detail)) || (f.page.includes("CP-NOPE") && /40[34]/.test(f.kind + f.detail));
 const problems = (widths: number[]) => [...new Set(findings.filter((f) => widths.includes(f.width) && !expected(f)).map((f) => `${f.who} ${f.width}px ${f.page}: ${f.kind} ${f.detail}`))];
 
 beforeAll(async () => {
@@ -121,7 +121,7 @@ it("every page works and fits a phone", async () => {
   await lp.locator('[data-testid="login-form"] button[type="submit"]').click();
   await lp.waitForURL((u) => !u.pathname.startsWith("/login"));
   await lp.close();
-  const mem = ["/account", "/account/tickets", "/account/wallet", "/account/settings", "/account/safer-play", "/account/refer", "/", "/competitions", "/competitions/pro-dartboard-bundle", "/competitions/cash-flights", "/basket", "/checkout", "/vault-case", "/payment/failed?order=V9-NOPE", "/payment/cancelled?order=V9-NOPE"];
+  const mem = ["/account", "/account/tickets", "/account/wallet", "/account/settings", "/account/safer-play", "/account/refer", "/account/loyalty", "/account/membership", "/", "/competitions", "/competitions/pro-dartboard-bundle", "/competitions/cash-flights", "/basket", "/checkout", "/vault-case", "/payment/failed?order=CP-NOPE", "/payment/cancelled?order=CP-NOPE"];
   for (const u of mem) await audit(member, site.origin, u, 390, "player");
   await member.close();
   expect(seen.size, "pages crawled").toBeGreaterThan(40);

@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Api\AccountController;
-use App\Http\Controllers\Api\ArchiveController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FakePayController;
 use App\Http\Controllers\Api\HealthController;
@@ -23,15 +22,12 @@ Route::middleware('throttle:api')->group(function () {
     Route::get('winners/draws', [PublicController::class, 'drawWinners']);
     Route::get('entry-lists', [PublicController::class, 'entryLists']);
     Route::get('entry-lists/{slug}', [PublicController::class, 'entryList']);
-    // The old site's public record (read-only archive, vault:import-archive).
-    Route::get('archive', [ArchiveController::class, 'index']);
-    Route::get('archive/winners', [ArchiveController::class, 'winners']);
-    Route::get('archive/{slug}', [ArchiveController::class, 'show']);
-    Route::get('archive/{slug}/instant-wins', [ArchiveController::class, 'instantWins']);
-    Route::get('archive/{slug}/entries', [ArchiveController::class, 'entries']);
     Route::get('pages/{slug}', [PublicController::class, 'page']);
     Route::post('contact', [PublicController::class, 'contact'])->middleware('throttle:contact');
     Route::post('basket/price', [OrderController::class, 'price']);
+    Route::get('recommendations', [\App\Http\Controllers\Api\ConversionController::class, 'recommendations']);
+    Route::get('experiments', [\App\Http\Controllers\Api\ConversionController::class, 'experiments']);
+    Route::post('experiments/{key}/seen', [\App\Http\Controllers\Api\ConversionController::class, 'seen'])->where('key', '[a-z0-9_]{1,40}');
     Route::post('vault-case', [VaultCaseController::class, 'build'])->middleware('throttle:vault-case');
     Route::post('vault-case/{id}/added', [VaultCaseController::class, 'added'])->middleware('throttle:vault-case');
     Route::get('referrals/{code}', [ReferralController::class, 'invite'])->middleware('throttle:vault-case');
@@ -67,13 +63,23 @@ Route::middleware('throttle:api')->group(function () {
         Route::get('orders/{number}', [OrderController::class, 'show']);
         Route::post('orders/{number}/return', [OrderController::class, 'return']);
         Route::post('orders/{number}/play', [OrderController::class, 'play']);
+        Route::get('orders/{number}/repeat', [\App\Http\Controllers\Api\ConversionController::class, 'repeat']);
         Route::get('me/referrals', [ReferralController::class, 'mine']);
+        Route::get('me/membership', [\App\Http\Controllers\Api\MembershipController::class, 'mine']);
+        Route::post('me/membership', [\App\Http\Controllers\Api\MembershipController::class, 'join'])->middleware('throttle:money');
+        Route::post('me/membership/change', [\App\Http\Controllers\Api\MembershipController::class, 'change'])->middleware('throttle:money');
+        Route::post('me/membership/cancel', [\App\Http\Controllers\Api\MembershipController::class, 'cancel']);
+        Route::post('me/membership/keep', [\App\Http\Controllers\Api\MembershipController::class, 'keep']);
+        Route::post('me/membership/pay', [\App\Http\Controllers\Api\MembershipController::class, 'payNow'])->middleware('throttle:money');
+        Route::get('me/loyalty', [\App\Http\Controllers\Api\LoyaltyController::class, 'mine']);
+        Route::post('me/loyalty/redeem', [\App\Http\Controllers\Api\LoyaltyController::class, 'redeem'])->middleware('throttle:money');
         Route::get('me/vouchers/{voucher}/draws', [ReferralController::class, 'draws']);
         Route::post('me/vouchers/{voucher}/redeem', [ReferralController::class, 'redeem'])->middleware('throttle:money');
     });
 });
 
 Route::post('webhooks/cashflows', [OrderController::class, 'webhook'])->middleware('throttle:120,1');
+Route::post('webhooks/sms-opt-out', [\App\Http\Controllers\Api\ConversionController::class, 'smsOptOut'])->middleware('throttle:120,1');
 
 // The stand-in payment page, only when the fake gateway is in use (never in production).
 if (config('services.cashflows.driver') === 'fake' && ! app()->environment('production')) {

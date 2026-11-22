@@ -35,22 +35,22 @@ const presets = c.presets?.length ? c.presets : isDraw ? [1, 5, 10, 25] : [5, 10
 const endCount = c.endPrize?.count ?? 0;
 const endPrizeLine = c.endPrize ? `${endCount > 1 ? `${endCount} × ` : ""}${formatPence(c.endPrize.valuePence, { short: false })}` : "";
 const [lead, tail] = splitTitle(c.title);
-const category = isDraw ? (c.tags.includes("kit") ? "Cases & Kit" : c.tags.includes("darts") ? "Darts" : null) : null;
+const category = isDraw ? (c.tags.includes("cash") ? "Cash" : c.tags.includes("tech") ? "Tech" : null) : null;
 ---
 <Layout title={c.title} fullTitle={pageTitle(competitionTitle(c))} active={isDraw ? "competitions" : "instant"} description={competitionDescription(c)} shareImage={c.image} jsonLd={[breadcrumbLd(new URL(Astro.site ?? Astro.url).origin, [["Home", "/"], [isDraw ? "Live Draws" : "Instant Wins", `/competitions?type=${isDraw ? "draw" : "instant"}`], [c.title, `/competitions/${c.slug}`]])]}>
 <main class="wrap" style="padding-top:20px">
   <a href="/competitions" class="row g8 mob" style="color:var(--text-2);text-decoration:none;font-weight:700;font-size:14px;min-height:44px"><Icon name="back" size={18} />All Competitions</a>
   <nav aria-label="Breadcrumb" class="dsk crumbs" style="font-size:13px;color:var(--muted);margin-bottom:12px"><a href="/">Home</a> / <a href={`/competitions?type=${c.type}`}>{isDraw ? "Live Draws" : "Instant Wins"}</a> / <span style="color:var(--text)">{c.title}</span></nav>
   <div class="pdp">
-    <div class="pdp-media v9-in">
-      <div class={`pdp-hero v9-tilt ${isDraw ? "" : "vc-tile"}`} style={isDraw ? undefined : "border-color:var(--brand-green)"}>
+    <div class="pdp-media cp-in">
+      <div class={`pdp-hero cp-tilt ${isDraw ? "" : "vc-tile"}`} style={isDraw ? undefined : "border-color:var(--brand-green)"}>
         {isDraw ? <Dartboard class="vc-board" spin /> : <svg class="vc-stripes" viewBox="0 0 120 120" aria-hidden="true" preserveAspectRatio="none"><polygon points="60,120 85,40 98,40 73,120" fill="#1B9A47" opacity=".55"></polygon><polygon points="78,120 103,40 116,40 91,120" fill="#1B9A47" opacity=".8"></polygon><polygon points="96,120 121,40 134,40 109,120" fill="#2FD36B"></polygon></svg>}
         <img src={c.image} srcset={c.imageSrcset ?? undefined} sizes="(min-width:960px) 600px, 100vw" alt={c.title} width="640" height="640" fetchpriority="high">
         <span class={`vc-badge ${isDraw ? "" : "inst"}`} style="top:16px;left:16px;font-size:12px">{isDraw ? "Live draw" : <><Icon name="bolt" size={12} stroke={2.6} />Instant win{prizesTotal ? ` · ${formatCount(prizesTotal)} prizes` : ""}</>}</span>
         {!isDraw && c.topPrizePence && <span class="vc-upto" style="left:24px;bottom:24px;font-size:24px">Win up to <b>{formatPence(c.topPrizePence, { short: false })}</b></span>}
       </div>
     </div>
-    <div class="stack g16 v9-stg">
+    <div class="stack g16 cp-stg">
       <div class="eyebrow" style="color:var(--green)">{isDraw ? `Live draw${category ? ` · ${category}` : ""}` : `Instant win${prizesTotal ? ` · ${formatCount(prizesTotal)} prizes` : ""}`}{!isDraw && gameName(c) ? ` · ${gameName(c)}` : ""}</div>
       <h1 class="h1" style="margin:0;font-size:clamp(44px,10vw,72px)">{lead}{tail && <>{" "}<span class="np">{tail}</span></>}</h1>
       <div class="pdp-tags">
@@ -79,7 +79,7 @@ const category = isDraw ? (c.tags.includes("kit") ? "Cases & Kit" : c.tags.inclu
   </div>
 
   {!isDraw && (
-    <section class="v9-sec">
+    <section class="cp-sec">
       <div class="game-box">
         <div class="stack g12">
           <div class="eyebrow">The game{gameName(c) ? ` · ${gameName(c)}` : ""}</div>
@@ -95,8 +95,8 @@ const category = isDraw ? (c.tags.includes("kit") ? "Cases & Kit" : c.tags.inclu
             <circle cx="110" cy="110" r="58" fill="none" stroke="#1B9A47" stroke-width="9" stroke-dasharray="9.11 9.11"></circle>
             <circle cx="110" cy="110" r="58" fill="none" stroke="#D7322B" stroke-width="9" stroke-dasharray="9.11 9.11" stroke-dashoffset="9.11"></circle>
             <circle cx="110" cy="110" r="13" fill="#1B9A47"></circle><circle cx="110" cy="110" r="6" fill="#D7322B"></circle>
-            <circle class="v9-impact" cx="128" cy="62" r="6" fill="none" stroke="#2FD36B" stroke-width="2"></circle>
-            <g class="v9-throw"><line x1="128" y1="62" x2="196" y2="16" stroke="#C9D3CE" stroke-width="4" stroke-linecap="round"></line><polygon points="190,8 212,4 204,26" fill="#2FD36B"></polygon><circle cx="128" cy="62" r="4" fill="#F4F7F5"></circle></g>
+            <circle class="cp-impact" cx="128" cy="62" r="6" fill="none" stroke="#2FD36B" stroke-width="2"></circle>
+            <g class="cp-throw"><line x1="128" y1="62" x2="196" y2="16" stroke="#C9D3CE" stroke-width="4" stroke-linecap="round"></line><polygon points="190,8 212,4 204,26" fill="#2FD36B"></polygon><circle cx="128" cy="62" r="4" fill="#F4F7F5"></circle></g>
           </svg>
         </div>
       </div>
@@ -104,19 +104,19 @@ const category = isDraw ? (c.tags.includes("kit") ? "Cases & Kit" : c.tags.inclu
   )}
 
   {!isDraw && c.prizes.length > 0 && (
-    <section class="v9-sec">
+    <section class="cp-sec">
       <h2 class="h2" style="margin-bottom:12px">Instant <span class="np">Wins</span></h2>
       <div class="row wrapx g16" style="margin-bottom:10px">
         <span class="iw-left"><span class="ic"><Icon name="bolt" size={16} stroke={2.6} /></span><span><b class="d">{formatCount(prizesLeft)}</b> <small>Instant prizes left to win</small></span></span>
         {numbers && numbers.total > 0 && <a class="tap" style="font-weight:700" href={`/competitions/${c.slug}/winning-numbers`}>See all {formatCount(numbers.total)} winning numbers →</a>}
       </div>
       <p class="p" style="font-size:14px;margin:0 0 20px;color:var(--muted)">Every winning ticket number is public from the start. Tickets are given out at random when you pay: land a winning number and it's yours.</p>
-      <div class="iw-grid v9-kids" data-testid="instant-prizes">
+      <div class="iw-grid cp-kids" data-testid="instant-prizes">
         {c.prizes.map((p) => {
           const left = p.quantity - p.won;
           const done = left <= 0;
           return (
-            <a class={`iw v9-card ${done ? "done" : ""}`} href={`/competitions/${c.slug}/winning-numbers?${new URLSearchParams({ prize: p.name })}`}>
+            <a class={`iw cp-card ${done ? "done" : ""}`} href={`/competitions/${c.slug}/winning-numbers?${new URLSearchParams({ prize: p.name })}`}>
               <span class="iw-val">{formatPence(p.valuePence, { short: false })}</span>
               <div class="iw-b">
                 <span class="row between g8" style="align-items:baseline">
@@ -140,19 +140,19 @@ const category = isDraw ? (c.tags.includes("kit") ? "Cases & Kit" : c.tags.inclu
   )}
 
   {isDraw && (
-    <section class="v9-sec">
+    <section class="cp-sec">
       <div class="eyebrow" style="margin-bottom:6px">How draw night works</div>
       <h2 class="h2" style="margin-bottom:20px">Drawn <span class="np">Live</span>, Totally Random</h2>
-      <ol class="steps-n v9-kids">
-        <li class="v9-card"><span class="n">01</span><span><b>Entries close</b><small>{ukDateTime(c.closesAt)}</small></span></li>
-        <li class="v9-card"><span class="n">02</span><span><b>Entry list public</b><small>Every ticket number is listed from the first sale</small></span></li>
-        <li class="v9-card"><span class="n">03</span><span><b>Drawn live</b><small>A random draw anyone can verify, streamed on Facebook{c.drawAt ? ` at ${ukShortDay(c.drawAt)}` : ""}</small></span></li>
-        <li class="v9-card"><span class="n">04</span><span><b>Prize on its way</b><small>We contact the winner{c.cashAlternativePence ? ` (or pay the ${formatPence(c.cashAlternativePence, { short: false })} cash alternative)` : ""} and ship it tracked</small></span></li>
+      <ol class="steps-n cp-kids">
+        <li class="cp-card"><span class="n">01</span><span><b>Entries close</b><small>{ukDateTime(c.closesAt)}</small></span></li>
+        <li class="cp-card"><span class="n">02</span><span><b>Entry list public</b><small>Every ticket number is listed from the first sale</small></span></li>
+        <li class="cp-card"><span class="n">03</span><span><b>Drawn live</b><small>A random draw anyone can verify, streamed on Facebook{c.drawAt ? ` at ${ukShortDay(c.drawAt)}` : ""}</small></span></li>
+        <li class="cp-card"><span class="n">04</span><span><b>Prize on its way</b><small>We contact the winner{c.cashAlternativePence ? ` (or pay the ${formatPence(c.cashAlternativePence, { short: false })} cash alternative)` : ""} and ship it tracked</small></span></li>
       </ol>
     </section>
   )}
 
-  <section class="v9-sec">
+  <section class="cp-sec">
     <h2 class="h2" style="margin-bottom:20px">More <span class="np">Information</span></h2>
     <div class="panel stack g16" style="padding:24px" data-testid="more-information">
       <div class="info-d" set:html={c.description.replace(/</g, "&lt;").replace(/\n/g, "<br>")}></div>
@@ -170,13 +170,13 @@ const category = isDraw ? (c.tags.includes("kit") ? "Cases & Kit" : c.tags.inclu
     </div>
   </section>
 
-  {more.length > 0 && <section class="v9-sec" style="padding-bottom:88px"><h2 class="h2" style="margin-bottom:20px">{isDraw ? <>More <span class="np">Draws</span></> : <>You Might <span class="np">Also Like</span></>}</h2><div class="grid-cards v9-kids">{more.map((o) => <CompCard c={o} />)}</div></section>}
+  {more.length > 0 && <section class="cp-sec" style="padding-bottom:88px"><h2 class="h2" style="margin-bottom:20px">{isDraw ? <>More <span class="np">Draws</span></> : <>You Might <span class="np">Also Like</span></>}</h2><div class="grid-cards cp-kids">{more.map((o) => <CompCard c={o} />)}</div></section>}
 </main>
 {open && <div class="mob" style="height:72px" aria-hidden="true"></div>}
 <script define:vars={{ slug: c.slug, title: c.title, price: c.pricePence }}>
   window.addEventListener("load", () => window.ggTrack?.("ViewContent", { content_ids: [slug], content_name: title, content_type: "product", value: price / 100, currency: "GBP" }));
   // The ticket picker re-reads % sold every minute; keep the bar and its words in step.
-  window.addEventListener("v9-sold", (e) => {
+  window.addEventListener("cp-sold", (e) => {
     const { slug: s, percent } = e.detail || {};
     if (s !== slug) return;
     const bar = document.querySelector(`[data-sold-bar="${slug}"] > div`);

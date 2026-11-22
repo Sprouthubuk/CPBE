@@ -58,7 +58,7 @@ class HardeningTest extends TestCase
         $c->forceFill(['image' => 'competitions/late.png'])->saveQuietly();
         $this->assertSame([], PictureSizes::existing('competitions/late.png'));
 
-        $this->artisan('vault:picture-sizes')->assertSuccessful();
+        $this->artisan('platform:picture-sizes')->assertSuccessful();
         $this->assertCount(3, PictureSizes::existing('competitions/late.png'));
         // Never wider than the upload: a 600px picture's "1200" copy is 600px.
         $this->assertSame(600, getimagesizefromstring(Storage::disk('public')->get(PictureSizes::path('competitions/late.png', 1200)))[0]);

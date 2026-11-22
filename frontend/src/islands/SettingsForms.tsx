@@ -40,7 +40,7 @@ export default function SettingsForms({ me }: { me: Me }) {
         <div className="field"><label htmlFor="ph">Mobile</label><input className="inp" id="ph" type="tel" autoComplete="tel" placeholder="07…" value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
         <div className="field"><span className="lbl">Date of birth</span><div style={{ fontWeight: 700, padding: "6px 0" }}>{me.dobVerified ? "Confirmed" : "Not set"}</div><span className="hint">Contact us to change your name, email or date of birth.</span></div>
         {details.note}
-        <button type="submit" className="btn btn-y v9-cta" disabled={details.busy}>Save Changes</button>
+        <button type="submit" className="btn btn-y cp-cta" disabled={details.busy}>Save Changes</button>
       </form>
       <div className="stack g16">
         <form className="card card-p stack g12" onSubmit={(e: FormEvent) => { e.preventDefault(); address.save("/api/me/address", addr); }}>

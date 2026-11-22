@@ -30,7 +30,7 @@ export default function ContactForm({ name, email }: { name: string; email: stri
       <div className="field"><label htmlFor="ms">Message</label><textarea className="inp" id="ms" value={f.message} maxLength={3000} onChange={(e) => setF({ ...f, message: e.target.value })} required />{errors.message && <span className="err">{errors.message}</span>}</div>
       <input type="text" name="website" tabIndex={-1} autoComplete="off" value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} className="sr-only" aria-hidden="true" />
       {error && <div className="notice notice-p" role="alert"><span>{error}</span></div>}
-      <button type="submit" className="btn btn-y btn-lg v9-cta" disabled={state === "busy"}>{state === "busy" ? <span className="spin" /> : "Send Message"}</button>
+      <button type="submit" className="btn btn-y btn-lg cp-cta" disabled={state === "busy"}>{state === "busy" ? <span className="spin" /> : "Send Message"}</button>
     </form>
   );
 }

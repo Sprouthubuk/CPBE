@@ -91,13 +91,53 @@ final class Wallet
             if ($amount > 0) {
                 LedgerEntry::query()->create([
                     'user_id' => $order->user_id, 'bucket' => $bucket, 'direction' => 'debit', 'amount_pence' => $amount,
-                    'reason' => 'Tickets · '.$order->number, 'reference' => "order:{$order->id}:{$tag}:{$bucket}", 'order_id' => $order->id,
+                    'reason' => ($order->order_type === 'membership' ? 'Membership · ' : 'Tickets · ').$order->number, 'reference' => "order:{$order->id}:{$tag}:{$bucket}", 'order_id' => $order->id,
                 ]);
             }
         }
         $order->forceFill([
             'wallet_pence' => $pence, 'paid_deposit_pence' => $fromDeposit, 'paid_bonus_pence' => $fromBonus, 'paid_winnings_pence' => $fromWinnings,
         ])->save();
+    }
+
+    /**
+     * An admin takes money off one balance (a correction, SOW 2.6): never more than the balance holds.
+     * Logged by the caller with its reason.
+     */
+    public function adminDebit(int $userId, string $bucket, int $pence, string $reason, string $reference): LedgerEntry
+    {
+        $this->assertBucket($bucket);
+
+        return DB::transaction(function () use ($userId, $bucket, $pence, $reason, $reference) {
+            $this->lock($userId);
+            if ($pence < 1 || $pence > $this->balances($userId)[$bucket]) {
+                throw new RefusedException('That’s more than the balance holds.', 'not_enough_wallet');
+            }
+
+            return LedgerEntry::query()->create(['user_id' => $userId, 'bucket' => $bucket, 'direction' => 'debit', 'amount_pence' => $pence,
+                'reason' => $reason, 'reference' => $reference]);
+        });
+    }
+
+    /**
+     * Take back bonus credit given by mistake or for something later reversed (a referral reward on a refunded
+     * order): as much as is still unspent, up to $pence. Once per reference. Returns what was taken.
+     */
+    public function takeBackBonus(int $userId, int $pence, string $reason, string $reference): int
+    {
+        return DB::transaction(function () use ($userId, $pence, $reason, $reference) {
+            $this->lock($userId);
+            if (LedgerEntry::query()->where('reference', $reference)->exists()) {
+                return 0;
+            }
+            $take = min($pence, $this->balances($userId)['bonus']);
+            if ($take > 0) {
+                LedgerEntry::query()->create(['user_id' => $userId, 'bucket' => 'bonus', 'direction' => 'debit', 'amount_pence' => $take,
+                    'reason' => $reason, 'reference' => $reference]);
+            }
+
+            return $take;
+        });
     }
 
     /** Give back the wallet part of an order that was never paid, to the balances it came from. Once only. */

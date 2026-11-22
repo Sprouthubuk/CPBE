@@ -5,13 +5,14 @@ import { trackCustom } from "../lib/consent";
 import { ukDate } from "../lib/time";
 import type { CompetitionSummary, MyReferrals, ReferralStatus, Voucher } from "../lib/types";
 import { Svg } from "./Svg";
+import { BRAND } from "../lib/seo";
 
 const STATUS: Record<ReferralStatus, [string, string]> = {
   pending: ["tag-w", "Joined"], missed: ["tag-w", "Didn't qualify"], blocked: ["tag-w", "Not eligible"], review: ["tag-y", "Being checked"],
   rewarded: ["tag-c", "Rewarded"], capped: ["tag-y", "Monthly limit reached"], rejected: ["tag-w", "Not eligible"], clawed_back: ["tag-w", "Reversed"],
 };
 
-function VoucherCard({ v, onUsed }: { v: Voucher; onUsed: () => void }) {
+export function VoucherCard({ v, onUsed }: { v: Voucher; onUsed: () => void }) {
   const [draws, setDraws] = useState<CompetitionSummary[] | null>(null);
   const [pick, setPick] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -46,7 +47,7 @@ function VoucherCard({ v, onUsed }: { v: Voucher; onUsed: () => void }) {
   if (v.status !== "available") return (
     <div className="li" style={{ cursor: "default" }}>
       <span className="ico"><Svg name="ticket" size={18} /></span>
-      <span style={{ flex: 1 }}>{v.tickets} free tickets{v.competition ? <> · <a href={`/competitions/${v.competition.slug}`}>{v.competition.title}</a></> : null}</span>
+      <span style={{ flex: 1 }}>{v.tickets} free tickets{v.forCompetition && !v.competition ? <> · for {v.forCompetition.title}</> : null}{v.competition ? <> · <a href={`/competitions/${v.competition.slug}`}>{v.competition.title}</a></> : null}</span>
       <span className="tag tag-w">{v.status === "redeemed" ? "Used" : v.status === "expired" ? "Expired" : "Reversed"}</span>
     </div>
   );
@@ -68,7 +69,7 @@ function VoucherCard({ v, onUsed }: { v: Voucher; onUsed: () => void }) {
               </label>
             ))}
           </div>
-          <button type="button" className="btn btn-y v9-cta" onClick={redeem} disabled={busy || !pick} data-testid="voucher-redeem">{busy ? "Adding…" : `Use ${v.tickets} Free Tickets`}</button>
+          <button type="button" className="btn btn-y cp-cta" onClick={redeem} disabled={busy || !pick} data-testid="voucher-redeem">{busy ? "Adding…" : `Use ${v.tickets} Free Tickets`}</button>
         </>
       )}
       {error && <div className="err" role="alert">{error}</div>}
@@ -79,8 +80,11 @@ function VoucherCard({ v, onUsed }: { v: Voucher; onUsed: () => void }) {
 export default function ReferPanel({ initial }: { initial: MyReferrals }) {
   const [data, setData] = useState(initial);
   const [copied, setCopied] = useState(false);
-  const reward = data.rewardType === "credit" ? `${formatMoney(data.rewardCreditPence)} bonus credit` : `${data.rewardTickets} free tickets`;
-  const message = `Join me on Vault Nine Competitions: spend ${formatPence(data.minPurchasePence)} on your first order and we both get ${reward}. 18+ UK.`;
+  const s = data.scheme;
+  const reward = s ? s.referrerReward : data.rewardType === "credit" ? `${formatMoney(data.rewardCreditPence)} bonus credit` : `${data.rewardTickets} free tickets`;
+  const doWhat = !s ? `spend ${formatPence(data.minPurchasePence)} on your first order` : s.qualifying === "membership" ? "join a membership"
+    : `spend ${formatPence(s.minSpendPence)} on ${s.qualifying === "first_order" ? "your first order" : "an order"}`;
+  const message = s ? `Join me on ${BRAND}: ${doWhat} and you get ${s.friendReward}. 18+ UK.` : `Join me on ${BRAND}: ${doWhat} and we both get ${reward}. 18+ UK.`;
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   async function copy() {
@@ -93,7 +97,7 @@ export default function ReferPanel({ initial }: { initial: MyReferrals }) {
   }
   async function share() {
     try {
-      await navigator.share({ title: "Vault Nine Competitions", text: message, url: data.link });
+      await navigator.share({ title: BRAND, text: message, url: data.link });
       trackCustom("ReferralShare", { via: "share" });
     } catch { /* cancelled */ }
   }
@@ -103,16 +107,18 @@ export default function ReferPanel({ initial }: { initial: MyReferrals }) {
   return (
     <div className="stack g16">
       <div className="card card-hot card-p stack g12">
-        <p className="p" style={{ margin: 0 }}>Give a friend {reward} and get the same when they spend <b>{formatPence(data.minPurchasePence)}</b> or more on their first order.</p>
+        {data.schemeClosed ? <p className="p" style={{ margin: 0 }}>There’s no referral offer running right now. Check back soon.</p>
+          : s ? <p className="p" style={{ margin: 0 }} data-testid="refer-scheme"><b>{s.name}</b>: your friend gets <b>{s.friendReward}</b> and you get <b>{s.referrerReward}</b> when they {s.qualifying === "membership" ? "join a membership" : <>spend <b>{formatPence(s.minSpendPence)}</b> or more on {s.qualifying === "first_order" ? "their first order" : "an order"}</>}.{s.endsAt ? ` Ends ${ukDate(s.endsAt)}.` : ""}</p>
+          : <p className="p" style={{ margin: 0 }}>Give a friend {reward} and get the same when they spend <b>{formatPence(data.minPurchasePence)}</b> or more on their first order.</p>}
         <div className="row g8">
           <input className="inp" readOnly value={data.link} aria-label="Your share link" onFocus={(e) => e.currentTarget.select()} data-testid="refer-link" />
           <button type="button" className="btn btn-o" onClick={copy} aria-live="polite">{copied ? "Copied" : <><Svg name="copy" size={16} /> Copy</>}</button>
         </div>
         <div className="hint">Your code: <b style={{ letterSpacing: ".08em" }}>{data.code}</b></div>
         <div className="r2">
-          {canShare ? <button type="button" className="btn btn-y v9-cta" onClick={share}><Svg name="share" size={16} /> Share</button>
-            : <a className="btn btn-y v9-cta" href={`https://wa.me/?text=${text}`} target="_blank" rel="noopener noreferrer" onClick={() => trackCustom("ReferralShare", { via: "whatsapp" })}>WhatsApp</a>}
-          <a className="btn btn-o" href={`mailto:?subject=${encodeURIComponent("Join me on Vault Nine")}&body=${text}`} onClick={() => trackCustom("ReferralShare", { via: "email" })}>Email</a>
+          {canShare ? <button type="button" className="btn btn-y cp-cta" onClick={share}><Svg name="share" size={16} /> Share</button>
+            : <a className="btn btn-y cp-cta" href={`https://wa.me/?text=${text}`} target="_blank" rel="noopener noreferrer" onClick={() => trackCustom("ReferralShare", { via: "whatsapp" })}>WhatsApp</a>}
+          <a className="btn btn-o" href={`mailto:?subject=${encodeURIComponent(`Join me on ${BRAND}`)}&body=${text}`} onClick={() => trackCustom("ReferralShare", { via: "email" })}>Email</a>
         </div>
       </div>
 
@@ -128,6 +134,15 @@ export default function ReferPanel({ initial }: { initial: MyReferrals }) {
           <h2 className="h3">Your Vouchers</h2>
           {data.vouchers.filter((v) => v.status === "available").map((v) => <VoucherCard key={v.id} v={v} onUsed={refresh} />)}
           {data.vouchers.some((v) => v.status !== "available") && <div className="card" style={{ overflow: "hidden" }}>{data.vouchers.filter((v) => v.status !== "available").map((v) => <VoucherCard key={v.id} v={v} onUsed={refresh} />)}</div>}
+        </div>
+      )}
+
+      {data.rewards.length > 0 && (
+        <div className="stack g8">
+          <h2 className="h3">Your Rewards</h2>
+          <div className="card" style={{ overflow: "hidden" }}>
+            {data.rewards.map((r, i) => <div key={i} className="li" style={{ cursor: "default" }}><span style={{ flex: 1 }}>{r.reward}<span className="hint" style={{ display: "block" }}>{r.level === 0 ? "For joining with a link" : r.level === 1 ? "For a friend you referred" : `From your network (level ${r.level})`} · {ukDate(r.at)}</span></span><span className={`tag ${r.status === "given" ? "tag-c" : "tag-w"}`}>{r.status === "given" ? "Given" : "Reversed"}</span></div>)}
+          </div>
         </div>
       )}
 

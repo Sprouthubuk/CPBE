@@ -22,8 +22,11 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
         Setting::put('sales_open', '1');
+        \App\Payments\FakeGateway::$recurringResult = 'paid';
+        // Most tests publish quick competitions with no skill question; SkillQuestionTest turns this back on.
+        Setting::put('require_skill_question', '0');
         // Requests come from the Astro site, so Sanctum treats them as first-party (cookie session).
-        $this->withHeader('Referer', 'https://vaultnine.test/');
+        $this->withHeader('Referer', 'https://platform.test/');
     }
 
     protected function tearDown(): void

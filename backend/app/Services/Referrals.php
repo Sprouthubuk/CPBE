@@ -6,6 +6,8 @@ use App\Exceptions\RefusedException;
 use App\Models\Competition;
 use App\Models\Order;
 use App\Models\Referral;
+use App\Models\ReferralReward;
+use App\Models\ReferralScheme;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\Voucher;
@@ -62,9 +64,41 @@ final class Referrals
         if (! Settings::referralsOn() || ! ($referrer = $this->referrerFor($code)) || $referrer->id === $friend->id) {
             return null;
         }
+        $scheme = $this->schemeFor($referrer);
+        if ($scheme === false) {
+            return null; // schemes are set up, but none is running for this referrer
+        }
         $friend->forceFill(['referred_by_id' => $referrer->id])->save();
 
-        return Referral::query()->create(['referrer_id' => $referrer->id, 'friend_id' => $friend->id, 'status' => 'pending']);
+        return Referral::query()->create(['referrer_id' => $referrer->id, 'friend_id' => $friend->id, 'status' => 'pending', 'referral_scheme_id' => $scheme?->id]);
+    }
+
+    /**
+     * The scheme a new referral from $referrer joins (SOW 2.13): the first one running that lets them refer.
+     * Null when no schemes are set up (the settings in Admin → Settings apply); false when none applies.
+     */
+    public function schemeFor(User $referrer): ReferralScheme|false|null
+    {
+        $schemes = ReferralScheme::query()->orderBy('id')->get();
+        if ($schemes->isEmpty()) {
+            return null;
+        }
+        $member = null;
+        foreach ($schemes as $s) {
+            if (! $s->isOn()) {
+                continue;
+            }
+            if ($s->who_can_refer === 'members') {
+                $member ??= app(Memberships::class)->perkTier($referrer) !== null;
+                if (! $member) {
+                    continue;
+                }
+            }
+
+            return $s;
+        }
+
+        return false;
     }
 
     /** Orders::markPaid calls this for every paid ticket order. */
@@ -73,8 +107,13 @@ final class Referrals
         if (! Settings::referralsOn() || $order->total_pence < 1) {
             return; // free (voucher) orders are never a qualifying purchase
         }
-        $ref = Referral::query()->where('friend_id', $order->user_id)->where('status', 'pending')->first();
+        $ref = Referral::query()->with('scheme')->where('friend_id', $order->user_id)->where('status', 'pending')->first();
         if (! $ref) {
+            return;
+        }
+        if ($ref->scheme) {
+            $this->schemeOrderPaid($ref, $order);
+
             return;
         }
         $earlier = Order::query()->where('user_id', $order->user_id)->where('order_type', 'tickets')->where('status', 'paid')
@@ -85,6 +124,43 @@ final class Referrals
             // Only the friend's first order counts (owner's default, see docs/overnight-log.md).
             $ref->forceFill(['status' => 'missed', 'reasons' => [$earlier ? 'first order already made' : 'first order under the minimum']])->save();
 
+            return;
+        }
+        $ref->forceFill(['qualifying_order_id' => $order->id, 'qualified_at' => now()])->save();
+        $this->decide($ref, $order);
+    }
+
+    /** A scheme referral: what the friend must do is set by the scheme. */
+    private function schemeOrderPaid(Referral $ref, Order $order): void
+    {
+        $s = $ref->scheme;
+        if ($s->qualifying === 'membership') {
+            return; // qualifies on joining a membership (membershipJoined)
+        }
+        $realMoney = $order->card_pence + $order->paid_deposit_pence + $order->paid_winnings_pence;
+        if ($s->qualifying === 'first_order') {
+            $earlier = Order::query()->where('user_id', $order->user_id)->where('order_type', 'tickets')->where('status', 'paid')
+                ->where('total_pence', '>', 0)->where('id', '!=', $order->id)->exists();
+            if ($earlier || $realMoney < $s->min_spend_pence) {
+                $ref->forceFill(['status' => 'missed', 'reasons' => [$earlier ? 'first order already made' : 'first order under the minimum']])->save();
+
+                return;
+            }
+        } elseif ($realMoney < $s->min_spend_pence) {
+            return; // any_order: still waiting for an order that reaches the minimum
+        }
+        $ref->forceFill(['qualifying_order_id' => $order->id, 'qualified_at' => now()])->save();
+        $this->decide($ref, $order);
+    }
+
+    /** Memberships::orderPaid calls this when a player's membership starts. */
+    public function membershipJoined(Order $order): void
+    {
+        if (! Settings::referralsOn()) {
+            return;
+        }
+        $ref = Referral::query()->with('scheme')->where('friend_id', $order->user_id)->where('status', 'pending')->first();
+        if (! $ref || $ref->scheme?->qualifying !== 'membership' || $order->total_pence < $ref->scheme->min_spend_pence) {
             return;
         }
         $ref->forceFill(['qualifying_order_id' => $order->id, 'qualified_at' => now()])->save();
@@ -153,6 +229,11 @@ final class Referrals
     /** Both sides' rewards. Over the referrer's monthly cap, only the friend's. */
     public function reward(Referral $ref): void
     {
+        if ($ref->scheme) {
+            $this->rewardScheme($ref);
+
+            return;
+        }
         DB::transaction(function () use ($ref) {
             $cap = Settings::bounded('referral_monthly_cap', 0, 1000);
             $thisMonth = Referral::query()->where('referrer_id', $ref->referrer_id)->where('status', 'rewarded')
@@ -171,6 +252,59 @@ final class Referrals
                 Log::warning('Referral notice not sent', ['referral' => $ref->id]);
             }
         }
+    }
+
+    /** A scheme referral's rewards: friend, referrer (within the monthly cap) and any levels further up. */
+    private function rewardScheme(Referral $ref): void
+    {
+        $s = $ref->scheme;
+        DB::transaction(function () use ($ref, $s) {
+            if ($s->total_cap !== null && $s->referrals()->where('status', 'rewarded')->count() >= $s->total_cap) {
+                $ref->forceFill(['status' => 'capped', 'reasons' => [...($ref->reasons ?? []), 'scheme limit reached']])->save();
+
+                return;
+            }
+            $thisMonth = ReferralReward::query()->where('user_id', $ref->referrer_id)->where('level', 1)->where('status', 'given')
+                ->where('created_at', '>=', now('Europe/London')->startOfMonth()->utc())->count();
+            $capped = $s->monthly_cap !== null && $thisMonth >= $s->monthly_cap;
+            $this->giveScheme($ref, $ref->friend, 0, $s->friend_reward_type, (int) $s->friend_reward_amount);
+            if (! $capped) {
+                $this->giveScheme($ref, $ref->referrer, 1, $s->referrer_reward_type, (int) $s->referrer_reward_amount);
+                // Multi-level: the referrer's own referrer is level 2, and so on (SOW 2.13).
+                $up = $ref->referrer;
+                foreach (array_values($s->levels ?? []) as $i => $lvl) {
+                    $up = $up?->referred_by_id ? User::query()->find($up->referred_by_id) : null;
+                    if (! $up || $up->closed_at) {
+                        break;
+                    }
+                    $this->giveScheme($ref, $up, $i + 2, (string) $lvl['type'], (int) $lvl['amount']);
+                }
+            }
+            $ref->forceFill(['status' => $capped ? 'capped' : 'rewarded', 'rewarded_at' => now()])->save();
+        });
+        foreach ($ref->status === 'rewarded' ? [$ref->referrer, $ref->friend] : [$ref->friend] as $u) {
+            try {
+                $u->notify(new ReferralRewarded($ref->fresh(), $u->id === $ref->referrer_id));
+            } catch (\Throwable) {
+                Log::warning('Referral notice not sent', ['referral' => $ref->id]);
+            }
+        }
+    }
+
+    private function giveScheme(Referral $ref, User $user, int $level, string $type, int $amount): void
+    {
+        if ($type === 'none' || $amount < 1 || ReferralReward::query()->where(['referral_id' => $ref->id, 'user_id' => $user->id, 'level' => $level])->exists()) {
+            return;
+        }
+        $reward = ReferralReward::query()->create(['referral_id' => $ref->id, 'user_id' => $user->id, 'level' => $level, 'type' => $type, 'amount' => $amount]);
+        $label = 'Refer a friend'.($level >= 2 ? " (level {$level})" : '');
+        match ($type) {
+            'credit' => $this->wallet->credit($user, 'bonus', $amount, $label, "referral:{$ref->id}:L{$level}:{$user->id}", null, now()->addDays(Settings::bonusExpiryDays())),
+            'tickets' => $reward->forceFill(['voucher_id' => Voucher::query()->create(['referral_id' => $ref->id, 'user_id' => $user->id, 'source' => 'referral',
+                'tickets' => min($amount, 1000), 'status' => 'available', 'expires_at' => now()->addDays(Settings::bounded('referral_voucher_days', 1, 365))])->id])->save(),
+            'points' => ($p = $ref->scheme->loyaltyProgramme()) ? app(Loyalty::class)->award($user->id, $p, $amount, $label, "referral:{$ref->id}:L{$level}:{$user->id}") : null,
+            default => null,
+        };
     }
 
     private function give(Referral $ref, User $user, string $side): void
@@ -212,6 +346,15 @@ final class Referrals
             return;
         }
         $redeemed = false;
+        // Scheme rewards of credit or points come back (as much credit as is still unspent).
+        foreach ($ref->rewards()->where('status', 'given')->whereIn('type', ['credit', 'points'])->get() as $rw) {
+            if ($rw->type === 'credit') {
+                $this->wallet->takeBackBonus($rw->user_id, $rw->amount, 'Refer a friend reversed', "referral-reversed:{$rw->id}");
+            } elseif ($p = $ref->scheme?->loyaltyProgramme()) {
+                app(Loyalty::class)->award($rw->user_id, $p, -$rw->amount, 'Refer a friend reversed', "referral-reversed:{$rw->id}");
+            }
+            $rw->forceFill(['status' => 'reversed'])->save();
+        }
         foreach ($ref->vouchers as $v) {
             if ($v->status === 'available') {
                 $v->forceFill(['status' => 'clawed_back'])->save();
@@ -248,7 +391,7 @@ final class Referrals
     public function drawsFor(Voucher $v, User $user): array
     {
         return Competition::query()->published()->where('type', 'draw')->orderBy('closes_at')->get()
-            ->filter(fn (Competition $c) => $this->state->status($c) === 'live' && $this->state->canBuy($c, $user->ownerRef()) >= $v->tickets
+            ->filter(fn (Competition $c) => (! $v->for_competition_id || $v->for_competition_id === $c->id) && $this->state->status($c) === 'live' && $this->state->canBuy($c, $user->ownerRef()) >= $v->tickets
                 && $v->tickets <= Bundles::shareLimit($c) && PromoCap::room($c) >= $v->tickets)
             ->values()->all();
     }
@@ -262,7 +405,8 @@ final class Referrals
     public function stats(User $user): array
     {
         $refs = Referral::query()->where('referrer_id', $user->id)->get(['status', 'rewarded_at']);
-        $cap = Settings::bounded('referral_monthly_cap', 0, 1000);
+        $scheme = $this->schemeFor($user);
+        $cap = $scheme ? (int) ($scheme->monthly_cap ?? 1000) : Settings::bounded('referral_monthly_cap', 0, 1000);
         $monthStart = now('Europe/London')->startOfMonth()->utc();
         $used = $refs->filter(fn ($r) => $r->status === 'rewarded' && $r->rewarded_at?->gte($monthStart))->count();
 

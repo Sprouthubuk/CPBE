@@ -14,6 +14,12 @@ use Filament\Support\Icons\Heroicon;
  */
 class Games extends Page
 {
+    /** Admin roles (App\Support\Roles): the content area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('content');
+    }
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPuzzlePiece;
 
     protected static ?string $title = 'Games';

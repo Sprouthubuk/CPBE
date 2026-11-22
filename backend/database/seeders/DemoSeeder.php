@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\ArchiveCompetition;
 use App\Models\BundleTier;
 use App\Models\Competition;
 use App\Models\Page;
@@ -25,6 +24,8 @@ class DemoSeeder extends Seeder
             throw new \RuntimeException('Demo data is never seeded in production.');
         }
         Setting::put('sales_open', '1');
+        // Demo competitions: most have no skill question so the browser tests can buy quickly; one has one (below).
+        Setting::put('require_skill_question', '0');
 
         $admin = User::query()->firstOrNew(['email' => 'admin@example.com']);
         $admin->forceFill(['first_name' => 'Sam', 'last_name' => 'Admin', 'password' => 'admin-password-123', 'email_verified_at' => now(), 'is_admin' => true, 'is_staff' => true])->save();
@@ -58,24 +59,30 @@ class DemoSeeder extends Seeder
             [['£500 Cash', 50000, 1, 'cash'], ['£5 Site Credit', 500, 100, 'site_credit'], ['50p Site Credit', 50, 1500, 'site_credit']]);
         $make(['slug' => 'cash-flights', 'title' => 'Cash Flights', 'type' => 'instant', 'game' => 'scratch_card', 'image' => 'competitions/cash.webp', 'price_pence' => 10],
             [['£50 Cash', 5000, 2, 'cash'], ['20p Site Credit', 20, 1000, 'site_credit']]);
+        // A competition with a skill question (SOW 2.2), answered at checkout.
+        $make(['slug' => 'games-console-bundle', 'title' => 'Games Console Bundle', 'type' => 'draw', 'image' => 'competitions/board.webp', 'price_pence' => 99,
+            'end_prize_name' => 'Games Console Bundle', 'end_prize_value_pence' => 50000, 'max_tickets' => 2000, 'max_per_person' => 2000, 'tags' => ['tech'],
+            'skill_question' => 'How many sides does a triangle have?', 'skill_options' => ['Two', 'Three', 'Four'], 'skill_answer' => 1]);
         $make(['slug' => 'pro-dartboard-bundle', 'title' => 'Pro Dartboard Bundle', 'type' => 'draw', 'image' => 'competitions/board.webp', 'price_pence' => 49,
             'end_prize_name' => 'Pro Dartboard & Surround', 'end_prize_value_pence' => 6000, 'cash_alternative_pence' => 5000, 'max_tickets' => 999, 'max_per_person' => 999, 'bundles_enabled' => true, 'max_bundle_share_pct' => 10, 'prize_cost_pence' => 4000]);
 
-        // A small sample of the old site's archive (the real one comes from resources/archive on deploy).
-        if (! ArchiveCompetition::query()->exists()) {
-            $old = ArchiveCompetition::query()->create(['legacy_id' => 'demo-old-draw', 'slug' => 'old-tax-free-cash', 'title' => '£250 Tax-Free Cash – Live Draw',
-                'kind' => 'draw', 'image' => 'competitions/cash.webp', 'price_pence' => 99, 'drawn_at' => now()->subDays(1)->setTime(20, 0)]);
-            $old->winners()->create(['legacy_id' => 'demo-old-w1', 'kind' => 'main', 'name' => 'Abbie F.', 'town' => 'Barrow-in-Furness',
-                'prize_name' => '£250 Tax-Free Cash', 'value_pence' => 25000, 'ticket_number' => 2, 'won_at' => now()->subDays(1)->setTime(20, 3)]);
-            $pop = ArchiveCompetition::query()->create(['legacy_id' => 'demo-old-instant', 'slug' => 'old-double-top-pop', 'title' => 'Double Top Pop – Instant Win',
-                'kind' => 'instant', 'image' => 'competitions/claw.webp', 'price_pence' => 1, 'drawn_at' => now()->subDays(1)->setTime(20, 0)]);
-            $pop->winners()->create(['legacy_id' => 'demo-old-i1', 'kind' => 'instant', 'name' => 'Jamie D.', 'prize_name' => '£0.05 Tiny Pop',
-                'value_pence' => 5, 'ticket_number' => 3, 'won_at' => now()->subDays(2)]);
-            foreach ([[$old, ['Sam K.', 'Abbie F.', 'Entrant']], [$pop, ['Lou', 'Kim S.', 'Jamie D.']]] as [$c, $names]) {
-                foreach ($names as $i => $n) {
-                    $c->entries()->create(['ticket_number' => $i + 1, 'name' => $n, 'source' => $n === 'Entrant' ? 'postal' : 'paid']);
-                }
-            }
+
+        // Sample loyalty programme and membership tiers (SOW 2.11, 2.12), so their pages have something to show.
+        if (! \App\Models\LoyaltyProgramme::query()->exists()) {
+            $club = \App\Models\LoyaltyProgramme::query()->create(['name' => 'Rewards Club', 'active' => true, 'points_per_pound' => 10, 'expiry_days' => 365,
+                'description' => 'Earn points on every order and swap them for credit and free entries.']);
+            $club->tiers()->createMany([['name' => 'Bronze', 'threshold_points' => 0, 'multiplier_pct' => 100, 'benefits' => 'Standard points'],
+                ['name' => 'Silver', 'threshold_points' => 2000, 'multiplier_pct' => 125, 'benefits' => '1.25x points'],
+                ['name' => 'Gold', 'threshold_points' => 10000, 'multiplier_pct' => 150, 'benefits' => '1.5x points']]);
+            $club->rewards()->createMany([['name' => '£1 Site Credit', 'type' => 'site_credit', 'points_cost' => 500, 'credit_pence' => 100],
+                ['name' => '5 Free Entries', 'type' => 'free_entries', 'points_cost' => 1500, 'tickets' => 5]]);
+            $club->bonusEvents()->create(['kind' => 'signup', 'points' => 100]);
+        }
+        if (! \App\Models\MembershipTier::query()->exists()) {
+            \App\Models\MembershipTier::query()->create(['name' => 'Silver', 'price_pence' => 999, 'active' => true, 'sort' => 1,
+                'monthly_free_tickets' => 10, 'monthly_bonus_credit_pence' => 200, 'loyalty_bonus_pct' => 25, 'description' => 'Free entries and credit every month.']);
+            \App\Models\MembershipTier::query()->create(['name' => 'Gold', 'price_pence' => 1999, 'active' => true, 'sort' => 2,
+                'monthly_free_tickets' => 25, 'monthly_bonus_credit_pence' => 500, 'early_access_hours' => 24, 'loyalty_bonus_pct' => 50]);
         }
 
         foreach (['terms' => 'Terms & Conditions', 'privacy' => 'Privacy Policy', 'cookies' => 'Cookie Policy', 'free-entry' => 'Free Entry Terms', 'complaints' => 'Complaints'] as $slug => $title) {

@@ -8,7 +8,7 @@
  * look and the default for every competition.
  *
  * These are the only values competitions.skin may hold (shared/game-ids.json; a test
- * compares the lists). Vault Nine starts with "classic" only. To add a skin (a darts
+ * compares the lists). Brand Name starts with "classic" only. To add a skin (a darts
  * look, a seasonal one): add it here and to shared/game-ids.json, add a migration calling
  * GameIds::replaceDatabaseChecks(), then its folder under ./arcade/skins/ and one line in
  * ./arcade/skins/registry.ts.

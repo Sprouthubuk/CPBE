@@ -2,7 +2,7 @@
  * The whole buying journey in a real browser, on a phone, against the real Laravel API (fake card
  * gateway): a new visitor picks tickets, joins, confirms their email from the link, pays by card,
  * plays their games; a player buys a bundle from their wallet, tops up by card, and has a card
- * declined and cancelled. Screenshots of every step go to /tmp/v9-shots/journey. It fails on any
+ * declined and cancelled. Screenshots of every step go to /tmp/cp-shots/journey. It fails on any
  * page error, console error, failed request or 4xx/5xx answer.
  */
 import { expect, it } from "vitest";
@@ -11,7 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { startSite } from "../e2e/harness";
 
-const OUT = "/tmp/v9-shots/journey";
+const OUT = "/tmp/cp-shots/journey";
 const log: string[] = [];
 let step = 0;
 async function shot(p: Page, name: string) {
@@ -100,13 +100,13 @@ it("a new player and a regular player can buy, pay, play and recover from a fail
       if (await go.count()) { await go.click(); await p.waitForLoadState("networkidle"); }
     }
     await shot(p, "checkout");
-    const pay = p.locator('main button.v9-cta').last();
+    const pay = p.locator('main button.cp-cta').last();
     log.push(`checkout button: ${await pay.textContent()} disabled=${await pay.isDisabled()}`);
     await timed("checkout submit", async () => { await pay.click(); await p.waitForLoadState("networkidle"); });
     await shot(p, "after-pay-click");
     if (/fake-pay/.test(p.url())) { await p.click("#pay"); await p.waitForLoadState("networkidle"); await shot(p, "after-card-paid"); }
     await p.waitForTimeout(1500);
-    expect(p.url()).toMatch(/\/order\/V9-/);
+    expect(p.url()).toMatch(/\/order\/CP-/);
     await shot(p, "order-page");
     const play = p.locator('[data-testid="play"]');
     expect(await play.count()).toBe(1);
@@ -144,11 +144,11 @@ it("a new player and a regular player can buy, pay, play and recover from a fail
     await shot(q, "draw-after-buy-now");
     if (!/checkout/.test(q.url())) { await q.goto(site.origin + "/checkout"); }
     await shot(q, "draw-checkout");
-    await q.locator('main button.v9-cta').last().click();
+    await q.locator('main button.cp-cta').last().click();
     await q.waitForLoadState("networkidle");
     if (/fake-pay/.test(q.url())) { await q.click("#pay"); await q.waitForLoadState("networkidle"); }
     await q.waitForTimeout(1500);
-    expect(q.url()).toMatch(/\/order\/V9-/);
+    expect(q.url()).toMatch(/\/order\/CP-/);
     expect(await q.locator('[data-testid="draw-line"]').count()).toBe(1);
     await shot(q, "draw-order-page");
     await q.goto(site.origin + "/account/wallet");
@@ -159,7 +159,7 @@ it("a new player and a regular player can buy, pay, play and recover from a fail
     await shot(q, "vault-case");
     // D — top up £5 by card, then a card that's declined, then one that's cancelled.
     await q.goto(site.origin + "/account/wallet");
-    await q.locator('main button.v9-cta').first().click();
+    await q.locator('main button.cp-cta').first().click();
     await q.waitForURL(/fake-pay/, { timeout: 15000 });
     await q.click("#pay");
     await q.waitForURL((u) => !/fake-pay/.test(u.pathname), { timeout: 15000 });
@@ -175,8 +175,8 @@ it("a new player and a regular player can buy, pay, play and recover from a fail
       await q.waitForLoadState("networkidle");
       await q.getByText("Debit Or Credit Card").click();
       await shot(q, `checkout-before-${result}`);
-      log.push(`pay button: ${await q.locator('main button.v9-cta').last().textContent()}`);
-      await q.locator('main button.v9-cta').last().click();
+      log.push(`pay button: ${await q.locator('main button.cp-cta').last().textContent()}`);
+      await q.locator('main button.cp-cta').last().click();
       await q.waitForURL(/fake-pay/, { timeout: 15000 });
       await q.click("#" + result);
       await q.waitForURL((u) => !/fake-pay/.test(u.pathname), { timeout: 15000 });
@@ -187,7 +187,7 @@ it("a new player and a regular player can buy, pay, play and recover from a fail
       // "Enter Now" skips the basket; after a failed card the tickets wait in it for "Try Again".
       await q.locator('[data-testid="basket-line"]').first().waitFor({ timeout: 10000 });
       await shot(q, `basket-after-${result}`);
-      await q.evaluate(() => localStorage.removeItem("v9-basket-v1"));
+      await q.evaluate(() => localStorage.removeItem("cp-basket-v1"));
     }
 
     // C — desktop pass over the main pages.

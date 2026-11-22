@@ -25,6 +25,12 @@ final class Pricing
      */
     public function price(array $lines, ?User $user, ?string $promoCode): array
     {
+        // A member can buy within their early-access hours before a competition opens (SOW 2.12).
+        return $this->state->forPlayer($user, fn () => $this->priceNow($lines, $user, $promoCode));
+    }
+
+    private function priceNow(array $lines, ?User $user, ?string $promoCode): array
+    {
         // Singles are merged per competition; a competition carries at most one bundle (the last one chosen).
         $singles = [];
         $bundleIds = [];
@@ -123,17 +129,9 @@ final class Pricing
 
         $promo = null;
         if ($promoCode !== null && trim($promoCode) !== '') {
-            $code = PromoCode::query()->where('code', strtoupper(trim($promoCode)))->where('active', true)->first();
-            if (! $code || ($code->expires_at && $code->expires_at->isPast()) || ($code->max_uses !== null && $code->uses >= $code->max_uses)) {
-                $problems[] = "That promo code isn't valid.";
-            } else {
-                // Single tickets only (bundles are already discounted). Never more than half, never free.
-                $discount = min(intdiv($singlesSubtotal * min($code->percent_off, PromoCode::MAX_PERCENT), 100), intdiv($singlesSubtotal, 2));
-                $promo = ['code' => $code->code, 'discountPence' => $discount];
-                if ($discount === 0 && $subtotal > 0) {
-                    $problems[] = 'Promo codes work on single tickets, not bundles.';
-                    $promo = null;
-                }
+            [$promo, $problem] = $this->promo(strtoupper(trim($promoCode)), $user, $subtotal, $singlesSubtotal);
+            if ($problem !== null) {
+                $problems[] = $problem;
             }
         }
         $total = $subtotal - ($promo['discountPence'] ?? 0);
@@ -149,6 +147,11 @@ final class Pricing
         }
 
         $walletCan = $user ? $this->wallet->spendable($user, $total) : 0;
+        $perCompetition = [];
+        foreach ($out as $l) {
+            $perCompetition[$l['competitionId']] = ($perCompetition[$l['competitionId']] ?? 0) + (int) ($l['linePence'] ?? 0);
+        }
+        $loyaltyPoints = $total > 0 ? app(Loyalty::class)->estimate($user, $perCompetition, $total) : [];
 
         return [
             'lines' => $out,
@@ -156,6 +159,7 @@ final class Pricing
             'subtotalPence' => $subtotal,
             'ticketCount' => $count,
             'promo' => $promo,
+            'loyaltyPoints' => $loyaltyPoints,
             'walletCanPayPence' => $walletCan,
             'walletCovers' => $user !== null && $total > 0 && $walletCan >= $total,
             'problems' => array_values(array_unique($problems)),
@@ -170,6 +174,8 @@ final class Pricing
             'competitionId' => $c->id, 'slug' => $c->slug, 'title' => $c->title, ...$c->pictureFields(), 'type' => $c->type,
             'quantity' => $tickets, ...$bundle, 'bonusQuantity' => 0, 'source' => null, 'vaultCaseId' => null, 'unitPence' => $c->price_pence, 'linePence' => $linePence,
             'minQuantity' => (int) ($c->min_tickets ?: 1), 'problem' => $problem, 'notice' => null,
+            // SOW 2.2: the question to answer before paying (never the answer).
+            'skillQuestion' => $c->hasSkillQuestion() ? ['question' => $c->skill_question, 'options' => array_values($c->skill_options)] : null,
         ];
     }
 
@@ -201,5 +207,33 @@ final class Pricing
         $tickets = (int) $l['paid'] + (int) $l['free'];
 
         return max(0, min((int) $l['bonus'], $room, max(0, Bundles::shareLimit($c) - $tickets)));
+    }
+
+    /**
+     * A promo code checked against the basket (SOW 2.3). Returns [promo|null, problem|null].
+     *
+     * @return array{0: array{code:string, discountPence:int, label:string}|null, 1: string|null}
+     */
+    private function promo(string $codeText, ?User $user, int $subtotal, int $singlesSubtotal): array
+    {
+        $code = PromoCode::query()->where('code', $codeText)->where('active', true)->first();
+        if (! $code || ($code->starts_at && $code->starts_at->isFuture()) || ($code->expires_at && $code->expires_at->isPast())
+            || ($code->max_uses !== null && $code->uses >= $code->max_uses)) {
+            return [null, "That promo code isn't valid."];
+        }
+        if ($user && $code->max_uses_per_player !== null && $code->usesBy($user) >= $code->max_uses_per_player) {
+            return [null, 'You’ve already used that promo code.'];
+        }
+        if ($code->min_spend_pence > 0 && $subtotal < $code->min_spend_pence) {
+            return [null, 'Spend £'.number_format($code->min_spend_pence / 100, 2).' or more to use that promo code.'];
+        }
+        // Single tickets only unless the code includes bundles (bundles are already discounted).
+        $eligible = $code->include_bundles ? $subtotal : $singlesSubtotal;
+        $discount = $code->discountOn($eligible);
+        if ($discount === 0 && $subtotal > 0) {
+            return [null, $code->include_bundles ? "That promo code isn't valid." : 'Promo codes work on single tickets, not bundles.'];
+        }
+
+        return [['code' => $code->code, 'discountPence' => $discount, 'label' => $code->label()], null];
     }
 }

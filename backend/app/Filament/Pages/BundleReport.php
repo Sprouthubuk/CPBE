@@ -15,6 +15,12 @@ use Filament\Support\Icons\Heroicon;
  */
 class BundleReport extends Page
 {
+    /** Admin roles (App\Support\Roles): the reports area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('reports');
+    }
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBar;
 
     protected static ?string $title = 'Bundle Report';

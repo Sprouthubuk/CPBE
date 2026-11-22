@@ -193,7 +193,7 @@ class ReferralsTest extends TestCase
     public function test_the_same_email_with_dots_or_a_plus_blocks_both_rewards(): void
     {
         $r = $this->referrer(['email' => 'jo.smith@gmail.com']);
-        $f = $this->join($r, 'josmith+v9@gmail.com');
+        $f = $this->join($r, 'josmith+cp@gmail.com');
         $this->buyWithWallet($f, 20);
         $this->assertContains('same email pattern', $this->ref($f)->reasons);
         $this->assertSame('blocked', $this->ref($f)->status);
@@ -262,7 +262,7 @@ class ReferralsTest extends TestCase
         $list = $this->actingAs($r)->getJson("/api/me/vouchers/{$v->id}/draws")->assertOk();
         $this->assertContains($this->draw->id, array_column($list->json('data'), 'id'));
         $raw = json_encode($list->json());
-        // Entry cap and entries left are public on Vault Nine (owner, 22 Nov 2026); internals are not.
+        // Entry cap and entries left are public on Brand Name (owner, 22 Nov 2026); internals are not.
         foreach (['max_tickets', 'ticketsSold', 'sold"', 'remaining', 'maxPerPerson', 'odds'] as $key) {
             $this->assertStringNotContainsString($key, $raw, "the voucher draw picker must not give away {$key}");
         }

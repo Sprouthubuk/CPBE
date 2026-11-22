@@ -28,7 +28,7 @@ const PUBLIC_PAGES: [string, RegExp][] = [
   ["/free-entry", /Free Postal Entry/],
   ["/legal/terms", /Terms &(amp;)? Conditions/],
   ["/menu", /All Competitions/],
-  ["/join", /Join Vault Nine/],
+  ["/join", /Join Brand Name/],
   ["/login", /Welcome Back/],
   ["/forgot-password", /Reset Password/],
   ["/basket", /Your Basket/],
@@ -82,7 +82,7 @@ describe("site-wide rules", () => {
   });
   it("members-only pages send visitors to log in and come back", async () => {
     const b = new Browser(site.origin);
-    for (const p of ["/account", "/account/wallet", "/account/tickets", "/account/safer-play", "/account/settings", "/checkout", "/order/V9-1234", "/payment/failed?order=V9-1234", "/payment/cancelled?order=V9-1234"]) {
+    for (const p of ["/account", "/account/wallet", "/account/tickets", "/account/safer-play", "/account/settings", "/checkout", "/order/CP-1234", "/payment/failed?order=CP-1234", "/payment/cancelled?order=CP-1234"]) {
       const res = await b.get(p);
       expect(res.status, p).toBe(302);
       expect(res.headers.get("location")).toBe(`/login?next=${encodeURIComponent(p)}`);
@@ -95,7 +95,7 @@ describe("site-wide rules", () => {
     // Instant wins, then live draws, each with one green word and a "View all" link (design/Main.dc.html).
     expect(html).toMatch(/Instant <span class="np">Wins<\/span>/);
     expect(html).toMatch(/Live <span class="np">Draws<\/span>/);
-    expect(text(html)).toMatch(/Live every Wednesday & Sunday · 9:30pm on Facebook/);
+    expect(text(html)).toMatch(/Streamed live on social media/);
     // The ticker under the hero is the real winners feed (names, prize, competition, when).
     expect(html).toMatch(/Latest <span class="np">Winners<\/span>/);
     expect(html).toMatch(/<strong>Emmie A\.<\/strong> won <em>£0\.50 site credit<\/em> · Double Top Pop · /);

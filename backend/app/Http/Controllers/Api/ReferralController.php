@@ -12,7 +12,7 @@ use App\Services\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** Refer a Friend: the invite banner, the player's referral page, and using free-ticket vouchers. */
+/** Refer a Friend: the invite banner, the player's referral page, and using free-ticket vouchers (referral, loyalty or membership). */
 class ReferralController extends Controller
 {
     /** Who invited you (first name only), for the sign-up page. */
@@ -42,17 +42,28 @@ class ReferralController extends Controller
             'rewardTickets' => Settings::bounded('referral_reward_tickets', 1, 1000),
             'rewardCreditPence' => Settings::bounded('referral_reward_credit_pence', 1, 100000),
             'minPurchasePence' => Settings::bounded('referral_min_purchase_pence', 0, 100000),
-            'vouchers' => Voucher::query()->with('competition:id,title,slug')->where('user_id', $u->id)->latest()->limit(50)->get()
+            'vouchers' => Voucher::query()->with('competition:id,title,slug')->where('user_id', $u->id)->where('source', 'referral')->latest()->limit(50)->get()
                 ->map(fn (Voucher $v) => ['id' => $v->id, 'tickets' => $v->tickets, 'status' => $v->status, 'expiresAt' => $v->expires_at->toIso8601ZuluString(),
                     'competition' => $v->competition ? ['title' => $v->competition->title, 'slug' => $v->competition->slug] : null]),
             'friends' => $friends,
+            // SOW 2.13: the scheme this player's referrals join now (null: the standard reward above applies).
+            'scheme' => ($s = $referrals->schemeFor($u)) ? [
+                'name' => $s->name, 'qualifying' => $s->qualifying, 'minSpendPence' => (int) $s->min_spend_pence,
+                'referrerReward' => \App\Models\ReferralScheme::describe($s->referrer_reward_type, (int) $s->referrer_reward_amount),
+                'friendReward' => \App\Models\ReferralScheme::describe($s->friend_reward_type, (int) $s->friend_reward_amount),
+                'endsAt' => $s->ends_at?->toIso8601ZuluString(),
+            ] : null,
+            'schemeClosed' => $referrals->schemeFor($u) === false,
+            'rewards' => \App\Models\ReferralReward::query()->where('user_id', $u->id)->latest('id')->limit(50)->get()
+                ->map(fn ($rw) => ['level' => $rw->level, 'reward' => \App\Models\ReferralScheme::describe($rw->type, $rw->amount), 'status' => $rw->status,
+                    'at' => $rw->created_at->toIso8601ZuluString()]),
         ]);
     }
 
     /** Live draws this voucher can go into: the usual summaries (% sold, never counts). */
     public function draws(Request $r, Voucher $voucher, Referrals $referrals, CompetitionPresenter $present): JsonResponse
     {
-        abort_unless(Settings::referralsOn() && $voucher->user_id === $r->user()->id, 404);
+        abort_unless(($voucher->source !== 'referral' || Settings::referralsOn()) && $voucher->user_id === $r->user()->id, 404);
         $list = collect($referrals->drawsFor($voucher, $r->user()))->each->load(['prizes', 'bundleTiers'])->map(fn (Competition $c) => $present->summary($c))->values();
 
         return response()->json(['data' => $list]);
@@ -60,7 +71,7 @@ class ReferralController extends Controller
 
     public function redeem(Request $r, Voucher $voucher, Referrals $referrals): JsonResponse
     {
-        abort_unless(Settings::referralsOn() && $voucher->user_id === $r->user()->id, 404);
+        abort_unless(($voucher->source !== 'referral' || Settings::referralsOn()) && $voucher->user_id === $r->user()->id, 404);
         $d = $r->validate(['competitionId' => ['required', 'string', 'max:64']]);
         $c = Competition::query()->findOrFail($d['competitionId']);
         $order = $referrals->redeem($voucher, $r->user(), $c);

@@ -63,7 +63,7 @@ describe("public pages from real data", () => {
   it("the admin is served through the same domain", async () => {
     const r = await fetch(site.origin + "/admin/login");
     expect(r.status).toBe(200);
-    expect(await r.text()).toContain("Vault Nine Admin");
+    expect(await r.text()).toContain("Brand Name Admin");
   });
 });
 
@@ -111,7 +111,7 @@ describe("buying and playing", () => {
     expect(co.status).toBe(201);
     expect(co.body.next).toBe("play");
     const n = co.body.order.number;
-    expect(n).toMatch(/^V9-[A-Z0-9]{8}$/);
+    expect(n).toMatch(/^CP-[A-Z0-9]{8}$/);
     const page = text((await b.page(`/order/${n}`)).html);
     expect(page).toContain("Play My 10 Games");
     const play = await b.api(`/api/orders/${n}/play`, {});
@@ -177,7 +177,7 @@ describe("buying and playing", () => {
     expect(d.status).toBe(201);
     const back = await fetch(site.origin + new URL(d.body.redirectUrl).pathname + "/paid", { redirect: "manual" });
     const to = new URL(back.headers.get("location")!);
-    expect(to.pathname + to.search).toMatch(/^\/account\/wallet\?deposit=VD-[A-Z0-9]{8}$/);
+    expect(to.pathname + to.search).toMatch(/^\/account\/wallet\?deposit=CD-[A-Z0-9]{8}$/);
     const page = await b.page(to.pathname + to.search);
     expect(text(page.html)).toContain("Top up received");
     expect((await b.api("/api/me")).body.wallet.depositPence).toBe(before + 1000);

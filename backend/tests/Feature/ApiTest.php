@@ -76,7 +76,7 @@ class ApiTest extends TestCase
     {
         $u = $this->player(['email_verified_at' => null]);
         $url = URL::temporarySignedRoute('verification.verify', now()->addHour(), ['id' => $u->id, 'hash' => sha1($u->email)]);
-        $this->get($url)->assertRedirect('https://vaultnine.test/verify-email?status=verified');
+        $this->get($url)->assertRedirect('https://platform.test/verify-email?status=verified');
         $this->assertTrue($u->refresh()->hasVerifiedEmail());
         $this->get(str_replace('signature=', 'signature=x', $url))->assertForbidden();
     }
@@ -109,7 +109,7 @@ class ApiTest extends TestCase
 
     public function test_account_endpoints_need_a_session(): void
     {
-        foreach (['/api/me', '/api/me/tickets', '/api/me/limits', '/api/orders/V9-X'] as $p) {
+        foreach (['/api/me', '/api/me/tickets', '/api/me/limits', '/api/orders/CP-X'] as $p) {
             $this->getJson($p)->assertUnauthorized();
         }
         $this->postJson('/api/checkout', [])->assertUnauthorized();
@@ -154,7 +154,7 @@ class ApiTest extends TestCase
         $this->postJson("/api/orders/{$number}/play")->assertStatus(409);
 
         $order = Order::query()->where('number', $number)->first();
-        $this->get(parse_url($res['redirectUrl'], PHP_URL_PATH).'/paid')->assertRedirect("https://vaultnine.test/order/{$number}");
+        $this->get(parse_url($res['redirectUrl'], PHP_URL_PATH).'/paid')->assertRedirect("https://platform.test/order/{$number}");
         $this->postJson("/api/orders/{$number}/return")->assertOk()->assertJsonPath('status', 'paid');
         $this->assertCount(8, $order->lines()->first()->tickets);
     }
@@ -216,7 +216,7 @@ class ApiTest extends TestCase
         $p = $this->postJson('/api/basket/price', ['lines' => [['competitionId' => $c->id, 'quantity' => 3], ['competitionId' => $c->id, 'quantity' => 2]], 'promoCode' => 'HALF'])->assertOk()->json();
         $this->assertSame(1, count($p['lines']), 'one line per competition');
         $this->assertSame(5, $p['lines'][0]['quantity']);
-        $this->assertSame(['code' => 'HALF', 'discountPence' => 250], $p['promo']);
+        $this->assertSame(['code' => 'HALF', 'discountPence' => 250, 'label' => '50% off'], $p['promo']);
         $this->assertSame(250, $p['totalPence']);
         $this->assertFalse($p['walletCovers']);
         $this->assertSame(["That promo code isn't valid."], $this->postJson('/api/basket/price', ['lines' => [['competitionId' => $c->id, 'quantity' => 1]], 'promoCode' => 'NOPE'])->json('problems'));

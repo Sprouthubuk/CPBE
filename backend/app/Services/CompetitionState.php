@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Competition;
+use App\Models\User;
 use App\Models\VaultCase;
 use App\Models\Order;
 use App\Models\OrderLine;
@@ -27,11 +28,26 @@ final class CompetitionState
         return $this->verity[$c->verity_ref] ??= VerityCompetition::query()->where('ref', $c->verity_ref)->first();
     }
 
+    /** Hours a member may enter before a competition opens (SOW 2.12). Set for one request by Pricing / the presenter. */
+    public int $earlyAccessHours = 0;
+
+    /** Run $fn with this player's membership early access applied, then put it back. */
+    public function forPlayer(?User $user, callable $fn): mixed
+    {
+        $before = $this->earlyAccessHours;
+        $this->earlyAccessHours = $user ? (int) (app(Memberships::class)->perkTier($user)?->early_access_hours ?? 0) : 0;
+        try {
+            return $fn();
+        } finally {
+            $this->earlyAccessHours = $before;
+        }
+    }
+
     /** scheduled | live | sold_out | closed | drawn | ended */
     public function status(Competition $c): string
     {
         $v = $this->verity($c);
-        if (! $v || $v->status === 'draft' || ($c->opens_at && $c->opens_at->isFuture())) {
+        if (! $v || $v->status === 'draft' || ($c->opens_at && $c->opens_at->copy()->subHours($this->earlyAccessHours)->isFuture())) {
             return 'scheduled';
         }
         if ($c->ended_at !== null || $v->status === 'void') {

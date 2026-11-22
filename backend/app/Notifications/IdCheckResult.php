@@ -27,7 +27,7 @@ class IdCheckResult extends Notification
             return $m->subject('Your ID Check Is Done')
                 ->line('Thanks, we’ve checked your ID. You can now withdraw your winnings.')
                 ->action('Withdraw Winnings', $site.'/account/wallet#withdraw')
-                ->salutation('The Vault Nine team');
+                ->salutation('The '.config('app.name').' team');
         }
 
         return $m->subject('We Need Another Look At Your ID')
@@ -35,6 +35,6 @@ class IdCheckResult extends Notification
             ->line('Why: '.(string) $this->check->note)
             ->line('Please send new documents from your wallet page.')
             ->action('Send Documents', $site.'/account/wallet#withdraw')
-            ->salutation('The Vault Nine team');
+            ->salutation('The '.config('app.name').' team');
     }
 }

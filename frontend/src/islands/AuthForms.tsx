@@ -36,10 +36,10 @@ function Password({ id, value, onChange, autoComplete, invalid }: { id: string; 
 /** A random id kept in this browser (first-party, never shared), sent at sign-up for the referral fraud checks. Only its hash is stored. */
 function deviceId(): string | null {
   try {
-    let id = localStorage.getItem("v9-device");
+    let id = localStorage.getItem("cp-device");
     if (!id) {
       id = crypto.randomUUID();
-      localStorage.setItem("v9-device", id);
+      localStorage.setItem("cp-device", id);
     }
     return id;
   } catch {
@@ -92,7 +92,7 @@ export function JoinForm({ next, referralCode = null }: { next: string | null; r
         <span style={{ fontWeight: 700, fontSize: 14 }}>Send me new comps &amp; offers (optional)</span>
       </label>
       {general && Object.keys(errors).length === 0 && <div className="notice notice-p" role="alert"><Svg name="info" size={18} /><span>{general}</span></div>}
-      <button type="submit" className="btn btn-y btn-lg btn-block v9-cta" disabled={busy}>{busy ? <span className="spin" /> : "Create Account"}</button>
+      <button type="submit" className="btn btn-y btn-lg btn-block cp-cta" disabled={busy}>{busy ? <span className="spin" /> : "Create Account"}</button>
       <p className="hint" style={{ margin: 0, textAlign: "center" }}>By creating an account you confirm you’re 18+ and accept our <a href="/legal/terms">T&amp;Cs</a> and <a href="/legal/privacy">Privacy policy</a>.</p>
     </form>
   );
@@ -121,7 +121,7 @@ export function LoginForm({ next }: { next: string | null }) {
       <div className="field"><div className="row between"><label htmlFor="pw">Password</label><a href="/forgot-password" className="tap" style={{ fontSize: 13, fontWeight: 800, marginRight: -4 }}>Forgot?</a></div><Password id="pw" value={password} onChange={setPassword} autoComplete="current-password" /></div>
       <label className="row g12" style={{ padding: "6px 0", cursor: "pointer" }}><input type="checkbox" className="sw" checked={remember} onChange={(e) => setRemember(e.target.checked)} /><span style={{ fontWeight: 700, fontSize: 14 }}>Keep me logged in</span></label>
       {error && <div className="notice notice-p" role="alert"><Svg name="info" size={18} /><span>{error}</span></div>}
-      <button type="submit" className="btn btn-y btn-lg btn-block v9-cta" disabled={busy}>{busy ? <span className="spin" /> : "Log In"}</button>
+      <button type="submit" className="btn btn-y btn-lg btn-block cp-cta" disabled={busy}>{busy ? <span className="spin" /> : "Log In"}</button>
     </form>
   );
 }
@@ -143,12 +143,12 @@ export function ForgotForm() {
       setBusy(false);
     }
   }
-  if (sent) return <div className="notice notice-c v9-pop" role="status"><Svg name="mail" size={18} /><span>If there’s an account for that email, a reset link is on its way. It works for 60 minutes. Not there? Check spam or <button type="button" onClick={() => setSent(false)} style={{ background: "none", border: 0, padding: 0, color: "#2FD36B", font: "inherit", textDecoration: "underline", cursor: "pointer" }}>try again</button>.</span></div>;
+  if (sent) return <div className="notice notice-c cp-pop" role="status"><Svg name="mail" size={18} /><span>If there’s an account for that email, a reset link is on its way. It works for 60 minutes. Not there? Check spam or <button type="button" onClick={() => setSent(false)} style={{ background: "none", border: 0, padding: 0, color: "#2FD36B", font: "inherit", textDecoration: "underline", cursor: "pointer" }}>try again</button>.</span></div>;
   return (
     <form className="stack g12" onSubmit={submit}>
       <div className="field"><label htmlFor="em">Email</label><input className="inp" id="em" type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
       {error && <div className="notice notice-p" role="alert"><span>{error}</span></div>}
-      <button type="submit" className="btn btn-y btn-lg btn-block v9-cta" disabled={busy}>{busy ? <span className="spin" /> : "Send Reset Link"}</button>
+      <button type="submit" className="btn btn-y btn-lg btn-block cp-cta" disabled={busy}>{busy ? <span className="spin" /> : "Send Reset Link"}</button>
     </form>
   );
 }
@@ -175,7 +175,7 @@ export function ResetForm({ token, email }: { token: string; email: string }) {
     <form className="stack g12" onSubmit={submit}>
       <div className="field"><label htmlFor="pw">New password</label><Password id="pw" value={password} onChange={setPassword} autoComplete="new-password" /><span className="hint">At least 8 characters</span></div>
       {error && <div className="notice notice-p" role="alert"><span>{error}</span></div>}
-      <button type="submit" className="btn btn-y btn-lg btn-block v9-cta" disabled={busy || !token}>{busy ? <span className="spin" /> : "Set New Password"}</button>
+      <button type="submit" className="btn btn-y btn-lg btn-block cp-cta" disabled={busy || !token}>{busy ? <span className="spin" /> : "Set New Password"}</button>
     </form>
   );
 }

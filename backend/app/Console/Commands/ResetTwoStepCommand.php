@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 /** For an admin who has lost their phone and their recovery codes: they set up two-step sign-in again at their next sign-in. */
 class ResetTwoStepCommand extends Command
 {
-    protected $signature = 'vault:reset-two-step {email : The admin\'s sign-in email}';
+    protected $signature = 'platform:reset-two-step {email : The admin\'s sign-in email}';
 
     protected $description = 'Clear an admin\'s two-step sign-in so they set it up again';
 

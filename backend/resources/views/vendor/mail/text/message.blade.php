@@ -22,7 +22,7 @@
     {{-- Footer --}}
     <x-slot:footer>
         <x-mail::footer>
-            Vault Nine Competitions · UK prize competitions.
+            {{ config('app.name') }} · UK prize competitions.
             18+ UK only. Free postal entry on every competition. Please play responsibly: set limits or take a break any time at {{ $site }}/account/safer-play
             {{ $site }}
         </x-mail::footer>

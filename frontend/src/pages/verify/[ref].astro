@@ -8,7 +8,7 @@ if (!/^[A-Za-z0-9-]{1,60}$/.test(ref)) return new Response(null, { status: 404 }
 ---
 <Layout title={`Check The Draw · ${ref}`} noindex>
   <section class="sec" style="padding-top:20px"><div class="narrow stack g16">
-    <div class="v9-rise"><div class="eyebrow">Verity · {ref}</div><h1 class="h1">Check The <span class="nc v9-flicker">Draw</span></h1>
+    <div class="cp-rise"><div class="eyebrow">Verity · {ref}</div><h1 class="h1">Check The <span class="nc cp-flicker">Draw</span></h1>
       <p class="p" style="margin-top:8px">Every instant-win result and every draw is fixed in advance and sealed with a public fingerprint. This page re-checks all of it in your own browser.</p></div>
     <div class="card card-p" style="overflow:auto">
       <verity-verify src={`/verity/competitions/${ref}/verification`} style="--verity-ok:#2FD36B;--verity-bad:#2FD36B;--verity-muted:#9aa0b4;--verity-font:Barlow,sans-serif"></verity-verify>

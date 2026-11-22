@@ -185,7 +185,7 @@ class PromoCapTest extends TestCase
             $this->getJson('/api/competitions/'.$a->slug)->getContent(),
         ];
         foreach ($bodies as $json) {
-            // The entry cap and entries left are public on Vault Nine (owner, 22 Nov 2026); the promo cap never is.
+            // The entry cap and entries left are public on Brand Name (owner, 22 Nov 2026); the promo cap never is.
             foreach (['promo_ticket_cap', 'promoTicketCap', 'promoCap', 'promoUsed', 'max_tickets', 'room'] as $key) {
                 $this->assertStringNotContainsString($key, $json);
             }

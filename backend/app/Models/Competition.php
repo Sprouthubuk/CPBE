@@ -17,6 +17,17 @@ class Competition extends Model
     protected $guarded = ['id', 'verity_ref', 'published_at'];
 
     /** Once published, these are Verity's terms and never change. */
+    /** SOW 2.2: a paid entry needs the right answer. Whether the question is set and well formed. */
+    public function hasSkillQuestion(): bool
+    {
+        return $this->skill_question !== null && trim($this->skill_question) !== '' && is_array($this->skill_options) && count($this->skill_options) >= 2;
+    }
+
+    public function skillAnswerIsRight(mixed $answer): bool
+    {
+        return ! $this->hasSkillQuestion() || (is_int($answer) && $answer === (int) $this->skill_answer);
+    }
+
     public const LOCKED_WHEN_PUBLISHED = ['type', 'price_pence', 'max_tickets', 'max_per_person', 'min_tickets', 'closes_at', 'end_prize_count', 'end_prize_type'];
 
     /** How an end prize is paid: to the winner's winnings automatically, or handled by hand. */
@@ -26,6 +37,7 @@ class Competition extends Model
     {
         return [
             'presets' => 'array',
+            'skill_options' => 'array',
             'tags' => 'array',
             'featured' => 'boolean',
             'bundles_enabled' => 'boolean',
@@ -48,6 +60,13 @@ class Competition extends Model
             }
         });
         static::saving(function (Competition $c) {
+            if ($c->skill_question !== null && trim((string) $c->skill_question) !== '') {
+                $opts = array_values(array_filter(array_map(fn ($o) => trim((string) $o), (array) $c->skill_options), fn ($o) => $o !== ''));
+                if (count($opts) < 2 || count($opts) > 5 || $c->skill_answer === null || ! isset($opts[(int) $c->skill_answer])) {
+                    throw new \DomainException('A skill question needs 2 to 5 answers and the right one chosen.');
+                }
+                $c->skill_options = $opts;
+            }
             if (! in_array($c->skin ?? 'classic', GameIds::skins(), true)) {
                 throw new \DomainException("Unknown game skin: {$c->skin}.");
             }

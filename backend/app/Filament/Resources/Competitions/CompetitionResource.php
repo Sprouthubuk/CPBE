@@ -41,6 +41,12 @@ use Illuminate\Support\Str;
 
 class CompetitionResource extends Resource
 {
+    /** Admin roles (App\Support\Roles): the competitions area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('competitions');
+    }
+
     protected static ?string $model = Competition::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTrophy;
@@ -80,11 +86,24 @@ class CompetitionResource extends Resource
                 Textarea::make('description')->rows(4)->columnSpanFull(),
                 Textarea::make('how_to_play')->rows(3)->columnSpanFull(),
             ]),
+            Section::make('Skill Question')->description('Every paid entry must answer it correctly (SOW 2.2). The right answer is never shown on the site.')
+                ->columns(2)->columnSpanFull()->components([
+                    TextInput::make('skill_question')->label('Question')->maxLength(200)->columnSpanFull()
+                        ->required(fn () => \App\Models\Setting::bool('require_skill_question'))->live(onBlur: true),
+                    TagsInput::make('skill_options')->label('Answers (2 to 5)')->placeholder('Type an answer, then Enter')
+                        ->required(fn (Get $get) => filled($get('skill_question')))
+                        ->rules(fn (Get $get) => filled($get('skill_question')) ? ['array', 'min:2', 'max:5'] : ['array'])->live(),
+                    Select::make('skill_answer')->label('The right answer')
+                        ->options(fn (Get $get) => array_values((array) $get('skill_options')))
+                        ->required(fn (Get $get) => filled($get('skill_question'))),
+                ]),
             Section::make('Terms')->description('Fixed by Verity when the competition is published: they can’t change after that.')->columns(3)->components([
                 Money::input('price_pence', 'Ticket price')->required()->disabled($locked)->live(onBlur: true),
                 TextInput::make('max_tickets')->label('Tickets')->integer()->minValue(1)->maxValue(10_000_000)->required()->disabled($locked)->live(onBlur: true),
+                TextInput::make('max_per_player')->label('Maximum tickets per player')->integer()->minValue(1)->disabled($locked)
+                    ->helperText('Empty for no limit.')->dehydrated(),
                 TextInput::make('min_tickets')->label('Minimum tickets per order')->integer()->minValue(1)->default(1)->required()->disabled($locked)
-                    ->lte('max_tickets')->helperText('E.g. 100 on a 1p competition for a £1 minimum. There is no limit per person.'),
+                    ->lte('max_tickets')->helperText('E.g. 100 on a 1p competition for a £1 minimum.'),
                 DateTimePicker::make('opens_at')->label('Opens (UK time)')->timezone('Europe/London')->seconds(false)->disabled($locked),
                 DateTimePicker::make('closes_at')->label('Closes (UK time)')->timezone('Europe/London')->seconds(false)->required()->after('now')->disabled($locked),
                 Money::input('cash_alternative_pence', 'Cash alternative'),

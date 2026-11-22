@@ -13,6 +13,6 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        Artisan::call('vault:legal-pages');
+        Artisan::call('platform:legal-pages');
     }
 }

@@ -23,6 +23,7 @@ export default function CheckoutView({ buy, walletPence, minCardPence, minDeposi
   const direct = useMemo(() => parseBuy(buy), [buy]);
   const [lines, setLines] = useState<BasketLine[] | null>(null);
   const [priced, setPriced] = useState<PricedBasket | null>(null);
+  const [answers, setAnswers] = useState<Record<string, number>>({});
   const [pay, setPay] = useState<"wallet" | "card">("wallet");
   const [useWallet, setUseWallet] = useState(true);
   const [promo, setPromo] = useState("");
@@ -52,14 +53,18 @@ export default function CheckoutView({ buy, walletPence, minCardPence, minDeposi
   const walletPart = pay === "wallet" ? total : splitWallet ? Math.min(walletPence, total) : 0;
   const cardPart = total - walletPart;
   const cardTooSmall = pay === "card" && cardPart > 0 && cardPart < minCardPence;
-  const blocked = priced.problems.length > 0 || priced.lines.some((l) => l.problem);
+  // SOW 2.2: one answer per competition with a skill question, chosen before paying.
+  const questions = priced.lines.filter((l, i, all) => l.skillQuestion && all.findIndex((x) => x.competitionId === l.competitionId) === i);
+  const unanswered = questions.some((l) => answers[l.competitionId] === undefined);
+  const blocked = priced.problems.length > 0 || priced.lines.some((l) => l.problem) || unanswered;
 
   async function submit() {
     if (!lines) return;
     setBusy(true);
     setError(null);
     try {
-      const res = await api<CheckoutResult>("/api/checkout", { json: { lines, payWith: pay, useWallet: pay === "wallet" || splitWallet, promoCode: promoApplied, requestId: rid } });
+      const withAnswers = lines.map((l) => (answers[l.competitionId] !== undefined ? { ...l, skillAnswer: answers[l.competitionId] } : l));
+      const res = await api<CheckoutResult>("/api/checkout", { json: { lines: withAnswers, payWith: pay, useWallet: pay === "wallet" || splitWallet, promoCode: promoApplied, requestId: rid } });
       if (res.next === "redirect" && res.redirectUrl) {
         setAside(res.order.number, direct ?? undefined);
         window.location.assign(res.redirectUrl);
@@ -75,7 +80,7 @@ export default function CheckoutView({ buy, walletPence, minCardPence, minDeposi
 
   return (
     <div className="stack g16">
-      <div className="card v9-rise v9-d2" style={{ overflow: "hidden" }}>
+      <div className="card cp-rise cp-d2" style={{ overflow: "hidden" }}>
         {priced.lines.map((l, i) => (
           <div key={`${l.competitionId}:${l.bundleId ?? "s"}`} className="row g12" style={{ padding: "14px 16px", borderTop: i ? "1px solid rgba(255,255,255,.06)" : 0 }}>
             <img src={l.imageSmall} alt="" style={{ width: 48, height: 48, borderRadius: 12, objectFit: "cover" }} />
@@ -86,7 +91,21 @@ export default function CheckoutView({ buy, walletPence, minCardPence, minDeposi
         <div className="row between" style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,.06)" }}>{direct ? <span /> : <a href="/basket" style={{ fontWeight: 800, fontSize: 14 }}>Edit basket</a>}<span className="d ny" style={{ fontSize: 26 }}>{formatMoney(total)}</span></div>
       </div>
 
-      <fieldset className="stack g8 v9-rise v9-d3" style={{ border: 0, margin: 0, padding: 0 }}>
+      {questions.map((l) => (
+        <fieldset key={`q-${l.competitionId}`} className="card card-p stack g8" style={{ margin: 0 }} data-testid="skill-question">
+          <legend className="eyebrow" style={{ padding: 0 }}>Question · {l.title}</legend>
+          <div style={{ fontWeight: 900 }}>{l.skillQuestion!.question}</div>
+          {l.skillQuestion!.options.map((o, k) => (
+            <label key={k} className="opt">
+              <input type="radio" name={`skill-${l.competitionId}`} checked={answers[l.competitionId] === k} onChange={() => setAnswers((a) => ({ ...a, [l.competitionId]: k }))} />
+              <span>{o}</span>
+            </label>
+          ))}
+        </fieldset>
+      ))}
+      {unanswered && <div className="hint">Answer the {questions.length === 1 ? "question" : "questions"} above to enter.</div>}
+
+      <fieldset className="stack g8 cp-rise cp-d3" style={{ border: 0, margin: 0, padding: 0 }}>
         <legend className="eyebrow" style={{ marginBottom: 8 }}>How would you like to pay?</legend>
         <label className="opt" style={!priced.walletCovers ? { opacity: 0.55 } : undefined}>
           <input type="radio" name="pay" checked={pay === "wallet"} disabled={!priced.walletCovers} onChange={() => setPay("wallet")} />
@@ -110,7 +129,7 @@ export default function CheckoutView({ buy, walletPence, minCardPence, minDeposi
         )}
       </fieldset>
 
-      <details className="acd v9-rise v9-d4">
+      <details className="acd cp-rise cp-d4">
         <summary>Promo Code <Svg name="down" /></summary>
         <form className="ab row g8" onSubmit={(e) => { e.preventDefault(); setPromoApplied(promo.trim() || null); }}>
           <input className="inp" placeholder="Enter code" aria-label="Promo code" value={promo} onChange={(e) => setPromo(e.target.value)} />
@@ -118,12 +137,12 @@ export default function CheckoutView({ buy, walletPence, minCardPence, minDeposi
         </form>
       </details>
 
-      <div className="card card-hot card-p stack g12 v9-rise v9-d5">
+      <div className="card card-hot card-p stack g12 cp-rise cp-d5">
         <div className="row between"><span className="d" style={{ fontSize: 22 }}>To Pay</span><span className="d ny" style={{ fontSize: 38 }} data-testid="checkout-total">{formatMoney(total)}</span></div>
         {pay === "card" && walletPart > 0 && <div className="hint">{formatMoney(walletPart)} from your wallet · {formatMoney(cardPart)} by card</div>}
         {cardTooSmall && <div className="notice notice-y" role="alert"><Svg name="info" size={18} /><span>Card payments start at {formatMoney(minCardPence)}. Add a few more tickets, or <a href="/account/wallet" style={{ color: "#2FD36B" }}>top up your wallet</a> and pay from there.</span></div>}
         {error && <div className="notice notice-p" role="alert"><Svg name="info" size={18} /><span>{error}</span></div>}
-        <button type="button" className="btn btn-y btn-lg btn-block v9-cta" onClick={submit} disabled={busy || blocked || cardTooSmall} data-testid="pay">
+        <button type="button" className="btn btn-y btn-lg btn-block cp-cta" onClick={submit} disabled={busy || blocked || cardTooSmall} data-testid="pay">
           {busy ? <span className="spin" /> : pay === "wallet" ? `Pay ${formatMoney(total)} From Wallet` : `Pay ${formatMoney(cardPart)} By Card`}
         </button>
         {pay === "card" && <div className="notice notice-c"><Svg name="lock" size={18} /><span>You’ll go to Cashflows’ secure payment page, then come straight back here to play.</span></div>}

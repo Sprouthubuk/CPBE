@@ -65,6 +65,17 @@ class PublicController extends Controller
                 'maxPence' => max(Settings::bounded('vault_case_min_pence', 100, 100000), Settings::bounded('vault_case_max_pence', 100, 100000)),
                 'bonusPct' => Settings::bounded('vault_case_bonus_pct', 0, 100),
             ] : null,
+            // Loyalty (SOW 2.11): true while any programme is switched on.
+            'loyalty' => \App\Models\LoyaltyProgramme::query()->active()->exists(),
+            // SOW 2.16: the announcement bar. Links stay on this site (a path), never elsewhere.
+            'announcement' => trim((string) Setting::get('announcement_text')) !== '' ? ['text' => mb_substr(trim((string) Setting::get('announcement_text')), 0, 120),
+                'link' => preg_match('#^/(?!/)[A-Za-z0-9/_?=&.-]*$#', (string) Setting::get('announcement_link')) ? Setting::get('announcement_link') : null] : null,
+            // SOW 3.3: Google tags set in Settings; the site loads them only after cookie consent.
+            'google' => self::google(),
+            // SOW 2.17: the language switcher (Weglot), when its key is set.
+            'translation' => preg_match('/^wg_[A-Za-z0-9]{10,64}$/', (string) Setting::get('weglot_api_key')) ? ['weglotKey' => Setting::get('weglot_api_key')] : null,
+            // Memberships (SOW 2.12): true while any tier is open to join.
+            'memberships' => \App\Models\MembershipTier::query()->where('active', true)->exists(),
             'referrals' => Settings::referralsOn() ? [
                 'rewardType' => Setting::get('referral_reward_type') === 'credit' ? 'credit' : 'tickets',
                 'rewardTickets' => Settings::bounded('referral_reward_tickets', 1, 1000),
@@ -72,6 +83,16 @@ class PublicController extends Controller
                 'minPurchasePence' => Settings::bounded('referral_min_purchase_pence', 0, 100000),
             ] : null,
         ]);
+    }
+
+    /** @return array{gtmId: ?string, ga4Id: ?string, adsId: ?string, adsPurchaseLabel: ?string}|null */
+    private static function google(): ?array
+    {
+        $v = fn (string $k, string $re) => preg_match($re, (string) Setting::get($k)) ? (string) Setting::get($k) : null;
+        $g = ['gtmId' => $v('google_gtm_id', '/^GTM-[A-Z0-9]{4,12}$/'), 'ga4Id' => $v('google_ga4_id', '/^G-[A-Z0-9]{4,20}$/'),
+            'adsId' => $v('google_ads_id', '/^AW-\d{6,15}$/'), 'adsPurchaseLabel' => $v('google_ads_purchase_label', '/^[A-Za-z0-9_-]{4,40}$/')];
+
+        return $g['gtmId'] || $g['ga4Id'] || $g['adsId'] ? $g : null;
     }
 
     public function competitions(Request $r): JsonResponse
@@ -121,12 +142,13 @@ class PublicController extends Controller
     {
         $hosts = Competition::query()->published()->get(['id', 'verity_ref', 'title'])->keyBy('verity_ref');
         $rows = Winner::query()->where('type', 'main')->where('status', 'active')->with(['competition', 'entry'])->orderByDesc('id')->limit(100)->get();
+        $media = \App\Models\WinnerMedia::forWinners($rows->pluck('id')->all());
 
         return response()->json(['data' => $rows->map(fn (Winner $w) => [
             'id' => (string) $w->id, 'name' => $this->publicName($w->owner_ref), 'prizeName' => $w->prize_name,
             'competitionTitle' => $hosts->get($w->competition->ref)?->title ?? $w->competition->title,
             'ticketNumber' => $w->entry ? (int) $w->entry->number : null, 'at' => $w->created_at->toIso8601ZuluString(),
-            'videoUrl' => null, 'verifyUrl' => '/verify/'.$w->competition->ref,
+            'videoUrl' => $media->get($w->id)?->safeVideoUrl(), 'photoUrl' => $media->get($w->id)?->photoUrl(), 'verifyUrl' => '/verify/'.$w->competition->ref,
         ])->values()]);
     }
 

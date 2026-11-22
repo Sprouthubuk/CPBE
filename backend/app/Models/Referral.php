@@ -22,6 +22,16 @@ class Referral extends Model
         return ['reasons' => 'array', 'qualified_at' => 'datetime', 'rewarded_at' => 'datetime'];
     }
 
+    public function scheme(): BelongsTo
+    {
+        return $this->belongsTo(ReferralScheme::class, 'referral_scheme_id');
+    }
+
+    public function rewards(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ReferralReward::class);
+    }
+
     public function referrer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'referrer_id');

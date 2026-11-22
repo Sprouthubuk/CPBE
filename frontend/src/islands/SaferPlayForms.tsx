@@ -7,6 +7,9 @@ import { Svg } from "./Svg";
 
 export default function SaferPlayForms({ initial }: { initial: Limits }) {
   const [limits, setLimits] = useState(initial);
+  type Period = "daily" | "weekly" | "monthly";
+  const KEY = { daily: "dailyDepositPence", weekly: "weeklyDepositPence", monthly: "monthlyDepositPence" } as const;
+  const [period, setPeriod] = useState<Period>("weekly");
   const [pick, setPick] = useState<number | null>(initial.weeklyDepositPence);
   const [custom, setCustom] = useState("");
   const [brk, setBrk] = useState(1);
@@ -31,12 +34,23 @@ export default function SaferPlayForms({ initial }: { initial: Limits }) {
     <>
       <div className="split" style={{ gap: 16 }}>
         <div className="card card-cy card-p stack g12">
-          <div className="row between"><h2 className="h3">Weekly Deposit Limit</h2><span className="tag tag-w">{limits.weeklyDepositPence !== null ? formatMoney(limits.weeklyDepositPence) : "Not set"}</span></div>
+          <h2 className="h3">Deposit Limits</h2>
+          <div className="stack g8">
+            {(["daily", "weekly", "monthly"] as const).map((p) => (
+              <div key={p} className="row between"><span style={{ textTransform: "capitalize" }}>{p}</span><span className="tag tag-w" data-testid={`limit-${p}`}>{limits[KEY[p]] !== null ? formatMoney(limits[KEY[p]]!) : "Not set"}</span></div>
+            ))}
+          </div>
+          <div className="r3" role="radiogroup" aria-label="Which limit to change">
+            {(["daily", "weekly", "monthly"] as const).map((p) => <button key={p} type="button" role="radio" aria-checked={period === p} className={period === p ? "pick on" : "pick"} onClick={() => { setPeriod(p); setPick(limits[KEY[p]]); setCustom(""); }} style={{ textTransform: "capitalize" }}>{p}</button>)}
+          </div>
           <div className="r4">{[0, 1000, 2500, 5000].map((p) => <button key={p} type="button" className={!custom && pick === p ? "pick on" : "pick"} onClick={() => { setPick(p); setCustom(""); }}>{p === 0 ? "£0" : formatMoney(p).replace(".00", "")}</button>)}</div>
           <div className="field"><label htmlFor="cl">Custom amount</label><input className="inp" id="cl" inputMode="decimal" placeholder="£" value={custom} onChange={(e) => setCustom(e.target.value)} /></div>
-          <button type="button" className="btn btn-c btn-block" disabled={chosen === null} onClick={() => run("limit", "/api/me/limits", { weeklyDepositPence: chosen }, "Saved. A lower limit applies straight away; a higher one after 24 hours.")}>Save Limit</button>
-          {limits.weeklyDepositPence !== null && <button type="button" className="btn btn-o btn-sm" onClick={() => run("limit", "/api/me/limits", { weeklyDepositPence: null }, "Your limit will be removed in 24 hours.")}>Remove Limit</button>}
-          {limits.pending && <p className="hint" style={{ margin: 0 }}>Change to {limits.pending.weeklyDepositPence !== null ? formatMoney(limits.pending.weeklyDepositPence) : "no limit"} applies {ukDateTime(limits.pending.appliesAt)}.</p>}
+          <button type="button" className="btn btn-c btn-block" disabled={chosen === null} onClick={() => run("limit", "/api/me/limits", { [KEY[period]]: chosen }, "Saved. A lower limit applies straight away; a higher one after 24 hours.")}>Save {period[0].toUpperCase() + period.slice(1)} Limit</button>
+          {limits[KEY[period]] !== null && <button type="button" className="btn btn-o btn-sm" onClick={() => run("limit", "/api/me/limits", { [KEY[period]]: null }, "Your limit will be removed in 24 hours.")}>Remove {period[0].toUpperCase() + period.slice(1)} Limit</button>}
+          {limits.pending && (["daily", "weekly", "monthly"] as const).filter((p) => KEY[p] in limits.pending!).map((p) => {
+            const v = limits.pending![KEY[p]];
+            return <p key={p} className="hint" style={{ margin: 0 }}>{p[0].toUpperCase() + p.slice(1)} limit change to {v !== null && v !== undefined ? formatMoney(v) : "no limit"} applies {ukDateTime(limits.pending!.appliesAt)}.</p>;
+          })}
           <p className="hint" style={{ margin: 0 }}>£0 stops all top-ups and card payments. You can still play with what's already in your wallet.</p>
           {note("limit")}
           <p className="hint" style={{ margin: 0 }}>Raising or removing a limit takes 24 hours to apply.</p>

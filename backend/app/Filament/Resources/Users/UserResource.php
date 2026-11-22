@@ -34,6 +34,12 @@ use Illuminate\Support\Str;
 /** Players. Accounts are never deleted; money and holds change only through the actions here, each with a reason. */
 class UserResource extends Resource
 {
+    /** Admin roles (App\Support\Roles): the players area. */
+    public static function canAccess(): bool
+    {
+        return \App\Support\Roles::allows('players');
+    }
+
     protected static ?string $model = User::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
@@ -121,6 +127,31 @@ class UserResource extends Resource
                     self::reasoned('staff', 'Mark as staff (can’t play)', fn (User $u) => ! $u->is_staff, function (User $u) {
                         $u->forceFill(['is_staff' => true])->save();
                     }),
+                    Action::make('points')->label('Adjust loyalty points')->icon(Heroicon::OutlinedStar)
+                        ->visible(fn (User $u) => ! $u->is_admin && \App\Models\LoyaltyProgramme::query()->exists() && \App\Support\Roles::allows('marketing'))
+                        ->schema([
+                            Select::make('programme')->options(fn () => \App\Models\LoyaltyProgramme::query()->pluck('name', 'id')->all())->required(),
+                            TextInput::make('points')->integer()->required()->helperText('Negative to take points off.')->rule('not_in:0'),
+                            Textarea::make('reason')->required()->maxLength(300),
+                        ])
+                        ->action(function (User $u, array $data) {
+                            app(\App\Services\Loyalty::class)->adjust(auth()->user(), $u, \App\Models\LoyaltyProgramme::query()->findOrFail($data['programme']), (int) $data['points'], $data['reason']);
+                            Notification::make()->success()->title('Points adjusted')->send();
+                        }),
+                    Action::make('role')->label('Admin role')->icon(Heroicon::OutlinedKey)
+                        ->visible(fn (User $u) => $u->id !== auth()->id() && \App\Support\Roles::allows('team'))
+                        ->schema([
+                            Select::make('role')->label('Role')->options(['none' => 'No admin access (player)'] + \App\Support\Roles::ROLES)
+                                ->default(fn (User $u) => \App\Support\Roles::of($u) ?? 'none')->required(),
+                            Textarea::make('reason')->required()->maxLength(300),
+                        ])
+                        ->action(function (User $u, array $data) {
+                            $role = $data['role'] === 'none' ? null : $data['role'];
+                            // Anyone with a role can't play (PlayCheck), and keeps "can't play" if the role is taken away.
+                            $u->forceFill(['is_admin' => $role !== null, 'admin_role' => $role, 'is_staff' => $role !== null ? true : $u->is_staff])->save();
+                            AdminAction::record(auth()->user(), 'player.role', (string) $u->id, $data['reason'], ['role' => $role]);
+                            Notification::make()->success()->title('Role saved')->send();
+                        }),
                     self::reasoned('verify_email', 'Confirm email by hand', fn (User $u) => ! $u->email_verified_at, function (User $u) {
                         $u->markEmailAsVerified();
                     }),
@@ -144,6 +175,32 @@ class UserResource extends Resource
                                 $data['bucket'] === 'bonus' ? now()->addDays(Settings::bonusExpiryDays()) : null);
                             AdminAction::record(auth()->user(), 'wallet.credit', (string) $u->id, $data['reason'], ['bucket' => $data['bucket'], 'pence' => $pence, 'ref' => $ref]);
                             Notification::make()->success()->title(Money::show($pence).' added')->send();
+                        }),
+                    Action::make('debit')->label('Remove wallet credit')->icon(Heroicon::OutlinedMinusCircle)->color('danger')
+                        ->visible(fn (User $u) => $u->id !== auth()->id() && ! $u->is_admin && ! $u->is_staff)
+                        ->schema([
+                            Select::make('bucket')->options(['bonus' => 'Bonus', 'deposit' => 'Deposit', 'winnings' => 'Winnings'])->default('bonus')->required(),
+                            Money::input('amount', 'Amount')->required(),
+                            Textarea::make('reason')->required()->maxLength(300),
+                            TextInput::make('confirm')->label('Type the amount again to confirm, e.g. REMOVE 5.00')->required(),
+                        ])
+                        ->action(function (User $u, array $data) {
+                            $pence = (int) $data['amount'];
+                            if ($pence < 1 || trim(strtoupper($data['confirm'])) !== 'REMOVE '.number_format($pence / 100, 2, '.', '')) {
+                                Notification::make()->danger()->title('Not removed')->body('Confirm the exact amount.')->send();
+
+                                return;
+                            }
+                            $ref = 'admin-debit:'.Str::uuid();
+                            try {
+                                app(Wallet::class)->adminDebit($u->id, $data['bucket'], $pence, 'Removed by us · '.mb_substr($data['reason'], 0, 80), $ref);
+                            } catch (\App\Exceptions\RefusedException $e) {
+                                Notification::make()->danger()->title('Not removed')->body($e->getMessage())->send();
+
+                                return;
+                            }
+                            AdminAction::record(auth()->user(), 'wallet.debit', (string) $u->id, $data['reason'], ['bucket' => $data['bucket'], 'pence' => $pence, 'ref' => $ref]);
+                            Notification::make()->success()->title(Money::show($pence).' removed')->send();
                         }),
                 ]),
             ]);

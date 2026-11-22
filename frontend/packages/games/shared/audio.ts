@@ -8,7 +8,7 @@ import { Howl, Howler } from "howler";
 
 export type SoundName = "scratch-loop" | "reveal" | "win-small" | "win-big" | "lose" | "button";
 
-const KEY = "v9-games-sound";
+const KEY = "cp-games-sound";
 const RATE = 22050;
 
 function wav(samples: Float32Array): string {

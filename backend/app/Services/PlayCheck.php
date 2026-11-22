@@ -28,6 +28,8 @@ final class PlayCheck
         'under_18' => 'You must be 18 or over to enter.',
         'email_unverified' => 'Please confirm your email address before you enter — check your inbox.',
         'spend_limit' => 'This would take you past your weekly deposit limit.',
+        'daily_limit' => 'This would take you past your daily deposit limit.',
+        'monthly_limit' => 'This would take you past your monthly deposit limit.',
     ];
 
     /** The reason this account can't play at all right now, ignoring amounts and the sales switch. */
@@ -63,9 +65,13 @@ final class PlayCheck
         if ($cardPence <= 0) {
             return;
         }
-        $limit = $user->limits?->weekly_deposit_pence;
-        if ($limit !== null && $this->paidInSince($user, now()->subDays(7)) + $cardPence > $limit) {
-            $this->refuse('spend_limit', 403);
+        // SOW 2.8: daily, weekly and monthly limits, each over a rolling period.
+        $l = $user->limits;
+        foreach ([['daily_deposit_pence', 1, 'daily_limit'], ['weekly_deposit_pence', 7, 'spend_limit'], ['monthly_deposit_pence', 30, 'monthly_limit']] as [$col, $days, $reason]) {
+            $limit = $l?->$col;
+            if ($limit !== null && $this->paidInSince($user, now()->subDays($days)) + $cardPence > $limit) {
+                $this->refuse($reason, 403);
+            }
         }
     }
 

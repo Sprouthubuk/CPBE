@@ -215,10 +215,17 @@ final class AccountPresenter
     public function limits(User $u): array
     {
         $l = $u->limits;
-        $pending = $l && $l->pending_applies_at ? ['weeklyDepositPence' => $l->pending_remove ? null : $l->pending_weekly_deposit_pence, 'appliesAt' => $l->pending_applies_at->toIso8601ZuluString()] : null;
+        $weeklyPending = $l && ($l->pending_remove || $l->pending_weekly_deposit_pence !== null);
+        $pending = $l && $l->pending_applies_at ? array_filter([
+            'weeklyDepositPence' => $weeklyPending ? ($l->pending_remove ? null : $l->pending_weekly_deposit_pence) : false,
+            'dailyDepositPence' => array_key_exists('daily', $l->pending_limits ?? []) ? $l->pending_limits['daily'] : false,
+            'monthlyDepositPence' => array_key_exists('monthly', $l->pending_limits ?? []) ? $l->pending_limits['monthly'] : false,
+        ], fn ($v) => $v !== false) + ['appliesAt' => $l->pending_applies_at->toIso8601ZuluString()] : null;
 
         return [
+            'dailyDepositPence' => $l?->daily_deposit_pence,
             'weeklyDepositPence' => $l?->weekly_deposit_pence,
+            'monthlyDepositPence' => $l?->monthly_deposit_pence,
             'pending' => $pending,
             'coolOffUntil' => $u->cool_off_until?->isFuture() ? $u->cool_off_until->toIso8601ZuluString() : null,
             'selfExcludedUntil' => $u->self_excluded_until?->isFuture() ? $u->self_excluded_until->toIso8601ZuluString() : null,

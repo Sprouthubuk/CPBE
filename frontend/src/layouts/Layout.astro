@@ -19,7 +19,7 @@ interface Props {
   noindex?: boolean;
   /** The picture shown when the page is shared (Facebook, WhatsApp); the logo when not given. */
   shareImage?: string | null;
-  /** Use this whole title in search results instead of "Title | Vault Nine Competitions". */
+  /** Use this whole title in search results instead of "Title | Brand Name". */
   fullTitle?: string;
   /** Query keys that make a different page worth its own search result (e.g. ["type"] on /competitions). */
   canonicalKeys?: string[];
@@ -67,7 +67,7 @@ const verification = import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION;
   <meta name="twitter:description" content={description}>
   {!noindex && !bare && <script type="application/ld+json" set:html={ldJson(ld)} />}
 </head>
-<body>
+<body data-signed-in={Astro.locals.me ? "1" : "0"}>
   <a class="skip" href="#main">Skip to content</a>
   <div class={`g ${bottomNav && !bare ? "has-bn" : ""}`}>
     {!bare && <Header active={active} variant={header} back={headerBack} title={headerTitle} />}
@@ -76,6 +76,23 @@ const verification = import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION;
     {bottomNav && !bare && <BottomNav active={active} />}
   </div>
   {!bare && <CookieBanner />}
+  <script>
+    // SOW 2.18: A/B tests on elements marked data-exp (only with consent, or signed in).
+    import { runExperiments } from "../lib/experiments";
+    void runExperiments(document.body.dataset.signedIn === "1");
+  </script>
+  {Astro.locals.site?.translation && (
+    <>
+      {/* SOW 2.17: the language switcher. Weglot translates the whole public site in the visitor's browser and shows its own switcher. */}
+      <script is:inline src="https://cdn.weglot.com/weglot.min.js" defer data-weglot-key={Astro.locals.site.translation.weglotKey}></script>
+      <script is:inline>
+        document.querySelector("script[data-weglot-key]")?.addEventListener("load", function () {
+          var k = document.querySelector("script[data-weglot-key]").dataset.weglotKey;
+          if (window.Weglot) window.Weglot.initialize({ api_key: k });
+        });
+      </script>
+    </>
+  )}
   <script>
     import { readBasket, onBasketChange } from "../lib/basket";
     import { remaining, endsIn } from "../lib/time";
