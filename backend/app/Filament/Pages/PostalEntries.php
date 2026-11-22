@@ -84,6 +84,35 @@ class PostalEntries extends Page implements HasTable
         $this->form->fill(['competition_id' => $d['competition_id'], 'received_at' => $d['received_at']]);
     }
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('import')->label('Import envelopes (CSV)')->icon(Heroicon::OutlinedArrowUpTray)
+                ->modalDescription('One row per envelope, with the columns email and received_at (UK time, e.g. 21/11/2026 14:30 or 2026-11-21 14:30). Each row is checked and entered exactly like one logged by hand.')
+                ->schema([
+                    Select::make('competition_id')->label('Competition')->required()->searchable()
+                        ->options(fn () => Competition::query()->published()->where('closes_at', '>', now()->subDays(14))->orderBy('closes_at')->pluck('title', 'id')),
+                    \Filament\Forms\Components\FileUpload::make('file')->label('CSV file')->disk('local')->directory('imports')->visibility('private')
+                        ->acceptedFileTypes(['text/csv', 'text/plain', 'application/vnd.ms-excel'])->maxSize(2048)->required(),
+                ])
+                ->action(function (array $data, Postal $postal) {
+                    $disk = \Illuminate\Support\Facades\Storage::disk('local');
+                    $path = is_array($data['file']) ? reset($data['file']) : $data['file'];
+                    try {
+                        $c = Competition::query()->findOrFail($data['competition_id']);
+                        $r = $postal->importCsv($c, (string) $disk->get($path), auth()->user());
+                        \App\Models\AdminAction::record(auth()->user(), 'postal.import', (string) $c->id, null, ['entered' => $r['entered'], 'refused' => $r['refused']]);
+                        $why = collect($r['rows'])->where('status', '!=', 'entered')->take(8)->map(fn ($x) => "Row {$x['line']} ({$x['email']}): {$x['reason']}")->implode("\n");
+                        Notification::make()->success()->title("{$r['entered']} entered, {$r['refused']} refused")->body($why ?: null)->persistent()->send();
+                    } catch (\InvalidArgumentException $e) {
+                        Notification::make()->danger()->title('Not imported')->body($e->getMessage())->send();
+                    } finally {
+                        $disk->delete($path);
+                    }
+                }),
+        ];
+    }
+
     public function table(Table $table): Table
     {
         return $table->query(PostalEntry::query()->latest())->columns([

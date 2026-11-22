@@ -176,6 +176,32 @@ class UserResource extends Resource
                             AdminAction::record(auth()->user(), 'wallet.credit', (string) $u->id, $data['reason'], ['bucket' => $data['bucket'], 'pence' => $pence, 'ref' => $ref]);
                             Notification::make()->success()->title(Money::show($pence).' added')->send();
                         }),
+                    Action::make('debit')->label('Remove wallet credit')->icon(Heroicon::OutlinedMinusCircle)->color('danger')
+                        ->visible(fn (User $u) => $u->id !== auth()->id() && ! $u->is_admin && ! $u->is_staff)
+                        ->schema([
+                            Select::make('bucket')->options(['bonus' => 'Bonus', 'deposit' => 'Deposit', 'winnings' => 'Winnings'])->default('bonus')->required(),
+                            Money::input('amount', 'Amount')->required(),
+                            Textarea::make('reason')->required()->maxLength(300),
+                            TextInput::make('confirm')->label('Type the amount again to confirm, e.g. REMOVE 5.00')->required(),
+                        ])
+                        ->action(function (User $u, array $data) {
+                            $pence = (int) $data['amount'];
+                            if ($pence < 1 || trim(strtoupper($data['confirm'])) !== 'REMOVE '.number_format($pence / 100, 2, '.', '')) {
+                                Notification::make()->danger()->title('Not removed')->body('Confirm the exact amount.')->send();
+
+                                return;
+                            }
+                            $ref = 'admin-debit:'.Str::uuid();
+                            try {
+                                app(Wallet::class)->adminDebit($u->id, $data['bucket'], $pence, 'Removed by us · '.mb_substr($data['reason'], 0, 80), $ref);
+                            } catch (\App\Exceptions\RefusedException $e) {
+                                Notification::make()->danger()->title('Not removed')->body($e->getMessage())->send();
+
+                                return;
+                            }
+                            AdminAction::record(auth()->user(), 'wallet.debit', (string) $u->id, $data['reason'], ['bucket' => $data['bucket'], 'pence' => $pence, 'ref' => $ref]);
+                            Notification::make()->success()->title(Money::show($pence).' removed')->send();
+                        }),
                 ]),
             ]);
     }

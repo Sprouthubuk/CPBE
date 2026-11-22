@@ -50,7 +50,7 @@ class SiteSettings extends Page
         'referral_reward_type', 'referral_reward_tickets', 'referral_reward_credit_pence', 'referral_min_purchase_pence', 'referral_monthly_cap',
         'referral_voucher_days', 'referral_clawback_days', 'referral_flag_after',
         'payment_fee_bp', 'payment_fee_fixed_pence', 'monthly_revenue_target_pence', 'promo_budget_pct',
-        'google_gtm_id', 'google_ga4_id', 'google_ads_id', 'google_ads_purchase_label', 'weglot_api_key'];
+        'google_gtm_id', 'google_ga4_id', 'google_ads_id', 'google_ads_purchase_label', 'weglot_api_key', 'announcement_text', 'announcement_link'];
 
     /** On/off switches: shown as toggles, saved as 1/0. Both start off. */
     private const FLAGS = ['feature_vault_case', 'feature_referrals', 'require_skill_question'];
@@ -134,6 +134,11 @@ class SiteSettings extends Page
         $open = Setting::bool('sales_open');
 
         return $schema->components([
+            Section::make('Announcement Bar')->description('The message at the top of every page (SOW 2.16). The free postal entry link always stays beside it. Featured competitions: tick Featured on a competition, or set the featured slug above.')
+                ->columns(2)->collapsible()->components([
+                    \Filament\Forms\Components\TextInput::make('announcement_text')->label('Message')->maxLength(120)->helperText('Empty: “Wins paid straight to your wallet”.'),
+                    \Filament\Forms\Components\TextInput::make('announcement_link')->label('Link (a page on this site, e.g. /competitions)')->maxLength(200)->regex('#^/(?!/)[A-Za-z0-9/_?=&.-]*$#'),
+                ]),
             Section::make('Google and Translation')->description('Google tags load only after a visitor accepts cookies (SOW 3.3). The Weglot key turns on the language switcher (SOW 2.17).')
                 ->columns(2)->collapsible()->components([
                     \Filament\Forms\Components\TextInput::make('google_gtm_id')->label('Google Tag Manager ID')->placeholder('GTM-XXXXXXX')->regex('/^GTM-[A-Z0-9]{4,12}$/'),

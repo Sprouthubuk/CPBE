@@ -33,7 +33,7 @@ async function waitFor(url: string, ms = 20000) {
  * local beacon.
  */
 /** `features`: switch Vault Case and Refer a Friend on in the Laravel test database (they start off, as on the real site). */
-export async function startSite(backend: "mock" | "laravel" = "mock", opts: { features?: boolean; pixel?: string } = {}): Promise<Site> {
+export async function startSite(backend: "mock" | "laravel" = "mock", opts: { features?: boolean; pixel?: string; tinker?: string } = {}): Promise<Site> {
   const [apiPort, astroPort, proxyPort] = [await free(), await free(), await free()];
   const origin = `http://127.0.0.1:${proxyPort}`;
   const env = { ...process.env, MOCK_API_PORT: String(apiPort), PUBLIC_SITE_URL: origin, API_INTERNAL_URL: `http://127.0.0.1:${apiPort}`, HOST: "127.0.0.1", PORT: String(astroPort) };
@@ -66,6 +66,8 @@ export async function startSite(backend: "mock" | "laravel" = "mock", opts: { fe
     run(["migrate:fresh", "--seed", "--seeder=Database\\Seeders\\DemoSeeder", "--force"]);
     if (opts.features) run(["tinker", "--execute", "foreach (['feature_vault_case', 'feature_referrals'] as $k) App\\Models\\Setting::put($k, '1');"]);
     if (opts.pixel) run(["tinker", "--execute", `App\\Models\\Setting::put('meta_pixel_id', '${opts.pixel.replace(/\D/g, "")}');`]);
+    // Settings a test needs before the site starts (Astro keeps /api/site for 30 seconds).
+    if (opts.tinker) run(["tinker", "--execute", opts.tinker]);
     run(["storage:link", "--force"]);
     run(["vendor:publish", "--tag=verity-assets", "--force"]);
     // Laravel's own router script for PHP's built-in server; it expects to run from public/.

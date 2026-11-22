@@ -15,6 +15,7 @@ const upcoming = comps.filter((c) => c.type === "draw");
     {winners.length ? winners.map((w) => (
       <div class="card card-ye card-p stack g12 cp-rise cp-d3">
         <div class="row g12"><span class="av" style="width:56px;height:56px;background:#2FD36B;font-size:24px;box-shadow:0 0 18px rgba(47,211,107,.6)">{w.name.slice(0, 1)}</span><div style="flex:1"><div class="d" style="font-size:22px">{w.name}</div><div class="hint">{ago(w.at)}</div></div><span class="tag tag-y">Winner</span></div>
+        {w.photoUrl && <img src={w.photoUrl} alt={`${w.name} with their prize`} loading="lazy" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px" />}
         <div class="d ny" style="font-size:26px">{w.prizeName}</div>
         <div class="hint">{w.competitionTitle}{w.ticketNumber ? ` · winning ticket #${w.ticketNumber}` : ""}</div>
         <div class="row wrapx g8">{w.videoUrl && <a class="btn btn-c btn-sm" href={w.videoUrl} rel="noopener" target="_blank"><Icon name="play" size={16} /> Watch The Draw</a>}{w.verifyUrl && <a class="btn btn-o btn-sm" href={w.verifyUrl}>Verify</a>}</div>

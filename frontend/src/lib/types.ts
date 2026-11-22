@@ -102,6 +102,8 @@ export interface SiteInfo {
   memberships: boolean;
   /** SOW 3.3: Google tags set in the admin (loaded only after cookie consent), or null. */
   google: { gtmId: string | null; ga4Id: string | null; adsId: string | null; adsPurchaseLabel: string | null } | null;
+  /** SOW 2.16: the announcement bar text (and an optional link on this site) set in the admin, or null. */
+  announcement: { text: string; link: string | null } | null;
   /** SOW 2.17: the language switcher (Weglot), or null while it isn't set up. */
   translation: { weglotKey: string } | null;
 }
@@ -401,6 +403,8 @@ export interface DrawWinnerRow {
   ticketNumber: number | null;
   at: string;
   videoUrl: string | null;
+  /** The winner's photo, shown only with their consent (SOW 2.9). */
+  photoUrl: string | null;
   verifyUrl: string | null;
 }
 

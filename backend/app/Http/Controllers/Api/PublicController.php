@@ -67,6 +67,9 @@ class PublicController extends Controller
             ] : null,
             // Loyalty (SOW 2.11): true while any programme is switched on.
             'loyalty' => \App\Models\LoyaltyProgramme::query()->active()->exists(),
+            // SOW 2.16: the announcement bar. Links stay on this site (a path), never elsewhere.
+            'announcement' => trim((string) Setting::get('announcement_text')) !== '' ? ['text' => mb_substr(trim((string) Setting::get('announcement_text')), 0, 120),
+                'link' => preg_match('#^/(?!/)[A-Za-z0-9/_?=&.-]*$#', (string) Setting::get('announcement_link')) ? Setting::get('announcement_link') : null] : null,
             // SOW 3.3: Google tags set in Settings; the site loads them only after cookie consent.
             'google' => self::google(),
             // SOW 2.17: the language switcher (Weglot), when its key is set.
@@ -139,12 +142,13 @@ class PublicController extends Controller
     {
         $hosts = Competition::query()->published()->get(['id', 'verity_ref', 'title'])->keyBy('verity_ref');
         $rows = Winner::query()->where('type', 'main')->where('status', 'active')->with(['competition', 'entry'])->orderByDesc('id')->limit(100)->get();
+        $media = \App\Models\WinnerMedia::forWinners($rows->pluck('id')->all());
 
         return response()->json(['data' => $rows->map(fn (Winner $w) => [
             'id' => (string) $w->id, 'name' => $this->publicName($w->owner_ref), 'prizeName' => $w->prize_name,
             'competitionTitle' => $hosts->get($w->competition->ref)?->title ?? $w->competition->title,
             'ticketNumber' => $w->entry ? (int) $w->entry->number : null, 'at' => $w->created_at->toIso8601ZuluString(),
-            'videoUrl' => null, 'verifyUrl' => '/verify/'.$w->competition->ref,
+            'videoUrl' => $media->get($w->id)?->safeVideoUrl(), 'photoUrl' => $media->get($w->id)?->photoUrl(), 'verifyUrl' => '/verify/'.$w->competition->ref,
         ])->values()]);
     }
 

@@ -37,7 +37,7 @@ const sorters: Record<string, (a: CompetitionSummary, b: CompetitionSummary) => 
   ending: (a, b) => a.closesAt.localeCompare(b.closesAt),
   price: (a, b) => a.pricePence - b.pricePence,
   prize: (a, b) => (b.topPrizePence ?? 0) - (a.topPrizePence ?? 0),
-  newest: (a, b) => b.closesAt.localeCompare(a.closesAt),
+  newest: (a, b) => b.id.localeCompare(a.id), // ids are time-ordered (ULID): newest created first
   left: (a, b) => b.ticketsLeft - a.ticketsLeft,
 };
 list = [...list].sort(sorters[sort] ?? sorters.ending);

@@ -103,7 +103,7 @@ class AdminTest extends TestCase
         ])->assertFormFieldDoesNotExist('max_per_person');
         Storage::disk('public')->put('competitions/nl.webp', 'img');
         $c = Competition::query()->create(['slug' => 'nl', 'title' => 'NL', 'type' => 'draw', 'image' => 'competitions/nl.webp', 'price_pence' => 100, 'max_tickets' => 10, 'max_per_person' => 3, 'closes_at' => now()->addDays(10), 'end_prize_name' => 'Cash', 'end_prize_value_pence' => 1000]);
-        Livewire::test(EditCompetition::class, ['record' => $c->getKey()])->fillForm(['max_tickets' => 8000])->call('save')->assertHasNoFormErrors();
+        Livewire::test(EditCompetition::class, ['record' => $c->getKey()])->fillForm(['max_tickets' => 8000, 'max_per_player' => null])->call('save')->assertHasNoFormErrors();
         $this->assertSame(8000, $c->refresh()->max_per_person, 'follows the number of tickets');
     }
 

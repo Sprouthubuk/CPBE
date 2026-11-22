@@ -244,11 +244,12 @@ route("GET", "/api/site", (req, res) => send(res, 200, { salesOpen: true, minDep
   memberships: process.env.MOCK_FEATURES !== "off",
   google: null,
   translation: null,
+  announcement: null,
   referrals: process.env.MOCK_FEATURES === "off" ? null : { rewardType: "tickets", rewardTickets: 10, rewardCreditPence: 200, minPurchasePence: 500 } }));
 route("GET", "/api/competitions", (req, res, { query }) => send(res, 200, { data: COMPS.filter((c) => !query.get("type") || c.type === query.get("type")) }));
 route("GET", "/api/competitions/:slug", (req, res, { params, user }) => { const c = bySlug.get(params.slug); return c ? send(res, 200, detail(c, user)) : fail(res, 404, "Not found"); });
 route("GET", "/api/winners/instant", (req, res) => send(res, 200, { data: [0, 1, 2, 3, 4].map((i) => ({ id: `w${i}`, name: "Emmie A.", prizeName: i ? "£0.50 site credit" : "£0.25 site credit", valuePence: i ? 50 : 25, game: i ? "balloon_pop" : "hook_a_duck", gameLabel: i ? "Balloon Pop" : "Hook a Duck", competitionTitle: i ? "Double Top Pop" : "Hook A Duck At The Oche", at: iso(now - (53 + i) * 6e4) })), hasMore: false }));
-route("GET", "/api/winners/draws", (req, res) => send(res, 200, { data: [{ id: "d1", name: "Natalie B.", prizeName: "£50 Supermarket Voucher", competitionTitle: "Free – Win A £50 Supermarket Voucher", ticketNumber: null, at: iso(now - 6 * DAY), videoUrl: null, verifyUrl: null }] }));
+route("GET", "/api/winners/draws", (req, res) => send(res, 200, { data: [{ id: "d1", name: "Natalie B.", prizeName: "£50 Supermarket Voucher", competitionTitle: "Free – Win A £50 Supermarket Voucher", ticketNumber: null, at: iso(now - 6 * DAY), videoUrl: null, photoUrl: null, verifyUrl: null }] }));
 // Like Laravel: every instant prize's winning number, public from publish; won once its ticket sells.
 function winningNumbers(c) {
   const max = 100000; // the mock instant wins have 100,000 tickets

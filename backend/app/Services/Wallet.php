@@ -101,6 +101,25 @@ final class Wallet
     }
 
     /**
+     * An admin takes money off one balance (a correction, SOW 2.6): never more than the balance holds.
+     * Logged by the caller with its reason.
+     */
+    public function adminDebit(int $userId, string $bucket, int $pence, string $reason, string $reference): LedgerEntry
+    {
+        $this->assertBucket($bucket);
+
+        return DB::transaction(function () use ($userId, $bucket, $pence, $reason, $reference) {
+            $this->lock($userId);
+            if ($pence < 1 || $pence > $this->balances($userId)[$bucket]) {
+                throw new RefusedException('That’s more than the balance holds.', 'not_enough_wallet');
+            }
+
+            return LedgerEntry::query()->create(['user_id' => $userId, 'bucket' => $bucket, 'direction' => 'debit', 'amount_pence' => $pence,
+                'reason' => $reason, 'reference' => $reference]);
+        });
+    }
+
+    /**
      * Take back bonus credit given by mistake or for something later reversed (a referral reward on a refunded
      * order): as much as is still unspent, up to $pence. Once per reference. Returns what was taken.
      */

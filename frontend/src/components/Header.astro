@@ -5,6 +5,8 @@ interface Props { active?: string; variant?: "main" | "auth" | "secure" | "menu"
 const { active = "", variant = "main", back = "/", title = "Secure checkout" } = Astro.props;
 const me = Astro.locals.me;
 const vip = Astro.locals.site?.socials?.whatsapp ?? null;
+// SOW 2.16: the announcement the admin sets (Settings → Announcement bar); the free postal route always stays.
+const ann = Astro.locals.site?.announcement ?? null;
 const nav = [
   ["Home", "/", "home"],
   ["Competitions", "/competitions", "competitions"],
@@ -15,7 +17,7 @@ const nav = [
 ---
 {variant === "main" && (
   <>
-    <div class="ann"><b>18+</b><a href="/free-entry">Free postal entry on every comp</a><i aria-hidden="true">/</i><span>Wins paid straight to your wallet</span><i aria-hidden="true">/</i>{vip ? <a href={vip} rel="noopener" target="_blank">Join the VIP WhatsApp</a> : <a href="/account/safer-play">Play responsibly</a>}</div>    <header class="hd"><div class="wrap hd-in">
+    <div class="ann"><b>18+</b><a href="/free-entry">Free postal entry on every comp</a><i aria-hidden="true">/</i>{ann ? (ann.link ? <a href={ann.link} data-testid="announcement">{ann.text}</a> : <span data-testid="announcement">{ann.text}</span>) : <span>Wins paid straight to your wallet</span>}<i aria-hidden="true">/</i>{vip ? <a href={vip} rel="noopener" target="_blank">Join the VIP WhatsApp</a> : <a href="/account/safer-play">Play responsibly</a>}</div>    <header class="hd"><div class="wrap hd-in">
       <a class="logo" href="/" aria-label="Brand Name home"><img src="/logo-sm.webp" alt="Brand Name" width="82" height="48"></a>
       <nav class="nav" aria-label="Main">{nav.map(([n, href, key]) => <a href={href} class={key === active ? "on" : ""} aria-current={key === active ? "page" : undefined}>{n}</a>)}</nav>
       <div class="hd-r">

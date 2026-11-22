@@ -9,6 +9,7 @@ const FALLBACK_SITE: SiteInfo = {
   loyalty: false,
   google: null,
   translation: null,
+  announcement: null,
   memberships: false,
   minDepositPence: 500,
   minCardPence: 100,

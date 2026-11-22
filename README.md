@@ -11,6 +11,7 @@ The RaffleLabs Bespoke Package build for Hamid Reza Mousavizadeh's UK prize comp
 | `shared/` | Values both halves must agree on (game and skin ids) |
 | `docs/api.md` | The contract between them |
 | `docs/scope.md` | Each SOW deliverable and where it lives |
+| `docs/admin-guide.md` | The written admin guide (SOW 3.4) |
 | `deploy/` | Laravel Forge: nginx routing, deploy script, Astro daemon |
 
 ## Run it locally

@@ -68,3 +68,22 @@ Route::middleware('web')->group(function () {
             'competitions' => $r->competitions(), 'marketing' => $r->marketing($from, $to), 'headline' => $r->headline()], 200, ['Cache-Control' => 'no-store, private']);
     })->name('admin.reports.print');
 });
+
+// The live draw reveal (SOW 2.4): a full-screen page to show on the stream once Verity has drawn.
+Route::middleware('web')->get('/admin/live-draw/{competition}/reveal', function (\App\Models\Competition $competition) {
+    $user = request()->user();
+    abort_unless($user && $user->canAccessPanel(\Filament\Facades\Filament::getPanel('admin')) && $user->getAppAuthenticationSecret()
+        && \App\Support\Roles::can($user, 'competitions'), 403);
+    abort_unless($competition->verity_ref !== null, 404);
+    $v = \Sprouthub\Verity\Models\Competition::query()->where('ref', $competition->verity_ref)->firstOrFail();
+    $winners = \Sprouthub\Verity\Models\Winner::query()->where('competition_id', $v->id)->where('type', 'main')->where('status', 'active')
+        ->with('entry')->orderBy('id')->get()->map(function ($w) {
+            $id = \App\Services\Fulfilment::userIdFromOwner((string) $w->owner_ref);
+            $u = $id ? \App\Models\User::query()->whereNull('closed_at')->find($id) : null;
+
+            return ['name' => $u?->publicName() ?? 'Postal entrant', 'prize' => $w->prize_name, 'ticket' => $w->entry ? (int) $w->entry->number : null];
+        });
+
+    return response()->view('admin.live-draw', ['c' => $competition, 'winners' => $winners, 'ref' => $v->ref], 200,
+        ['Cache-Control' => 'no-store, private', 'X-Robots-Tag' => 'noindex']);
+})->name('admin.live-draw.reveal');
