@@ -39,6 +39,12 @@ describe("safeNext", () => {
     for (const bad of ["https://evil.com", "//evil.com", "/\\evil.com", "evil.com", "/api/auth/logout", "/admin", "/sanctum/csrf-cookie", "/x\r\nSet-Cookie: a=b", null, undefined, ""])
       expect(safeNext(bad as string), String(bad)).toBe("/account");
   });
+  it("refuses control characters browsers strip, which would turn the path into //evil.com", () => {
+    for (const bad of ["/\t/evil.com", "/\x00/evil.com", "/\x0b/evil.com", "/\x7f/evil.com"]) {
+      expect(new URL("/\t/evil.com", "https://site.example").host).toBe("evil.com");
+      expect(safeNext(bad), JSON.stringify(bad)).toBe("/account");
+    }
+  });
 });
 
 describe("UK time", () => {

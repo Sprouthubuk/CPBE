@@ -54,6 +54,7 @@ a{color:#2FD36B}a:hover{color:#7BEBA3}
 .wal i{font-style:normal;width:30px;height:30px;border-radius:999px;background:#2FD36B;color:#07090A;display:inline-flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif}
 .ib{position:relative;width:40px;height:40px;border:1px solid rgba(255,255,255,.16);border-radius:999px;background:#111715;display:inline-flex;align-items:center;justify-content:center;color:#fff;text-decoration:none}
 .ib .badge{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;padding:0 4px;border-radius:999px;background:#2FD36B;color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px #2FD36B}
+.ib .badge[hidden]{display:none}
 .acc{display:none;border-color:#2FD36B;color:#2FD36B;font-family:'Barlow Condensed',sans-serif;font-size:17px;box-shadow:0 0 12px rgba(47,211,107,.3)}
 .join{display:inline-flex}
 .bn{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(7,9,10,.94);backdrop-filter:blur(14px);border-top:1px solid rgba(255,255,255,.1);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:6px 4px 10px}
@@ -596,6 +597,8 @@ a{color:var(--green)}a:hover{color:var(--green-hover)}
 .ft-badges .b{font-size:12px;font-weight:700;letter-spacing:.06em;border:1.5px solid var(--text);border-radius:4px;padding:4px 8px;color:var(--text);min-height:0}
 .ft-badges a.b{border-color:var(--green);color:var(--green);text-decoration:none;display:inline-flex;align-items:center;min-height:40px}
 .ft-legal{margin:0;font-size:12px;line-height:1.6;color:#8A9892;max-width:900px}
+.ft-translate{background:none;border:1px solid #2FD36B;color:#2FD36B;border-radius:10px;padding:0 12px;min-height:40px;font:inherit;font-weight:700;cursor:pointer;margin-right:6px}
+.ft-translate[hidden]{display:none}
 .pay-marks{justify-content:flex-start}
 @media (min-width:900px){.ft-grid{grid-template-columns:1.4fr repeat(4,minmax(0,1fr));gap:32px}.ft-brand{grid-column:auto}}
 

@@ -24,6 +24,14 @@ declare global {
   }
 }
 
+/**
+ * Pages whose address holds personal data or a secret (the password reset link carries the email and a live
+ * token). Meta's and Google's tags send the page address, so they never start on these pages.
+ */
+export function addressIsPrivate(): boolean {
+  return /[?&](token|email|signature)=/i.test(location.search);
+}
+
 export function readConsent(): Consent | null {
   try {
     const v = JSON.parse(localStorage.getItem(KEY) ?? "null") as { choice?: string } | null;
@@ -98,7 +106,7 @@ function matching(): Record<string, string> {
 
 /** Starts the Pixel if the visitor has accepted and an ID is set. Safe to call more than once. */
 export function startPixel(id: string | null | undefined) {
-  if (!id || !/^\d{10,20}$/.test(id) || readConsent() !== "accepted" || window.fbq) return;
+  if (!id || !/^\d{10,20}$/.test(id) || readConsent() !== "accepted" || window.fbq || addressIsPrivate()) return;
   pixelId = id;
   const fbq = function (...args: unknown[]) {
     if (fbq.callMethod) fbq.callMethod(...args);

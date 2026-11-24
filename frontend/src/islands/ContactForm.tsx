@@ -31,6 +31,7 @@ export default function ContactForm({ name, email }: { name: string; email: stri
       <input type="text" name="website" tabIndex={-1} autoComplete="off" value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} className="sr-only" aria-hidden="true" />
       {error && <div className="notice notice-p" role="alert"><span>{error}</span></div>}
       <button type="submit" className="btn btn-y btn-lg cp-cta" disabled={state === "busy"}>{state === "busy" ? <span className="spin" /> : "Send Message"}</button>
+      <p className="hint" style={{ margin: 0, textAlign: "center" }}>We use what you send only to deal with your message. See our <a href="/legal/privacy">Privacy policy</a>.</p>
     </form>
   );
 }

@@ -65,7 +65,8 @@ const community = [
         </div>
         <p class="hint" style="margin:0;font-size:13px">18+ UK only · <a href="/free-entry">Free postal entry</a> · <a href="/legal/terms">T&amp;Cs</a></p>
       </div>
-      <a class="hero-art cp-tilt cp-in" style="animation-delay:.3s" href={`/competitions/${featured.slug}`} aria-label={featured.title}>
+      <a class="hero-art cp-tilt cp-in" style="animation-delay:.3s" href={`/competitions/${featured.slug}`}>
+        <span class="sr-only">{featured.title}</span>
         <Dartboard class="vc-board" spin />
         <img src={featured.image} srcset={featured.imageSrcset ?? undefined} sizes="(min-width:960px) 520px, 100vw" alt="" width="640" height="640" fetchpriority="high">
         <span class="vc-badge urgent" style="animation:none">Featured</span>

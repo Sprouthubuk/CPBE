@@ -35,6 +35,20 @@ describe("marketing cookies and the Meta Pixel", () => {
     expect(window.fbq!.queue.map((q) => q[0])).toEqual(["init", "track"]);
   });
 
+  it("never starts Meta or Google on a page whose address holds an email or a reset token", async () => {
+    history.replaceState(null, "", "/reset-password?token=abc&email=player%40example.com");
+    const c = await import("../../src/lib/consent");
+    const g = await import("../../src/lib/google");
+    c.saveConsent("accepted");
+    c.startPixel("123456789012345");
+    g.startGoogle({ gtmId: "GTM-ABCD12", ga4Id: "G-ABCDEF12", adsId: null, adsPurchaseLabel: null });
+    expect(document.querySelectorAll("script[src]")).toHaveLength(0);
+    expect(window.fbq).toBeUndefined();
+    history.replaceState(null, "", "/competitions");
+    c.startPixel("123456789012345");
+    expect(metaScripts()).toHaveLength(1);
+  });
+
   it("counts a purchase once per order", async () => {
     const c = await import("../../src/lib/consent");
     c.saveConsent("accepted");

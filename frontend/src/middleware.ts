@@ -24,9 +24,10 @@ const FALLBACK_SITE: SiteInfo = {
 let siteCache: { at: number; value: SiteInfo } | null = null;
 
 /**
- * What a page may load: the site itself (pictures may also be data:/blob: for the games), plus Meta's
- * Pixel, which src/lib/consent.ts loads only after the visitor accepts marketing cookies and only when a
- * Pixel ID is set in the admin. Add any other address here only alongside its consent check.
+ * What a page may load: the site itself (pictures may also be data:/blob: for the games), plus Meta's Pixel
+ * and Google's tags, which load only after the visitor accepts cookies (consent.ts, google.ts), and Weglot,
+ * which loads only when the visitor asks for a translation (Layout.astro). Add any other address here only
+ * alongside a check like theirs.
  * Inline scripts stay allowed because Astro's island loader is inline; the gain is that no outside script,
  * frame, plugin, <base> or form target can be injected. Not sent by the dev server (Vite needs websockets).
  */

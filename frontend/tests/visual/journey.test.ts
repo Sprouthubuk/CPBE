@@ -147,8 +147,8 @@ it("a new player and a regular player can buy, pay, play and recover from a fail
     await q.locator('main button.cp-cta').last().click();
     await q.waitForLoadState("networkidle");
     if (/fake-pay/.test(q.url())) { await q.click("#pay"); await q.waitForLoadState("networkidle"); }
-    await q.waitForTimeout(1500);
-    expect(q.url()).toMatch(/\/order\/CP-/);
+    // The confirmation can take a moment on a busy machine: wait for it rather than a fixed time.
+    await q.waitForURL(/\/order\/CP-/, { timeout: 15000 });
     expect(await q.locator('[data-testid="draw-line"]').count()).toBe(1);
     await shot(q, "draw-order-page");
     await q.goto(site.origin + "/account/wallet");

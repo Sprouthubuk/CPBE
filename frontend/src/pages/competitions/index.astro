@@ -23,7 +23,7 @@ const TYPES: [string, string, (c: CompetitionSummary) => boolean][] = [
 const t = TYPES.find((x) => x[0] === type) ?? TYPES[0];
 // Each category is its own search result (canonical keeps ?type); a search or a re-sort is not.
 const SEO: Record<string, { title: string; h1: [string, string]; description: string }> = {
-  all: { title: "Live UK Competitions & Raffles | Brand Name", h1: ["All", "Competitions"], description: "Every live Brand Name competition: instant win games and live draw raffles for cash, tech and more, from 1p a ticket. 18+ UK, free postal entry." },
+  all: { title: "Live UK Competitions & Raffles | Brand Name", h1: ["All", "Competitions"], description: "Every live Brand Name competition: instant win games and live draw raffles for cash, tech and more. 18+ UK, free postal entry on every competition." },
   instant: { title: "Instant Win Competitions UK | Brand Name", h1: ["Instant Win", "Competitions"], description: "Instant win competitions: buy a ticket, play the reveal game and see straight away if you've won cash or a prize. 18+ UK, free postal entry." },
   draw: { title: "Live Draw Competitions & Raffles | Brand Name", h1: ["Live Draw", "Competitions"], description: "Prize draws and raffles drawn live when they close. Pick your tickets, watch the draw and see every winner published. 18+ UK, free postal entry." },
   cash: { title: "Cash Competitions | Brand Name", h1: ["Cash", "Competitions"], description: "Win tax-free cash in live draws and instant win games with capped entries. 18+ UK only, free postal entry on every competition." },

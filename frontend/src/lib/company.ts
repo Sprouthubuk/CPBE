@@ -7,6 +7,8 @@ export const COMPANY = {
   legalName: "[Company name TBC]",
   number: "[TBC]",
   registeredOffice: ["[Registered office TBC]"],
+  // Where the company is registered, as Companies House shows it (e.g. "England and Wales").
+  registeredIn: "[TBC]",
   // Where free postal entries go (shown on /free-entry and Contact).
   postalAddress: ["[Postal entry address TBC]"],
 } as const;

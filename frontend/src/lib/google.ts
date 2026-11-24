@@ -3,7 +3,7 @@
  * Meta Pixel, nothing loads until the visitor accepts cookies (consent.ts), and only for IDs set in the admin
  * (Settings → Google). Search Console needs no script: its verification tag comes from the build environment.
  */
-import { readConsent } from "./consent";
+import { addressIsPrivate, readConsent } from "./consent";
 
 export interface GoogleConfig { gtmId: string | null; ga4Id: string | null; adsId: string | null; adsPurchaseLabel: string | null }
 
@@ -37,7 +37,7 @@ function addScript(src: string) {
 /** Starts the configured Google tags once the visitor has accepted. Safe to call more than once. */
 export function startGoogle(cfg?: GoogleConfig | null) {
   const c = cfg ?? config();
-  if (!c || started || readConsent() !== "accepted") return;
+  if (!c || started || readConsent() !== "accepted" || addressIsPrivate()) return;
   if (!c.gtmId && !c.ga4Id && !c.adsId) return;
   started = c;
   window.dataLayer = window.dataLayer || [];
