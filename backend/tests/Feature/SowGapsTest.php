@@ -207,4 +207,22 @@ class SowGapsTest extends TestCase
         $this->assertSame([['£10 Credit', 1000, 5]], $draft->prizes()->get()->map(fn ($p) => [$p->name, $p->value_pence, $p->quantity])->all());
         $this->assertSame([], \Illuminate\Support\Facades\Storage::disk('local')->allFiles('imports'));
     }
+
+    public function test_an_admin_exports_a_players_personal_data_for_a_subject_access_request(): void
+    {
+        $u = $this->player(['first_name' => 'Rosa', 'email' => 'rosa@example.com']);
+        $this->topUp($u, 500);
+        \App\Models\ContactMessage::query()->create(['name' => 'Rosa', 'email' => 'rosa@example.com', 'topic' => 'other', 'message' => 'Hello']);
+        $data = \App\Support\PersonalData::export($u);
+        $this->assertSame('rosa@example.com', $data['account']['email']);
+        $this->assertArrayNotHasKey('password', $data['account']);
+        $this->assertArrayNotHasKey('remember_token', $data['account']);
+        $this->assertIsArray($data['orders']);
+        $this->assertNotEmpty($data['wallet_ledger']);
+        $this->assertSame('Hello', $data['contact_messages'][0]['message']);
+
+        $this->signIn('support');
+        Livewire::test(ListUsers::class)->callTableAction('exportData', $u, ['reason' => 'SAR by email'])->assertFileDownloaded('personal-data-'.$u->id.'-'.now()->format('Y-m-d').'.json');
+        $this->assertSame('SAR by email', AdminAction::query()->where('action', 'player.data_exported')->value('reason'));
+    }
 }

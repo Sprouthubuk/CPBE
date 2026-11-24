@@ -26,7 +26,7 @@ interface Props {
   /** Structured data (schema.org) for this page. */
   jsonLd?: Record<string, unknown>[];
 }
-const { title, description = "UK prize competitions from 1p: instant win games and live draws for cash, tech and more. 18+ UK only, free postal entry on every competition.", active = "", header = "main", headerBack, headerTitle, bottomNav = true, footer = true, noindex = false, bare = false, shareImage = null, fullTitle, canonicalKeys = [], jsonLd = [] } = Astro.props;
+const { title, description = "UK prize competitions: instant win games and live draws for cash, tech and more. 18+ UK only, free postal entry on every competition.", active = "", header = "main", headerBack, headerTitle, bottomNav = true, footer = true, noindex = false, bare = false, shareImage = null, fullTitle, canonicalKeys = [], jsonLd = [] } = Astro.props;
 const full = fullTitle ?? pageTitle(title);
 const robots = noindex || import.meta.env.PUBLIC_SEARCH_INDEXING !== "on" ? "noindex, nofollow" : "index, follow, max-image-preview:large";
 const base = Astro.site ?? Astro.url;
@@ -83,13 +83,35 @@ const verification = import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION;
   </script>
   {Astro.locals.site?.translation && (
     <>
-      {/* SOW 2.17: the language switcher. Weglot translates the whole public site in the visitor's browser and shows its own switcher. */}
-      <script is:inline src="https://cdn.weglot.com/weglot.min.js" defer data-weglot-key={Astro.locals.site.translation.weglotKey}></script>
-      <script is:inline>
-        document.querySelector("script[data-weglot-key]")?.addEventListener("load", function () {
-          var k = document.querySelector("script[data-weglot-key]").dataset.weglotKey;
-          if (window.Weglot) window.Weglot.initialize({ api_key: k });
-        });
+      {/* SOW 2.17: the language switcher. Weglot is a third party that receives the page's text, so it loads only once
+          the visitor asks for a translation ("Translate This Site" in the footer, remembered in this browser), and
+          never on signed-in pages, whose text is personal (names, balances, tickets). */}
+      <script is:inline data-weglot-key={Astro.locals.site.translation.weglotKey} data-weglot-ok={/^\/(account|checkout|order|payment)(\/|$)/.test(Astro.url.pathname) ? "0" : "1"}>
+        (function () {
+          var me = document.currentScript, key = me.dataset.weglotKey, ok = me.dataset.weglotOk === "1", started = false;
+          function start() {
+            if (started || !ok) return;
+            started = true;
+            var s = document.createElement("script");
+            s.src = "https://cdn.weglot.com/weglot.min.js";
+            s.onload = function () { if (window.Weglot) window.Weglot.initialize({ api_key: key }); };
+            document.head.appendChild(s);
+          }
+          var asked = false;
+          try { asked = localStorage.getItem("cp-translate") === "1"; } catch (e) {}
+          if (asked) start();
+          document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll("[data-translate]").forEach(function (b) {
+              if (!ok || asked) return;
+              b.hidden = false;
+              b.addEventListener("click", function () {
+                try { localStorage.setItem("cp-translate", "1"); } catch (e) {}
+                b.hidden = true;
+                start();
+              });
+            });
+          });
+        })();
       </script>
     </>
   )}
@@ -103,6 +125,8 @@ const verification = import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION;
         el.hidden = n === 0;
         el.textContent = String(n);
       });
+      // The visible number is part of the link's name (WCAG 2.5.3 Label in Name).
+      document.querySelectorAll<HTMLElement>("[data-basket-link]").forEach((a) => a.setAttribute("aria-label", n ? `Basket, ${n} ${n === 1 ? "item" : "items"}` : "Basket"));
     };
     paint();
     onBasketChange(paint);

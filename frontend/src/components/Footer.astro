@@ -30,7 +30,7 @@ const socials: [string | null, string, string][] = [
         <li><img src="/payments/google-pay.svg" alt="Google Pay" width="48" height="19" /></li>
       </ul>
     </div>
-    {site.translation && <p class="ft-legal" data-testid="translation-note">Translations are automatic and may not be word-perfect. The English version of our terms and competition rules is the official one.</p>}
-    <p class="ft-legal">{COMPANY.tradingName} is a prize competition operator in the United Kingdom. You must be 18 or over and a UK resident to enter. A free postal entry route is available on every competition, with the same chance of winning as a paid entry. © {new Date().getFullYear()} {COMPANY.tradingName} is a trading name of {COMPANY.legalName}, registered in England and Wales, company number {COMPANY.number}. Registered office: {COMPANY.registeredOffice.join(", ")}.{site.supportEmail && <> {site.supportEmail}</>}</p>
+    {site.translation && <p class="ft-legal" data-testid="translation-note"><button type="button" class="tap ft-translate" data-translate hidden>Translate This Site</button> Translations are automatic (by Weglot, which receives the page’s text) and may not be word-perfect. The English version of our terms and competition rules is the official one.</p>}
+    <p class="ft-legal">{COMPANY.tradingName} is a prize competition operator in the United Kingdom. You must be 18 or over and a UK resident to enter. A free postal entry route is available on every competition, with the same chance of winning as a paid entry. © {new Date().getFullYear()} {COMPANY.tradingName}. {COMPANY.tradingName} is a trading name of {COMPANY.legalName}, registered in {COMPANY.registeredIn}, company number {COMPANY.number}. Registered office: {COMPANY.registeredOffice.join(", ")}.{site.supportEmail && <> {site.supportEmail}</>}</p>
   </div>
 </footer>

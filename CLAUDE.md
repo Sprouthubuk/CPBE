@@ -108,8 +108,10 @@ Read before every task. If a request conflicts with this, stop and ask.
 - Astro drops a space between `{expr}` and a following tag inside `<>…</>`: write `{expr}{" "}<span>`.
 - Standalone small links get `class="tap"` (40px tap height).
 - Title Case for every title. Mobile first (44px taps, 16px inputs, no sideways scroll at 320px).
-- Nothing third-party loads before a cookie choice. The only one is the Meta Pixel (`src/lib/consent.ts`, ID set in
-  Admin → Settings), loaded after "Accept" in the cookie banner; its addresses are the only extra ones in the CSP.
+- Nothing third-party loads before a cookie choice. The Meta Pixel (`src/lib/consent.ts`) and Google tags
+  (`src/lib/google.ts`), IDs set in Admin → Settings, load only after "Accept", and never on a page whose address holds
+  an email or token (`addressIsPrivate`). Weglot (SOW 2.17) loads only when the visitor presses "Translate This Site",
+  and never on signed-in pages. Their addresses are the only extra ones in the CSP.
 - Meta tracking: the banner's choice is copied to a `cp_consent` cookie; only with it does the server keep and send
   events to the Conversions API (`App\Tracking\MetaEvents`, `platform:meta-events` every minute, token in `META_CAPI_TOKEN`
   only). Browser and server share event ids (order number; `reg-{user id}`). Values are real money only, never bonus.
@@ -128,6 +130,6 @@ Read before every task. If a request conflicts with this, stop and ask.
   are `noindex` and left out of `sitemap.xml.ts` / disallowed in `robots.txt.ts`. `tests/e2e/seo.test.ts` checks every sitemap
   page. Google is shut out until the build has `PUBLIC_SEARCH_INDEXING=on` (launch day); `PUBLIC_GOOGLE_SITE_VERIFICATION` adds
   Search Console's tag.
-- Redirects after sign-in go through `safeNext` (`src/lib/safe.ts`).
+- Redirects after sign-in go through `safeNext` (`src/lib/safe.ts`), which refuses control characters ("/<tab>/evil.com").
 - Astro trusts Host / X-Forwarded-* only for `allowedDomains` in `astro.config.mjs`; the build must
   have `PUBLIC_SITE_URL` set to the live address or form posts are refused.

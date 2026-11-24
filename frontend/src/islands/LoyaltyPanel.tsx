@@ -74,7 +74,7 @@ function Programme({ p, onChange }: { p: LoyaltyProgrammeView; onChange: () => v
                   <b>{r.name}</b>
                   <span className="hint" style={{ display: "block" }}>{n(r.pointsCost)} points · {rewardWhat(r)}{r.minTier ? ` · ${r.minTier} and above` : ""}</span>
                 </span>
-                <button type="button" className="btn btn-o btn-sm" disabled={!r.available || !r.affordable || busy !== null} onClick={() => redeem(r.id, r.name)} aria-label={`Get ${r.name}`}>
+                <button type="button" className="btn btn-o btn-sm" disabled={!r.available || !r.affordable || busy !== null} onClick={() => redeem(r.id, r.name)} aria-label={`${busy === r.id ? "Getting" : !r.available ? "Unavailable" : r.affordable ? "Get It" : "Need More"}: ${r.name}`}>
                   {busy === r.id ? "…" : !r.available ? "Unavailable" : r.affordable ? "Get It" : "Need More"}
                 </button>
               </div>

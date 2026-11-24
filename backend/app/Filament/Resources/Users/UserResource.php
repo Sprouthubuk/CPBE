@@ -127,6 +127,16 @@ class UserResource extends Resource
                     self::reasoned('staff', 'Mark as staff (can’t play)', fn (User $u) => ! $u->is_staff, function (User $u) {
                         $u->forceFill(['is_staff' => true])->save();
                     }),
+                    Action::make('exportData')->label('Export personal data')->icon(Heroicon::OutlinedArrowDownTray)
+                        ->modalDescription('Everything we hold about this player, for a subject access request (one month to reply). Downloaded as a file to send them securely; logged.')
+                        ->schema([Textarea::make('reason')->label('Why (e.g. "Subject access request emailed 1 Dec")')->required()->maxLength(300)])
+                        ->action(function (User $u, array $data) {
+                            AdminAction::record(auth()->user(), 'player.data_exported', (string) $u->id, $data['reason']);
+
+                            return response()->streamDownload(
+                                fn () => print (json_encode(\App\Support\PersonalData::export($u), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
+                                'personal-data-'.$u->id.'-'.now()->format('Y-m-d').'.json', ['Content-Type' => 'application/json']);
+                        }),
                     Action::make('points')->label('Adjust loyalty points')->icon(Heroicon::OutlinedStar)
                         ->visible(fn (User $u) => ! $u->is_admin && \App\Models\LoyaltyProgramme::query()->exists() && \App\Support\Roles::allows('marketing'))
                         ->schema([
