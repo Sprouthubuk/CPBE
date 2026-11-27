@@ -26,6 +26,9 @@ class MembershipTier extends Model
             if (! isset(self::ELIGIBILITY[$t->eligibility ?: 'anyone'])) {
                 throw new \DomainException('Unknown eligibility rule.');
             }
+            if ($t->ticket_discount_pct < 0 || $t->ticket_discount_pct > 90) {
+                throw new \DomainException('A ticket discount is 0% to 90%.');
+            }
             if ($t->loyalty_bonus_pct > 900) {
                 throw new \DomainException('The loyalty bonus is at most +900%.');
             }
@@ -45,6 +48,8 @@ class MembershipTier extends Model
             $this->monthly_bonus_credit_pence ? '£'.number_format($this->monthly_bonus_credit_pence / 100, 2).' bonus credit every month' : null,
             $this->early_access_hours ? "Enter new competitions {$this->early_access_hours} hours early" : null,
             $this->loyalty_bonus_pct ? "+{$this->loyalty_bonus_pct}% loyalty points" : null,
+            $this->ticket_discount_pct ? "{$this->ticket_discount_pct}% off tickets" : null,
+            $this->id && Competition::query()->published()->where('closes_at', '>', now())->whereJsonContains('members_only_tier_ids', $this->id)->exists() ? 'Members-only competitions' : null,
             ...array_filter(array_map('trim', preg_split('/\R/', (string) $this->perks))),
         ]));
     }

@@ -83,10 +83,12 @@ const verification = import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION;
   </script>
   {Astro.locals.site?.translation && (
     <>
-      {/* SOW 2.17: the language switcher. Weglot is a third party that receives the page's text, so it loads only once
-          the visitor asks for a translation ("Translate This Site" in the footer, remembered in this browser), and
-          never on signed-in pages, whose text is personal (names, balances, tickets). */}
-      <script is:inline data-weglot-key={Astro.locals.site.translation.weglotKey} data-weglot-ok={/^\/(account|checkout|order|payment)(\/|$)/.test(Astro.url.pathname) ? "0" : "1"}>
+      {/* SOW 2.17 / amendment 9: the language switcher, on every page (checkout, account, games and messages too).
+          Weglot is a third party that receives the page's text, so it loads only once the visitor asks for a
+          translation ("Translate This Site" in the footer, remembered in this browser). Personal details (names,
+          email addresses, balances) carry data-wg-notranslate / translate="no", so they are never sent to it, and
+          input values are never translated. data-weglot-ok stays as a switch for any page that must opt out. */}
+      <script is:inline data-weglot-key={Astro.locals.site.translation.weglotKey} data-weglot-ok="1">
         (function () {
           var me = document.currentScript, key = me.dataset.weglotKey, ok = me.dataset.weglotOk === "1", started = false;
           function start() {

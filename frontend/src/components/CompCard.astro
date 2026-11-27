@@ -38,10 +38,12 @@ const big = c.topPrizePence ? String(Math.round(c.topPrizePence / 100)) : "";
   </div>
   <div class="vc-bd">
     <div class="vc-pr">
-      <span class="vc-price">{formatPence(c.pricePence)}</span>
+      <span class="vc-price">{formatPence(c.pricePence)}{c.offer && c.basePricePence > c.pricePence && <s class="vc-was">{formatPence(c.basePricePence)}</s>}</span>
       {live ? <span class="vc-chip">MAX {formatCount(c.maxTickets)}</span>
         : c.prizeCount ? <span class="vc-chip"><Icon name="bolt" size={11} stroke={3} />{formatCount(c.prizeCount)} PRIZES</span> : null}
     </div>
+    {c.membersOnly && <div class="vc-offer" data-testid="card-members">Members Only</div>}
+    {c.offer && <div class="vc-offer" data-testid="card-offer">{c.offer.label}{c.offer.bonus && c.offer.label !== `Buy ${c.offer.bonus.buy} Get ${c.offer.bonus.get} Free` ? ` · Buy ${c.offer.bonus.buy} Get ${c.offer.bonus.get} Free` : ""}</div>}
     <h3><a href={href}>{c.title}</a></h3>
     {!live && c.endPrize && <div class="vc-extra">+ {c.endPrize.count > 1 ? `${c.endPrize.count} × ` : ""}{money(c.endPrize.valuePence)} end prize</div>}
     {live && c.topPrizePence ? <div class="vc-extra">Worth {money(c.topPrizePence)}</div> : null}

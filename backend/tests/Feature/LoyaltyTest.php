@@ -102,7 +102,8 @@ class LoyaltyTest extends TestCase
         $u = User::query()->where('email', $email)->firstOrFail();
         $this->assertSame(100, $this->loyalty()->balance($u->id, $p->id));
 
-        $u->forceFill(['email_verified_at' => now()])->save();
+        // Past the Voluntary Code's spend limit offer (CodeComplianceTest covers it).
+        $u->forceFill(['email_verified_at' => now(), 'limits_prompted_at' => now()])->save();
         $c = $this->competition('draw', ['price_pence' => 100, 'max_tickets' => 1000, 'max_per_person' => 1000]);
         $this->topUp($u, 1000);
         $this->buy($u, $c, 1);

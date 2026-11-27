@@ -9,7 +9,7 @@ import type { CompetitionSummary } from "../lib/types";
 const FIXED = [
   "/", "/competitions", "/competitions?type=instant", "/competitions?type=draw",
   "/how-it-works", "/faq", "/free-entry", "/winners", "/instant-winners", "/entry-lists", "/contact",
-  "/legal/terms", "/legal/free-entry", "/legal/privacy", "/legal/cookies", "/legal/complaints",
+  "/legal/terms", "/legal/free-entry", "/legal/privacy", "/legal/cookies", "/legal/complaints", "/legal/player-protection",
 ];
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

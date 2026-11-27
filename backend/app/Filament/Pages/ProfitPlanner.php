@@ -81,7 +81,9 @@ class ProfitPlanner extends Page
         return ['prizeCost' => number_format($m['prizeCost'] / 100, 2, '.', ''), 'ticketPrice' => number_format($m['ticketPrice'] / 100, 2, '.', ''),
             'maxTickets' => $m['maxTickets'], 'freeSharePct' => $m['freeSharePct'], 'promoSharePct' => $m['promoSharePct'], 'discountPct' => $m['discountPct'],
             'marketing' => number_format($m['marketing'] / 100, 2, '.', ''), 'vatPct' => $m['vatPct'], 'feePct' => number_format($m['feeBp'] / 100, 2, '.', ''),
-            'feeFixed' => number_format($m['feeFixed'] / 100, 2, '.', ''), 'avgOrder' => number_format($m['avgOrder'] / 100, 2, '.', '')];
+            'feeFixed' => number_format($m['feeFixed'] / 100, 2, '.', ''), 'avgOrder' => number_format($m['avgOrder'] / 100, 2, '.', ''),
+            'guaranteedPrizes' => number_format($m['guaranteedPrizes'] / 100, 2, '.', ''), 'cashAltValue' => number_format($m['cashAltValue'] / 100, 2, '.', ''),
+            'cashAltSharePct' => $m['cashAltSharePct']];
     }
 
     private static function toModel(array $f): array
@@ -91,6 +93,7 @@ class ProfitPlanner extends Page
         return ['prizeCost' => $p($f['prizeCost'] ?? 0), 'ticketPrice' => $p($f['ticketPrice'] ?? 0), 'maxTickets' => (int) ($f['maxTickets'] ?? 0),
             'freeSharePct' => (int) ($f['freeSharePct'] ?? 0), 'promoSharePct' => (int) ($f['promoSharePct'] ?? 0), 'discountPct' => (int) ($f['discountPct'] ?? 0),
             'marketing' => $p($f['marketing'] ?? 0), 'vatPct' => (int) ($f['vatPct'] ?? 0), 'feeBp' => (int) round(((float) ($f['feePct'] ?? 0)) * 100),
-            'feeFixed' => $p($f['feeFixed'] ?? 0), 'avgOrder' => $p($f['avgOrder'] ?? 0)];
+            'feeFixed' => $p($f['feeFixed'] ?? 0), 'avgOrder' => $p($f['avgOrder'] ?? 0),
+            'guaranteedPrizes' => $p($f['guaranteedPrizes'] ?? 0), 'cashAltValue' => $p($f['cashAltValue'] ?? 0), 'cashAltSharePct' => (int) ($f['cashAltSharePct'] ?? 0)];
     }
 }

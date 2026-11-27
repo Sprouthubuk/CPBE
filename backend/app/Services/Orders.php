@@ -40,6 +40,7 @@ final class Orders
 
         // Who may play is checked first, so a blocked player is told why (403), not that the basket has a problem.
         $this->check->assertAllowed($user);
+        self::assertLimitsOffered($user);
 
         $order = DB::transaction(function () use ($user, $lines, $payWith, $useWallet, $promoCode, $requestId) {
             $this->wallet->lock($user->id);
@@ -86,7 +87,7 @@ final class Orders
             foreach ($priced['lines'] as $l) {
                 $order->lines()->create(['competition_id' => $l['competitionId'], 'quantity' => $l['quantity'], 'unit_pence' => $l['unitPence'], 'line_pence' => $l['linePence'],
                     'bundle_tier_id' => $l['bundleId'], 'bundle_label' => $l['bundleLabel'], 'paid_quantity' => $l['paidQuantity'], 'free_quantity' => $l['freeQuantity'],
-                    'bonus_quantity' => $l['bonusQuantity'], 'source' => $l['source'], 'vault_case_id' => $l['vaultCaseId'],
+                    'bonus_quantity' => $l['bonusQuantity'], 'source' => $l['source'], 'vault_case_id' => $l['vaultCaseId'], 'price_rule_id' => $l['priceRuleId'] ?? null,
                     'skill_answer' => $answers[$l['competitionId']] ?? null, 'via' => $via[$l['competitionId']] ?? null]);
                 if ($l['vaultCaseId']) {
                     VaultCase::query()->whereKey($l['vaultCaseId'])->update(['status' => 'ordered', 'order_id' => $order->id]);
@@ -161,6 +162,7 @@ final class Orders
      */
     public function membershipPayment(User $user, \App\Models\Membership $m, \App\Models\MembershipTier $tier, int $pence, string $kind, string $payWith): Order
     {
+        self::assertLimitsOffered($user);
         $order = DB::transaction(function () use ($user, $m, $tier, $pence, $kind, $payWith) {
             $this->wallet->lock($user->id);
             $this->check->assertAllowed($user->refresh(), $payWith === 'wallet' ? 0 : $pence, true);
@@ -206,8 +208,24 @@ final class Orders
     }
 
     /** A wallet top up by card. */
+    /**
+     * Voluntary Code 1.4 (amendment 11): a player is offered a monthly spend limit at sign-up or after their first
+     * entry, before any further entry. Until they set one (£0 allowed) or choose to carry on without, the next paid
+     * entry or top-up is refused with "limits_prompt". Free postal entries are never held up by this.
+     */
+    public static function assertLimitsOffered(User $user): void
+    {
+        if ($user->limits_prompted_at !== null) {
+            return;
+        }
+        if (Order::query()->where('user_id', $user->id)->where('status', 'paid')->where('total_pence', '>', 0)->exists()) {
+            throw new RefusedException('Before your next entry, choose a monthly spending limit (you can set £0), or carry on without one.', 'limits_prompt', 409);
+        }
+    }
+
     public function deposit(User $user, int $amountPence): Order
     {
+        self::assertLimitsOffered($user);
         if ($amountPence < Settings::minDeposit()) {
             throw new RefusedException('The minimum top up is £'.number_format(Settings::minDeposit() / 100, 2).'.', 'deposit_minimum', 422, ['amountPence' => ['Below the minimum top up.']]);
         }
@@ -300,6 +318,13 @@ final class Orders
         }
         $order->forceFill(['status' => 'paid', 'paid_at' => now(), 'card_type' => $cardType,
             'card_hash' => $cardToken ? hash_hmac('sha256', $cardToken, (string) config('app.key')) : null])->save();
+        // Voluntary Code 1.3: a credit card where none was allowed (the payment page should have refused it). Nothing
+        // is issued or credited; a person refunds the card and gives back any wallet part.
+        if ($cardType === 'credit' && $order->card_pence > 0 && ! $order->credit_allowed) {
+            $this->fulfilment->flag($order, 'Paid by credit card where the Voluntary Code doesn’t allow one (instant wins, top-ups, memberships or over the monthly credit limit). Nothing issued: refund the card payment and any wallet part.');
+
+            return;
+        }
         if ($order->promo_code) {
             PromoCode::query()->where('code', $order->promo_code)->increment('uses');
         }
@@ -338,12 +363,14 @@ final class Orders
             'membership' => "{$site}/account/membership?paid={$order->number}",
             default => "{$site}/order/{$order->number}",
         };
+        // Voluntary Code 1.3: decided before the payment page opens, and kept on the order.
+        $order->forceFill(['credit_allowed' => CardRules::creditAllowed($order)])->save();
         try {
             $job = $this->gateway->createPaymentJob($order, $user->email, [
                 'success' => $success,
                 'failed' => "{$site}/payment/failed?order={$order->number}",
                 'cancelled' => "{$site}/payment/cancelled?order={$order->number}",
-            ], $recurringDays);
+            ], $recurringDays, ! $order->credit_allowed);
         } catch (\Throwable $e) {
             Log::warning('Payment page not opened', ['order' => $order->number]);
             $order->forceFill(['status' => 'pending_payment'])->save();

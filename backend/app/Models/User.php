@@ -51,6 +51,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
             'on_hold_at' => 'datetime',
             'closed_at' => 'datetime',
             'cool_off_until' => 'datetime',
+            'limits_prompted_at' => 'datetime',
             'self_excluded_until' => 'datetime',
         ];
     }

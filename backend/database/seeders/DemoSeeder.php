@@ -25,13 +25,14 @@ class DemoSeeder extends Seeder
         }
         Setting::put('sales_open', '1');
         // Demo competitions: most have no skill question so the browser tests can buy quickly; one has one (below).
-        Setting::put('require_skill_question', '0');
 
+        // Laptops and tests: the demo has more instant wins than draws, so the Voluntary Code 1.10 guard is off here.
+        Setting::put('code_instant_majority_guard', '0');
         $admin = User::query()->firstOrNew(['email' => 'admin@example.com']);
         $admin->forceFill(['first_name' => 'Sam', 'last_name' => 'Admin', 'password' => 'admin-password-123', 'email_verified_at' => now(), 'is_admin' => true, 'is_staff' => true])->save();
 
         $player = User::query()->firstOrNew(['email' => 'player@example.com']);
-        $player->forceFill(['first_name' => 'Liam', 'last_name' => 'Player', 'password' => 'password123', 'email_verified_at' => now(), 'date_of_birth' => '1990-01-01'])->save();
+        $player->forceFill(['first_name' => 'Liam', 'last_name' => 'Player', 'password' => 'password123', 'email_verified_at' => now(), 'date_of_birth' => '1990-01-01', 'limits_prompted_at' => now()])->save();
         app(Wallet::class)->credit($player, 'deposit', 1250, 'Sample top up', 'demo:player:deposit');
 
         $images = base_path('../frontend/mock-api/images');
@@ -62,7 +63,7 @@ class DemoSeeder extends Seeder
         // A competition with a skill question (SOW 2.2), answered at checkout.
         $make(['slug' => 'games-console-bundle', 'title' => 'Games Console Bundle', 'type' => 'draw', 'image' => 'competitions/board.webp', 'price_pence' => 99,
             'end_prize_name' => 'Games Console Bundle', 'end_prize_value_pence' => 50000, 'max_tickets' => 2000, 'max_per_person' => 2000, 'tags' => ['tech'],
-            'skill_question' => 'How many sides does a triangle have?', 'skill_options' => ['Two', 'Three', 'Four'], 'skill_answer' => 1]);
+            'skill_enabled' => true, 'skill_question' => 'How many sides does a triangle have?', 'skill_options' => ['Two', 'Three', 'Four'], 'skill_answer' => 1]);
         $make(['slug' => 'pro-dartboard-bundle', 'title' => 'Pro Dartboard Bundle', 'type' => 'draw', 'image' => 'competitions/board.webp', 'price_pence' => 49,
             'end_prize_name' => 'Pro Dartboard & Surround', 'end_prize_value_pence' => 6000, 'cash_alternative_pence' => 5000, 'max_tickets' => 999, 'max_per_person' => 999, 'bundles_enabled' => true, 'max_bundle_share_pct' => 10, 'prize_cost_pence' => 4000]);
 

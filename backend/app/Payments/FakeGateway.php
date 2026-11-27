@@ -15,11 +15,11 @@ final class FakeGateway implements PaymentGateway
     /** Tests: the next recurring charges answer this way ("paid", "failed", or null for no answer). */
     public static ?string $recurringResult = 'paid';
 
-    public function createPaymentJob(Order $order, string $email, array $returnUrls, ?int $recurringDays = null): array
+    public function createPaymentJob(Order $order, string $email, array $returnUrls, ?int $recurringDays = null, bool $debitOnly = false): array
     {
         $ref = 'FAKE-'.strtoupper(bin2hex(random_bytes(6)));
         $this->put($ref, ['number' => $order->number, 'amount' => $order->card_pence, 'status' => 'pending', 'cardType' => 'debit', 'return' => $returnUrls,
-            'recurringParent' => $recurringDays !== null]);
+            'recurringParent' => $recurringDays !== null, 'debitOnly' => $debitOnly]);
 
         return ['reference' => $ref, 'redirectUrl' => URL::to('/api/fake-pay/'.$ref)];
     }

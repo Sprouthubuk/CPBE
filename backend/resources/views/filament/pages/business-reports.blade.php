@@ -11,6 +11,16 @@
     $td = 'padding:6px 8px 6px 0;border-top:1px solid rgba(127,127,127,.2)';
 @endphp
 <x-filament-panels::page>
+    {{-- Amendment 3: near real time. The figures refresh every minute and say when they were worked out. --}}
+    <div wire:poll.60s style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;{{ $lab }}">
+        <span data-testid="as-of">Live figures · updated {{ now('Europe/London')->format('H:i:s') }} UK time · refreshes every minute</span>
+        <form method="get" action="/admin/users" style="display:flex;gap:6px">
+            <input name="tableSearch" placeholder="Find a player (email or name)" aria-label="Find a player" style="border-radius:8px;padding:6px 10px;background:transparent;border:1px solid rgba(127,127,127,.4)">
+        </form>
+        <form method="get" action="/admin/orders" style="display:flex;gap:6px">
+            <input name="tableSearch" placeholder="Find an order (CP-…)" aria-label="Find an order" style="border-radius:8px;padding:6px 10px;background:transparent;border:1px solid rgba(127,127,127,.4)">
+        </form>
+    </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between">
         <div style="display:flex;flex-wrap:wrap;gap:6px">
             @foreach (['overview' => 'Overview', 'competitions' => 'Competitions', 'customers' => 'Customers', 'marketing' => 'Marketing', 'operations' => 'Operations', 'detail' => 'Detailed Reports'] as $key => $label)
@@ -24,6 +34,8 @@
             <x-filament::button size="sm" color="gray" tag="a" :href="route('admin.reports.export', ['what' => 'orders', 'format' => 'xlsx', 'period' => $period])">Excel</x-filament::button>
             <x-filament::button size="sm" color="gray" tag="a" :href="route('admin.reports.export', ['what' => 'orders', 'format' => 'csv', 'period' => $period])">CSV</x-filament::button>
             <x-filament::button size="sm" color="gray" tag="a" target="_blank" :href="route('admin.reports.print', ['period' => $period])">PDF</x-filament::button>
+            <x-filament::button size="sm" color="gray" tag="a" :href="route('admin.reports.export', ['what' => 'daily', 'format' => 'csv', 'period' => $period])">Daily totals (accounts)</x-filament::button>
+            <x-filament::button size="sm" color="gray" tag="a" :href="route('admin.reports.export', ['what' => 'journal', 'format' => 'csv', 'period' => $period])">Journal (accounts)</x-filament::button>
         </div>
     </div>
 
@@ -31,6 +43,15 @@
         @php($c = $d['company'])
         @php($p = $d['previous'])
         @php($h = $d['headline'])
+        @if ($d['urgent'])
+            <x-filament::section heading="Needs Someone Now">
+                <div style="{{ $k }}">
+                    @foreach ($d['urgent'] as $u)
+                        <a href="{{ $u['url'] }}" style="{{ $tile }};text-decoration:none"><div style="{{ $lab }}">{{ $u['label'] }}</div><div style="{{ $big }}">{{ number_format($u['count']) }}</div></a>
+                    @endforeach
+                </div>
+            </x-filament::section>
+        @endif
         <x-filament::section heading="Sales">
             <div style="{{ $k }}">
                 @foreach (['today' => 'Today', 'week' => 'Last 7 days', 'month' => 'Last 30 days', 'year' => 'Last 12 months', 'all' => 'All time'] as $key => $label)
@@ -45,7 +66,16 @@
                     <div style="{{ $tile }}"><div style="{{ $lab }}">{{ $label }}</div><div style="{{ $big }}">{{ $m($c[$key]) }}</div><div style="{{ $lab }}">{{ $delta($c[$key], $p[$key]) ?? 'no earlier figure' }}</div></div>
                 @endforeach
                 <div style="{{ $tile }}"><div style="{{ $lab }}">Margin</div><div style="{{ $big }}">{{ $pct($c['marginPct']) }}</div><div style="{{ $lab }}">was {{ $pct($p['marginPct']) }}</div></div>
+                <div style="{{ $tile }}"><div style="{{ $lab }}">Revenue per entry</div><div style="{{ $big }}">{{ $m($c['effectivePerTicket']) }}</div><div style="{{ $lab }}">paid, free and bonus entries</div></div>
+                <div style="{{ $tile }}"><div style="{{ $lab }}">VAT</div><div style="{{ $big }}">{{ $c['vatPct'] ? $m($c['vat']) : 'None' }}</div><div style="{{ $lab }}">{{ $c['vatPct'] ? $c['vatPct'].'% included in prices' : 'set a rate in Settings if registered' }}</div></div>
             </div>
+            <div style="{{ $lab }};margin-top:8px">These are actual results for the period. Forecasts are on the Competitions tab and in the At Risk list.</div>
+            @if ($c['missingCosts'])
+                <div style="margin-top:12px;padding:10px 12px;border:1px solid rgba(245,158,11,.5);border-radius:10px" data-testid="missing-costs">
+                    <b>Costs not recorded yet</b>: the profit above leaves these out.
+                    <ul style="margin:6px 0 0 18px;list-style:disc">@foreach ($c['missingCosts'] as $mc)<li>{{ $mc }}</li>@endforeach</ul>
+                </div>
+            @endif
         </x-filament::section>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
             <x-filament::section heading="Entries">
@@ -80,19 +110,24 @@
     @elseif ($tab === 'competitions')
         <x-filament::section heading="Competitions" description="Live and closed in the last 14 days. Forecasts use the last 24 hours’ sales speed.">
             <div style="overflow-x:auto"><table style="width:100%;font-size:13px;border-collapse:collapse;min-width:980px">
-                <tr>@foreach (['Competition', 'Status', 'Sold', 'Revenue', 'Tickets/hour', 'Forecast sold', 'Sell-out', 'Forecast revenue', 'Prize cost', 'Break-even', 'Profit so far', 'Forecast profit'] as $h)<th style="{{ $th }}">{{ $h }}</th>@endforeach</tr>
+                <tr>@foreach (['Competition', 'Status', 'Sold', 'Left', 'Revenue', 'Per entry', 'Tickets/hour', 'Forecast sold', 'Sell-out', 'Forecast revenue', 'Prize cost', 'Break-even', 'Profit so far', 'Forecast profit'] as $h)<th style="{{ $th }}">{{ $h }}</th>@endforeach</tr>
                 @forelse ($d['competitions'] as $r)
                     <tr style="{{ $r['atRisk'] ? 'background:rgba(239,68,68,.08)' : '' }}">
-                        <td style="{{ $td }}">{{ $r['title'] }}</td><td style="{{ $td }}">{{ str_replace('_', ' ', $r['status']) }}</td>
-                        <td style="{{ $td }}">{{ number_format($r['sold']) }} / {{ number_format($r['max']) }} ({{ $r['soldPct'] }}%)</td><td style="{{ $td }}">{{ $m($r['revenue']) }}</td>
+                        <td style="{{ $td }}"><a href="{{ \App\Filament\Resources\Competitions\CompetitionResource::getUrl('edit', ['record' => $r['id']]) }}" style="text-decoration:underline">{{ $r['title'] }}</a></td><td style="{{ $td }}">{{ str_replace('_', ' ', $r['status']) }}</td>
+                        <td style="{{ $td }}">{{ number_format($r['sold']) }} / {{ number_format($r['max']) }} ({{ $r['soldPct'] }}%)</td><td style="{{ $td }}">{{ number_format($r['left']) }}</td><td style="{{ $td }}">{{ $m($r['revenue']) }}</td><td style="{{ $td }}">{{ $m($r['effectivePerTicket']) }}</td>
                         <td style="{{ $td }}">{{ $r['perHour'] }}</td><td style="{{ $td }}">{{ $r['forecastPct'] }}%</td>
                         <td style="{{ $td }}">{{ $r['sellOutAt'] ? $r['sellOutAt']->timezone('Europe/London')->format('j M H:i') : '—' }}</td>
                         <td style="{{ $td }}">{{ $m($r['forecastRevenue']) }}</td><td style="{{ $td }}">{{ $m($r['prizeCost']) }}</td>
                         <td style="{{ $td }}">{{ $r['breakEvenTickets'] !== null ? number_format($r['breakEvenTickets']) : '—' }}</td>
                         <td style="{{ $td }}">{{ $m($r['profitSoFar']) }}</td><td style="{{ $td }}">{{ $m($r['forecastProfit']) }}</td>
                     </tr>
-                @empty <tr><td style="{{ $td }}" colspan="12">No competitions yet.</td></tr>
+                @empty <tr><td style="{{ $td }}" colspan="14">No competitions yet.</td></tr>
                 @endforelse
+            </table></div>
+            <h3 style="margin:16px 0 6px;font-weight:600">Profit At Each Sell-Through</h3>
+            <div style="overflow-x:auto"><table style="width:100%;font-size:13px;border-collapse:collapse;min-width:760px" data-testid="scenarios">
+                <tr><th style="{{ $th }}">Competition</th>@foreach ([30, 40, 50, 60, 70, 80, 90, 100] as $s)<th style="{{ $th }}">{{ $s }}%</th>@endforeach</tr>
+                @foreach ($d['competitions'] as $r)<tr><td style="{{ $td }}">{{ $r['title'] }}</td>@foreach ($r['scenarios'] as $v)<td style="{{ $td }};{{ $v < 0 ? 'color:#ef4444' : '' }}">{{ $m($v) }}</td>@endforeach</tr>@endforeach
             </table></div>
             <div style="margin-top:10px"><x-filament::button size="sm" color="gray" tag="a" :href="route('admin.reports.export', ['what' => 'competitions', 'format' => 'xlsx', 'period' => $period])">Export to Excel</x-filament::button></div>
         </x-filament::section>
@@ -119,9 +154,9 @@
                     <div style="{{ $tile }}"><div style="{{ $lab }}">{{ $label }}</div><div style="{{ $big }}">{{ $v }}</div></div>
                 @endforeach
             </div>
-            <table style="width:100%;font-size:14px;border-collapse:collapse;margin-top:12px"><tr>@foreach (['Channel', 'Spend', 'Revenue', 'ROAS', 'New customers', 'Cost per new customer'] as $h)<th style="{{ $th }}">{{ $h }}</th>@endforeach</tr>
-            @forelse ($mk['rows'] as $r)<tr><td style="{{ $td }}">{{ $r['channel'] }}</td><td style="{{ $td }}">{{ $m($r['spend']) }}</td><td style="{{ $td }}">{{ $m($r['revenue']) }}</td><td style="{{ $td }}">{{ $r['roas'] !== null ? $r['roas'].'x' : '—' }}</td><td style="{{ $td }}">{{ $r['newCustomers'] }}</td><td style="{{ $td }}">{{ $m($r['cpa']) }}</td></tr>
-            @empty <tr><td style="{{ $td }}" colspan="6">No data for this period yet.</td></tr> @endforelse
+            <table style="width:100%;font-size:14px;border-collapse:collapse;margin-top:12px"><tr>@foreach (['Channel', 'Spend', 'Revenue', 'ROAS', 'New customers', 'Cost per new customer', 'Checkout conversion', 'Profit'] as $h)<th style="{{ $th }}">{{ $h }}</th>@endforeach</tr>
+            @forelse ($mk['rows'] as $r)<tr><td style="{{ $td }}">{{ $r['channel'] }}</td><td style="{{ $td }}">{{ $m($r['spend']) }}</td><td style="{{ $td }}">{{ $m($r['revenue']) }}</td><td style="{{ $td }}">{{ $r['roas'] !== null ? $r['roas'].'x' : '—' }}</td><td style="{{ $td }}">{{ $r['newCustomers'] }}</td><td style="{{ $td }}">{{ $m($r['cpa']) }}</td><td style="{{ $td }}">{{ $pct($r['conversionPct']) }}</td><td style="{{ $td }};{{ $r['profit'] < 0 ? 'color:#ef4444' : '' }}">{{ $m($r['profit']) }}</td></tr>
+            @empty <tr><td style="{{ $td }}" colspan="8">No data for this period yet.</td></tr> @endforelse
             </table>
         </x-filament::section>
     @elseif ($tab === 'operations')
@@ -132,6 +167,15 @@
                     <div style="{{ $tile }}"><div style="{{ $lab }}">{{ $label }}</div><div style="{{ $big }}">{{ number_format($v) }}</div></div>
                 @endforeach
             </div>
+            <div style="{{ $k }};margin-top:12px">
+                @foreach ([['Open complaints', $o['complaints']], ['Unanswered messages', $o['unansweredMessages']], ['System errors (24 hours)', $o['systemErrors']]] as [$label, $v])
+                    <div style="{{ $tile }}"><div style="{{ $lab }}">{{ $label }}</div><div style="{{ $big }}">{{ number_format($v) }}</div></div>
+                @endforeach
+            </div>
+            @if ($o['urgent'])
+                <h3 style="margin:16px 0 6px;font-weight:600">Urgent Tasks</h3>
+                <ul style="margin:0 0 0 18px;list-style:disc">@foreach ($o['urgent'] as $u)<li><a href="{{ $u['url'] }}" style="text-decoration:underline">{{ $u['label'] }}: {{ $u['count'] }}</a></li>@endforeach</ul>
+            @endif
             <h3 style="margin:16px 0 6px;font-weight:600">Unusual activity</h3>
             @if ($o['busyIps']) <table style="font-size:14px;border-collapse:collapse"><tr><th style="{{ $th }}">IP address</th><th style="{{ $th }}">Orders in the last hour</th></tr>@foreach ($o['busyIps'] as $ip => $n)<tr><td style="{{ $td }}">{{ $ip }}</td><td style="{{ $td }}">{{ $n }}</td></tr>@endforeach</table>
             @else <p style="{{ $lab }}">Nothing unusual in the last hour.</p> @endif

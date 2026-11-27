@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { api, ApiFailure, errorText } from "../lib/api";
+import LimitsPrompt from "./LimitsPrompt";
+import { ApiFailure, api, errorText } from "../lib/api";
 import { formatMoney, parsePounds } from "../lib/money";
 import { Svg } from "./Svg";
 
@@ -10,6 +11,7 @@ export default function WalletActions({ minDepositPence, maxTopUpPence, minWithd
   const [amount, setAmount] = useState<number | null>(presets[2] ?? presets[0] ?? minDepositPence);
   // Coming from checkout with a shortfall: the amount that covers it, typed in for the player to confirm.
   const [custom, setCustom] = useState(suggestPence ? (suggestPence / 100).toFixed(2) : "");
+  const [needLimits, setNeedLimits] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wAmount, setWAmount] = useState("");
@@ -29,7 +31,8 @@ export default function WalletActions({ minDepositPence, maxTopUpPence, minWithd
       const r = await api<{ redirectUrl: string }>("/api/me/deposits", { json: { amountPence: chosen } });
       window.location.assign(r.redirectUrl);
     } catch (e) {
-      setError(errorText(e, "amountPence"));
+      if (e instanceof ApiFailure && e.body?.code === "limits_prompt") setNeedLimits(true);
+      else setError(errorText(e, "amountPence"));
       setBusy(false);
     }
   }
@@ -74,8 +77,10 @@ export default function WalletActions({ minDepositPence, maxTopUpPence, minWithd
 
   return (
     <div className="split" style={{ gap: 16 }}>
+      {needLimits && <LimitsPrompt onDone={() => { setNeedLimits(false); void topUp(); }} />}
       <div className="card card-hot card-p stack g12" id="top-up">
         <h2 className="h3">Top Up</h2>
+        <p className="hint" style={{ margin: 0 }}>Top-ups are by debit card.</p>
         <div className="r4" role="radiogroup" aria-label="Amount">
           {presets.map((p) => (
             <button key={p} type="button" role="radio" aria-checked={!custom && amount === p} className={!custom && amount === p ? "pick on" : "pick"} onClick={() => { setAmount(p); setCustom(""); }}>{formatMoney(p).replace(".00", "")}</button>

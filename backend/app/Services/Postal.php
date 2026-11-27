@@ -21,10 +21,39 @@ final class Postal
 {
     public function __construct(private PlayCheck $check, private Fulfilment $fulfilment) {}
 
-    public function log(Competition $c, string $email, Carbon $receivedAt, User $admin): PostalEntry
+    public function log(Competition $c, string $email, Carbon $receivedAt, User $admin, string $source = 'admin'): PostalEntry
     {
         $user = User::query()->where('email', strtolower(trim($email)))->whereNotNull('email_verified_at')->first();
-        $refuse = fn (string $why) => $this->record($c, $user, $receivedAt, $admin, 'refused', $why);
+
+        return $this->enter($c, $user, $receivedAt, $admin, ['source' => $source]);
+    }
+
+    /**
+     * Amendment 7: an envelope matched by the reference the player wrote on it, from an admin's CSV or the postal
+     * entry provider (no admin). A provider id seen before returns the entry already made, so a resubmission
+     * enters once. An unknown reference can't be matched to a competition and is returned, not entered.
+     *
+     * @return array{status: string, reason: ?string, entry: ?PostalEntry}
+     */
+    public function logReference(string $reference, Carbon $receivedAt, ?User $admin, ?string $providerRef = null, string $source = 'provider'): array
+    {
+        $code = \App\Models\PostalReference::normalise($reference);
+        if ($providerRef !== null && ($seen = PostalEntry::query()->where('provider_ref', $providerRef)->first())) {
+            return ['status' => $seen->status, 'reason' => $seen->reason, 'entry' => $seen, 'duplicate' => true];
+        }
+        $ref = $code !== '' ? \App\Models\PostalReference::query()->with(['user', 'competition'])->where('code', $code)->first() : null;
+        if (! $ref) {
+            return ['status' => 'unmatched', 'reason' => 'No entrant has that reference.', 'entry' => null];
+        }
+        $user = $ref->user->email_verified_at ? $ref->user : null;
+        $p = $this->enter($ref->competition, $user, $receivedAt, $admin, ['source' => $source, 'reference' => $code, 'provider_ref' => $providerRef]);
+
+        return ['status' => $p->status, 'reason' => $p->reason, 'entry' => $p];
+    }
+
+    private function enter(Competition $c, ?User $user, Carbon $receivedAt, ?User $admin, array $meta): PostalEntry
+    {
+        $refuse = fn (string $why) => $this->record($c, $user, $receivedAt, $admin, 'refused', $why, null, $meta);
 
         if (! $c->verity_ref) {
             return $refuse('The competition isn’t published.');
@@ -44,7 +73,7 @@ final class Postal
             return $refuse($e->getMessage());
         }
 
-        return DB::transaction(function () use ($c, $user, $receivedAt, $admin, $refuse) {
+        return DB::transaction(function () use ($c, $user, $receivedAt, $admin, $refuse, $meta) {
             try {
                 $group = Verity::addPostalEntry($c->verity_ref, $user->ownerRef(), ['ordered_at' => $receivedAt]);
             } catch (VerityException $e) {
@@ -54,7 +83,7 @@ final class Postal
                 $this->fulfilment->playAll($group->reference);
             }
 
-            $entry = $this->record($c, $user, $receivedAt, $admin, 'entered', null, $group->reference);
+            $entry = $this->record($c, $user, $receivedAt, $admin, 'entered', null, $group->reference, $meta);
             $tickets = \Sprouthub\Verity\Models\Entry::query()->where('entry_group_id', $group->id)->orderBy('number')->pluck('number')->map(fn ($n) => (int) $n)->all();
             DB::afterCommit(function () use ($user, $c, $tickets) {
                 try {
@@ -74,14 +103,28 @@ final class Postal
      *
      * @return array{entered: int, refused: int, rows: list<array{line: int, email: string, status: string, reason: ?string}>}
      */
-    public function importCsv(Competition $c, string $csv, User $admin): array
+    public function importCsv(?Competition $c, string $csv, User $admin): array
     {
         $rows = \App\Support\Csv::rows($csv, 2000);
-        if ($rows && ! array_key_exists('email', $rows[0])) {
-            throw new \InvalidArgumentException('The file needs an "email" column (and "received_at").');
+        $byReference = $rows && array_key_exists('reference', $rows[0]);
+        if ($rows && ! $byReference && ! array_key_exists('email', $rows[0])) {
+            throw new \InvalidArgumentException('The file needs a "reference" column (amendment 7) or an "email" column, and "received_at".');
+        }
+        if ($rows && ! $byReference && ! $c) {
+            throw new \InvalidArgumentException('Choose the competition: this file matches entrants by email.');
         }
         $out = ['entered' => 0, 'refused' => 0, 'rows' => []];
         foreach ($rows as $i => $r) {
+            if ($byReference) {
+                // The reference decides the player and the competition; an optional "id" column is the provider's own id.
+                $at = self::ukTime($r['received_at'] ?? '');
+                $res = $at ? $this->logReference($r['reference'] ?? '', $at, $admin, ($r['id'] ?? '') !== '' ? 'csv:'.$r['id'] : null, 'csv')
+                    : ['status' => 'skipped', 'reason' => 'Missing received time.'];
+                $out[$res['status'] === 'entered' ? 'entered' : 'refused']++;
+                $out['rows'][] = ['line' => $i + 2, 'email' => $r['reference'] ?? '', 'status' => $res['status'], 'reason' => $res['reason']];
+
+                continue;
+            }
             $email = $r['email'] ?? '';
             $at = self::ukTime($r['received_at'] ?? '');
             if ($email === '' || ! $at || trim($r['received_at'] ?? '') === '') {
@@ -119,13 +162,16 @@ final class Postal
         return null;
     }
 
-    private function record(Competition $c, ?User $user, Carbon $at, User $admin, string $status, ?string $reason, ?string $group = null): PostalEntry
+    private function record(Competition $c, ?User $user, Carbon $at, ?User $admin, string $status, ?string $reason, ?string $group = null, array $meta = []): PostalEntry
     {
         $p = PostalEntry::query()->create([
             'competition_id' => $c->id, 'user_id' => $user?->id, 'received_at' => $at, 'status' => $status,
-            'reason' => $reason, 'entry_group_ref' => $group, 'logged_by' => $admin->id,
+            'reason' => $reason, 'entry_group_ref' => $group, 'logged_by' => $admin?->id,
+            'source' => $meta['source'] ?? 'admin', 'reference' => $meta['reference'] ?? null, 'provider_ref' => $meta['provider_ref'] ?? null,
         ]);
-        AdminAction::record($admin, 'postal.'.$status, $c->id, $reason, ['user' => $user?->id]);
+        if ($admin) {
+            AdminAction::record($admin, 'postal.'.$status, $c->id, $reason, ['user' => $user?->id, 'source' => $meta['source'] ?? 'admin']);
+        }
 
         return $p;
     }

@@ -17,7 +17,7 @@ final class Pricing
 {
     public const MAX_LINES = 20;
 
-    public function __construct(private CompetitionState $state, private Wallet $wallet, private PlayCheck $check, private Bundles $bundles) {}
+    public function __construct(private CompetitionState $state, private Wallet $wallet, private PlayCheck $check, private Bundles $bundles, private PriceRules $rules) {}
 
     /**
      * @param  array<int, array{competitionId:string, quantity?:int, bundleId?:int|null}>  $lines
@@ -51,8 +51,12 @@ final class Pricing
         // while the basket still holds what the box packed (a released or paid box gives no bonus).
         $boxes = $boxIds ? VaultCase::query()->whereIn('id', array_unique($boxIds))->whereNotIn('status', ['released', 'paid'])->get()->keyBy('id') : collect();
         $this->state->ignoreBoxes($boxes->keys()->all());
-        $competitions = Competition::query()->with('bundleTiers')->whereIn('id', $ids)->get()->keyBy('id');
+        $competitions = Competition::query()->with(['bundleTiers', 'priceRules'])->whereIn('id', $ids)->get()->keyBy('id');
         $owner = $user?->ownerRef();
+        // Amendment 4: the member's tier whose perks apply now (ticket discount, members-only competitions).
+        $m = $user ? \App\Models\Membership::query()->with('tier')->where('user_id', $user->id)->whereIn('status', \App\Models\Membership::CURRENT)->latest('id')->first() : null;
+        $tier = $m && $m->perksOn() ? $m->tier : null;
+        $discountPct = (int) ($tier?->ticket_discount_pct ?? 0);
         $out = [];
         $problems = [];
         $subtotal = 0;
@@ -68,14 +72,24 @@ final class Pricing
             }
             $max = $this->state->canBuy($c, $owner);
             $status = $this->state->status($c);
+            $membersOnly = array_map('intval', (array) ($c->members_only_tier_ids ?? []));
             $closed = match (true) {
+                $membersOnly !== [] && ! in_array((int) $tier?->id, $membersOnly, true) => 'This competition is for members only. You can still enter free by post.',
                 $status === 'sold_out' => 'Sold out.',
                 $status !== 'live' => 'This competition is closed.',
                 $max === 0 && $this->state->left($c) - $this->state->reserved($c) <= 0 => 'The last tickets are being paid for right now. Try again in a few minutes.',
                 $max === 0 => "You can't buy more tickets for this competition.",
                 default => null,
             };
+            // Amendment 5: the price, bonus tickets and bundles the competition's rules give now, and (live
+            // draws) how many of its tickets are on sale so far.
+            $rule = $this->rules->now($c);
+            $unit = self::memberPrice($rule['unitPence'], $discountPct);
             $room = $max;
+            if ($rule['releaseLeft'] !== null) {
+                $room = min($room, max(0, $rule['releaseLeft'] - $this->state->reserved($c)));
+                $closed ??= $room === 0 ? 'All the tickets on sale for now are taken. More go on sale soon.' : null;
+            }
             $offers = $closed ? [] : $this->bundles->available($c, max(0, $room));
 
             if (isset($bundleIds[$id])) {
@@ -84,9 +98,9 @@ final class Pricing
                 $paid = $offer['paid'] ?? (int) ($tier?->paid_qty ?? 0);
                 $free = $offer['free'] ?? (int) ($tier?->free_qty ?? 0);
                 $problem = $closed ?? ($offer ? null : 'This bundle is no longer available. Please choose a smaller one.');
-                $line = $paid * $c->price_pence;
-                $out[] = $this->line($c, $paid + $free, $line, $problem, ['bundleId' => $tier?->id, 'bundleLabel' => $offer['label'] ?? $tier?->displayLabel(), 'paidQuantity' => $paid, 'freeQuantity' => $free])
-                    + ['upgrade' => $problem ? null : $this->upgrade($c, $offers, $paid, $paid + $free)];
+                $line = $paid * $unit;
+                $out[] = $this->line($c, $unit, $paid + $free, $line, $problem, ['bundleId' => $tier?->id, 'bundleLabel' => $offer['label'] ?? $tier?->displayLabel(), 'paidQuantity' => $paid, 'freeQuantity' => $free])
+                    + ['upgrade' => $problem ? null : $this->upgrade($unit, $offers, $paid, $paid + $free)];
                 $subtotal += $line;
                 $count += $paid + $free;
                 $room -= $paid + $free;
@@ -100,12 +114,14 @@ final class Pricing
                     ! isset($bundleIds[$id]) && $qty < (int) ($c->min_tickets ?: 1) && $qty < $room => 'The minimum for this competition is '.number_format((int) $c->min_tickets).' tickets.',
                     default => null,
                 };
-                $line = $qty * $c->price_pence;
-                $out[] = $this->line($c, $qty, $line, $problem, ['bundleId' => null, 'bundleLabel' => null, 'paidQuantity' => $qty, 'freeQuantity' => 0])
-                    + ['upgrade' => $problem || isset($bundleIds[$id]) ? null : $this->upgrade($c, $offers, $qty, $qty)];
+                $line = $qty * $unit;
+                // A bonus-ticket rule ("buy 5, get 1 free"): free tickets on the single tickets, entered like paid ones.
+                $extra = $problem ? 0 : min(PriceRules::bonusFor($rule['bonus'], $qty), max(0, $room - $qty));
+                $out[] = $this->line($c, $unit, $qty + $extra, $line, $problem, ['bundleId' => null, 'bundleLabel' => null, 'paidQuantity' => $qty, 'freeQuantity' => $extra])
+                    + ['upgrade' => $problem || isset($bundleIds[$id]) ? null : $this->upgrade($unit, $offers, $qty, $qty)];
                 $subtotal += $line;
                 $singlesSubtotal += $line;
-                $count += $qty;
+                $count += $qty + $extra;
             }
             $wanted = ! $closed && isset($boxIds[$id]) ? $this->boxBonus($boxes->get($boxIds[$id]), $c, $bundleIds[$id] ?? null, $singles[$id] ?? 0, max(0, $room - ($singles[$id] ?? 0))) : 0;
             // The draw's promo ticket cap (PromoCap): paid tickets are still sold, the bonus stops.
@@ -153,8 +169,15 @@ final class Pricing
         }
         $loyaltyPoints = $total > 0 ? app(Loyalty::class)->estimate($user, $perCompetition, $total) : [];
 
+        // Voluntary Code 1.3, told before paying: instant wins, or draws past the monthly credit card limit, are debit only.
+        $hasInstant = collect($out)->contains(fn ($l) => $l['type'] === 'instant');
+        $cardNote = $total > 0 && ($hasInstant || ($user && CardRules::creditUsedThisMonth($user->id) + $total > CardRules::monthlyCapPence()))
+            ? ($hasInstant ? 'Instant wins can’t be paid by credit card: please use a debit card.' : 'You’ve reached this month’s credit card limit for draws: please use a debit card.')
+            : null;
+
         return [
             'lines' => $out,
+            'cardNote' => $cardNote,
             'totalPence' => $total,
             'subtotalPence' => $subtotal,
             'ticketCount' => $count,
@@ -167,12 +190,23 @@ final class Pricing
         ];
     }
 
-    /** One priced line. No count of what's left goes to the browser. */
-    private function line(Competition $c, int $tickets, int $linePence, ?string $problem, array $bundle): array
+    /** Amendment 4: a member's ticket discount, rounded down to the penny and never below 1p. */
+    public static function memberPrice(int $unit, int $discountPct): int
     {
+        return $discountPct > 0 ? max(1, intdiv($unit * (100 - min(90, $discountPct)), 100)) : $unit;
+    }
+
+    /** One priced line. No count of what's left goes to the browser. */
+    private function line(Competition $c, int $unit, int $tickets, int $linePence, ?string $problem, array $bundle): array
+    {
+        $rule = $this->rules->now($c);
+
         return [
             'competitionId' => $c->id, 'slug' => $c->slug, 'title' => $c->title, ...$c->pictureFields(), 'type' => $c->type,
-            'quantity' => $tickets, ...$bundle, 'bonusQuantity' => 0, 'source' => null, 'vaultCaseId' => null, 'unitPence' => $c->price_pence, 'linePence' => $linePence,
+            'quantity' => $tickets, ...$bundle, 'bonusQuantity' => 0, 'source' => null, 'vaultCaseId' => null, 'unitPence' => $unit, 'linePence' => $linePence,
+            // Amendment 5: the offer that set this price or added bonus tickets, if any.
+            'offerLabel' => $rule['label'], 'priceRuleId' => $rule['ruleId'],
+            'memberPrice' => $unit < $rule['unitPence'],
             'minQuantity' => (int) ($c->min_tickets ?: 1), 'problem' => $problem, 'notice' => null,
             // SOW 2.2: the question to answer before paying (never the answer).
             'skillQuestion' => $c->hasSkillQuestion() ? ['question' => $c->skill_question, 'options' => array_values($c->skill_options)] : null,
@@ -185,12 +219,12 @@ final class Pricing
      *
      * @param  list<array{tier: BundleTier, paid: int, free: int, total: int, label: string, featured: bool}>  $offers
      */
-    private function upgrade(Competition $c, array $offers, int $paidNow, int $ticketsNow): ?array
+    private function upgrade(int $unit, array $offers, int $paidNow, int $ticketsNow): ?array
     {
         $next = collect($offers)->filter(fn ($o) => $o['paid'] >= $paidNow && $o['total'] > $ticketsNow)->sortBy('total')->first();
 
         return $next ? ['bundleId' => $next['tier']->id, 'label' => $next['label'], 'tickets' => $next['total'], 'freeQuantity' => $next['free'],
-            'extraPence' => ($next['paid'] - $paidNow) * $c->price_pence] : null;
+            'extraPence' => ($next['paid'] - $paidNow) * $unit] : null;
     }
 
     /**

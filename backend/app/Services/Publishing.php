@@ -18,6 +18,14 @@ final class Publishing
     public const MAX_END_PRIZES = 50;
 
     /** @return list<string> what stops this competition being published */
+    /** @return array{0: int, 1: int} instant wins running, all competitions running (published and not yet closed). */
+    public static function running(): array
+    {
+        $open = Competition::query()->published()->where('closes_at', '>', now());
+
+        return [(clone $open)->where('type', 'instant')->count(), $open->count()];
+    }
+
     public function problems(Competition $c): array
     {
         $p = [];
@@ -36,7 +44,7 @@ final class Publishing
         if (! $c->image) {
             $p[] = 'Add a picture.';
         }
-        if (\App\Models\Setting::bool('require_skill_question') && ! $c->hasSkillQuestion()) {
+        if ($c->skill_enabled && ! $c->hasSkillQuestion()) {
             $p[] = 'Add the skill question every paid entry must answer.';
         }
         if ($c->isInstant()) {
@@ -52,6 +60,11 @@ final class Publishing
             }
             if (! in_array($c->game, GameIds::games(), true)) {
                 $p[] = 'Choose a reveal game.';
+            }
+            // Voluntary Code 1.10: instant wins must never be the majority of the competitions running.
+            [$instant, $all] = self::running();
+            if (\App\Models\Setting::bool('code_instant_majority_guard') && ($instant + 1) * 2 > $all + 1) {
+                $p[] = 'Instant wins can’t be more than half of the competitions running (Voluntary Code 1.10): there are '.$instant.' instant wins and '.($all - $instant).' draws open. Publish a draw first.';
             }
         } elseif (! $c->end_prize_name) {
             $p[] = 'A draw needs its prize.';
@@ -107,6 +120,7 @@ final class Publishing
             $v = Verity::publish($terms, $endPrizes, $instant);
             $c->forceFill(['verity_ref' => $v->ref, 'published_at' => now()])->saveQuietly();
             AdminAction::record($admin, 'competition.published', $c->id, null, ['verity_ref' => $v->ref]);
+            Webhooks::fire('competition.published', WebhookEvents::competition($c));
 
             return $c->refresh();
         });

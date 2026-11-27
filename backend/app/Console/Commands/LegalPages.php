@@ -23,6 +23,8 @@ class LegalPages extends Command
         'privacy' => ['Privacy Policy', '2.1'],
         'cookies' => ['Cookie Policy', '2.0'],
         'complaints' => ['Complaints', '2.0'],
+        // Amendment 11: the Voluntary Code says operators publish their player protection measures (Code 3.4).
+        'player-protection' => ['Player Protection', '1.0'],
     ];
 
     /** Wording written but not yet approved: loaded only with --drafts, never by a normal deploy. */

@@ -15,7 +15,7 @@ class SkillQuestionTest extends TestCase
     private function withQuestion(array $attrs = []): Competition
     {
         return $this->competition('draw', $attrs + ['price_pence' => 100, 'max_tickets' => 1000, 'max_per_person' => 1000,
-            'skill_question' => 'What is 2 + 3?', 'skill_options' => ['4', '5', '6'], 'skill_answer' => 1]);
+            'skill_enabled' => true, 'skill_question' => 'What is 2 + 3?', 'skill_options' => ['4', '5', '6'], 'skill_answer' => 1]);
     }
 
     private function checkout($u, Competition $c, ?int $answer)
@@ -25,13 +25,19 @@ class SkillQuestionTest extends TestCase
         return $this->actingAs($u)->postJson('/api/checkout', ['lines' => [$line], 'payWith' => 'wallet', 'useWallet' => true, 'requestId' => (string) Str::uuid()]);
     }
 
-    public function test_publishing_needs_a_skill_question(): void
+    public function test_the_skill_question_is_off_unless_switched_on_for_the_competition(): void
     {
-        Setting::put('require_skill_question', '1');
-        $c = $this->competition('draw', [], [], false);
-        $this->assertContains('Add the skill question every paid entry must answer.', app(Publishing::class)->problems($c));
-        $this->withQuestion(); // publishes fine
-        $this->assertSame(1, Competition::query()->whereNotNull('verity_ref')->count());
+        // Amendment 6: off by default; a question written but not switched on isn't asked.
+        $off = $this->competition('draw', ['price_pence' => 100, 'max_tickets' => 1000, 'max_per_person' => 1000,
+            'skill_question' => 'What is 2 + 3?', 'skill_options' => ['4', '5', '6'], 'skill_answer' => 1]);
+        $this->assertFalse($off->refresh()->skill_enabled);
+        $this->assertFalse($off->hasSkillQuestion());
+        $u = $this->player();
+        $this->topUp($u, 1000);
+        $this->checkout($u, $off, null)->assertSuccessful();
+
+        $this->expectException(\DomainException::class);
+        $this->competition('draw', ['skill_enabled' => true], [], false); // switched on with no question
     }
 
     public function test_a_question_needs_two_to_five_answers_and_the_right_one(): void

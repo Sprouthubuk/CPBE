@@ -17,10 +17,10 @@ class Competition extends Model
     protected $guarded = ['id', 'verity_ref', 'published_at'];
 
     /** Once published, these are Verity's terms and never change. */
-    /** SOW 2.2: a paid entry needs the right answer. Whether the question is set and well formed. */
+    /** Amendment 6: a paid entry needs the right answer only when the skill question is switched on and well formed. */
     public function hasSkillQuestion(): bool
     {
-        return $this->skill_question !== null && trim($this->skill_question) !== '' && is_array($this->skill_options) && count($this->skill_options) >= 2;
+        return (bool) $this->skill_enabled && $this->skill_question !== null && trim($this->skill_question) !== '' && is_array($this->skill_options) && count($this->skill_options) >= 2;
     }
 
     public function skillAnswerIsRight(mixed $answer): bool
@@ -40,6 +40,8 @@ class Competition extends Model
             'skill_options' => 'array',
             'tags' => 'array',
             'featured' => 'boolean',
+            'members_only_tier_ids' => 'array',
+            'skill_enabled' => 'boolean',
             'bundles_enabled' => 'boolean',
             'vault_case_enabled' => 'boolean',
             'promo_ticket_cap_pct' => 'decimal:2',
@@ -60,6 +62,9 @@ class Competition extends Model
             }
         });
         static::saving(function (Competition $c) {
+            if ($c->skill_enabled && ($c->skill_question === null || trim((string) $c->skill_question) === '')) {
+                throw new \DomainException('Write the skill question, or switch it off.');
+            }
             if ($c->skill_question !== null && trim((string) $c->skill_question) !== '') {
                 $opts = array_values(array_filter(array_map(fn ($o) => trim((string) $o), (array) $c->skill_options), fn ($o) => $o !== ''));
                 if (count($opts) < 2 || count($opts) > 5 || $c->skill_answer === null || ! isset($opts[(int) $c->skill_answer])) {
@@ -156,6 +161,12 @@ class Competition extends Model
     public function bundleTiers(): BelongsToMany
     {
         return $this->belongsToMany(BundleTier::class, 'competition_bundle_tier')->withPivot(['is_featured', 'override_label'])->orderBy('sort_order')->orderBy('paid_qty');
+    }
+
+    /** Amendment 5: automatic pricing and offer rules, first match wins per setting. */
+    public function priceRules(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(CompetitionPriceRule::class)->orderBy('sort')->orderBy('id');
     }
 
     /** Bundles apply to live draws that have them switched on. */

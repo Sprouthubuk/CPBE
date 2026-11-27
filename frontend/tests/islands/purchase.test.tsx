@@ -164,6 +164,38 @@ describe("checkout", () => {
     expect(typeof co.requestId).toBe("string");
   });
 
+  it("offers a monthly limit before a second entry, then carries on (Voluntary Code 1.4)", async () => {
+    let first = true;
+    const calls: { url: string; body: any }[] = [];
+    document.cookie = "XSRF-TOKEN=tok";
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      const body = init?.body ? JSON.parse(String(init.body)) : null;
+      calls.push({ url, body });
+      if (url.includes("csrf-cookie")) return new Response(null, { status: 204 });
+      if (url.endsWith("/api/basket/price")) return Response.json(priced(250, true));
+      if (url.endsWith("/api/me/limits/skip")) return Response.json({ ok: true });
+      if (url.endsWith("/api/checkout")) {
+        if (first) { first = false; return Response.json({ message: "Before your next entry, choose a monthly spending limit.", code: "limits_prompt" }, { status: 409 }); }
+        return Response.json({ order: { number: "CP-9" }, next: "play" });
+      }
+      return new Response("{}", { status: 404 });
+    }));
+    render(<CheckoutView buy="c1:10" walletPence={1250} minCardPence={100} />);
+    fireEvent.click(await screen.findByTestId("pay"));
+    fireEvent.click(await screen.findByTestId("limits-skip"));
+    await waitFor(() => expect(window.location.assign).toHaveBeenCalledWith("/order/CP-9"));
+    expect(calls.filter((c) => c.url.endsWith("/api/checkout"))).toHaveLength(2);
+    expect(calls.some((c) => c.url.endsWith("/api/me/limits/skip"))).toBe(true);
+  });
+
+  it("says before paying when only a debit card can be used (Voluntary Code 1.3)", async () => {
+    stubApi(priced(500, false, { cardNote: "Instant wins can’t be paid by credit card: please use a debit card." }));
+    render(<CheckoutView buy="c1:20" walletPence={0} minCardPence={100} />);
+    await screen.findByTestId("pay");
+    expect(screen.getByText("Debit Card")).toBeTruthy();
+    expect(screen.getByTestId("card-note").textContent).toContain("can’t be paid by credit card");
+  });
+
   it("choosing the card when the wallet could pay it all pays by card, never 'Pay £0.00 By Card'", async () => {
     const calls = stubApi(priced(100, true), () => ({ order: { number: "CP-11" }, next: "redirect", redirectUrl: "https://gateway-int.cashflows.com/y" }));
     render(<CheckoutView buy="c1:10" walletPence={3005} minCardPence={100} />);

@@ -57,6 +57,8 @@ final class AccountPresenter
                 'spentThisWeekPence' => $this->check->paidInSince($u, now()->subDays(7)),
             ],
             'playBlock' => $this->check->block($u),
+            // Voluntary Code 1.4: offer a monthly spend limit before the next paid entry (checkout refuses with limits_prompt).
+            'limitsPrompt' => $u->limits_prompted_at === null && \App\Models\Order::query()->where('user_id', $u->id)->where('status', 'paid')->where('total_pence', '>', 0)->exists(),
         ];
     }
 

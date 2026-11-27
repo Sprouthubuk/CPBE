@@ -15,7 +15,7 @@ describe("Admin content on the real site", () => {
     expect(text(html)).toContain("Free postal entry on every comp");
   });
 
-  it("Weglot (a third party that gets the page's text) loads only when the visitor asks, and never on signed-in pages", async () => {
+  it("Weglot (a third party that gets the page's text) loads only when the visitor asks, on every page, never with personal details", async () => {
     const { html } = await new Browser(site.origin).page("/");
     expect(html).not.toMatch(/<script[^>]+src="https:\/\/cdn\.weglot\.com/);
     expect(html).toMatch(/data-weglot-ok="1"/);
@@ -24,11 +24,16 @@ describe("Admin content on the real site", () => {
     expect(login.html).toMatch(/data-weglot-ok="1"/);
     const b = new Browser(site.origin);
     expect((await b.api("/api/auth/login", { email: "player@example.com", password: "password123" })).status).toBe(200);
+    // Amendment 9: translation on every page, including the account and checkout, with names and balances kept out.
     for (const p of ["/account", "/account/wallet", "/checkout"]) {
       const r = await b.page(p);
       expect(r.res.status, p).toBe(200);
-      expect(r.html, p).toMatch(/data-weglot-ok="0"/);
+      expect(r.html, p).toMatch(/data-weglot-ok="1"/);
+      expect(r.html, p).not.toMatch(/<script[^>]+src="https:\/\/cdn\.weglot\.com/);
+      if (p.startsWith("/account")) expect(r.html, p).toMatch(/<span data-wallet data-wg-notranslate translate="no">/);
     }
+    const acc = (await b.page("/account")).html;
+    expect(acc).toMatch(/data-wg-notranslate translate="no">[^<]+<\/span><\/h1>/);
   });
 
   it("the winners page works with no winners yet and invents none", async () => {
