@@ -85,15 +85,23 @@ class CompetitionResource extends Resource
                 TagsInput::make('tags'),
                 Textarea::make('description')->rows(4)->columnSpanFull(),
                 Textarea::make('how_to_play')->rows(3)->columnSpanFull(),
+                Select::make('members_only_tier_ids')->label('Members only (optional)')->multiple()->columnSpanFull()
+                    ->options(fn () => \App\Models\MembershipTier::query()->orderBy('sort')->pluck('name', 'id')->all())
+                    ->dehydrateStateUsing(fn ($state) => $state ? array_map('intval', $state) : null)
+                    ->helperText('Amendment 4: only members of these tiers can buy tickets. The free postal route stays open to everyone, as the law requires.'),
+                TextInput::make('watch_info')->label('How to watch the draw (optional)')->maxLength(200)->placeholder(fn () => \App\Models\Setting::get('draw_watch_default'))->columnSpanFull(),
+                TextInput::make('announce_info')->label('How the winner is announced (optional)')->maxLength(200)->placeholder(fn () => \App\Models\Setting::get('winner_announce_default'))->columnSpanFull(),
             ]),
-            Section::make('Skill Question')->description('Every paid entry must answer it correctly (SOW 2.2). The right answer is never shown on the site.')
+            Section::make('Skill Question')->description('Optional, off unless switched on (amendment 6). When on, every paid entry must answer it correctly. The right answer is never shown on the site.')
                 ->columns(2)->columnSpanFull()->components([
+                    \Filament\Forms\Components\Toggle::make('skill_enabled')->label('Ask a skill question on this competition')->default(false)->live()->columnSpanFull(),
                     TextInput::make('skill_question')->label('Question')->maxLength(200)->columnSpanFull()
-                        ->required(fn () => \App\Models\Setting::bool('require_skill_question'))->live(onBlur: true),
-                    TagsInput::make('skill_options')->label('Answers (2 to 5)')->placeholder('Type an answer, then Enter')
+                        ->visible(fn (Get $get) => (bool) $get('skill_enabled'))
+                        ->required(fn (Get $get) => (bool) $get('skill_enabled'))->live(onBlur: true),
+                    TagsInput::make('skill_options')->label('Answers (2 to 5)')->visible(fn (Get $get) => (bool) $get('skill_enabled'))->placeholder('Type an answer, then Enter')
                         ->required(fn (Get $get) => filled($get('skill_question')))
                         ->rules(fn (Get $get) => filled($get('skill_question')) ? ['array', 'min:2', 'max:5'] : ['array'])->live(),
-                    Select::make('skill_answer')->label('The right answer')
+                    Select::make('skill_answer')->label('The right answer')->visible(fn (Get $get) => (bool) $get('skill_enabled'))
                         ->options(fn (Get $get) => array_values((array) $get('skill_options')))
                         ->required(fn (Get $get) => filled($get('skill_question'))),
                 ]),
@@ -111,6 +119,34 @@ class CompetitionResource extends Resource
                     ->helperText('Quick-pick amounts on the competition page. Empty: 5, 10, 25, 50 (1, 5, 10, 25 for draws).')->columnSpan(2),
                 TextInput::make('popular_preset')->label('“Most popular” button')->integer()->minValue(1)->helperText('One of the ticket buttons, or empty.'),
             ]),
+            Section::make('Automatic Pricing & Offers')->collapsible()->columnSpanFull()
+                ->description('Amendment 5: rules set in advance that change the price, bonus tickets, bundles on offer and (live draws) tickets on sale, by time left, tickets sold or demand. For each setting the first rule that applies wins. The maximum tickets stay as published. Every change while on sale is logged.')
+                ->components([
+                    Repeater::make('priceRules')->relationship()->orderColumn('sort')->label('Rules')->defaultItems(0)->collapsible()
+                        ->itemLabel(fn (array $state) => ($state['name'] ?? 'Rule').(($state['is_active'] ?? true) ? '' : ' (off)'))
+                        ->addActionLabel('Add a rule')->columns(3)
+                        ->schema([
+                            TextInput::make('name')->label('Name players see')->placeholder('Early Bird')->required()->maxLength(80)
+                                ->rules([fn (Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                    if (blank($get('price_pence')) && blank($get('bonus_buy')) && blank($get('bundle_tier_ids')) && blank($get('release_pct'))) {
+                                        $fail('Give the rule something to change: a price, bonus tickets, bundles or tickets on sale.');
+                                    }
+                                }]),
+                            Toggle::make('is_active')->label('On')->default(true)->inline(false),
+                            Select::make('trigger')->label('Applies')->options(\App\Models\CompetitionPriceRule::TRIGGERS)->default('always')->required()->live(),
+                            TextInput::make('trigger_value')->label('N')->integer()->minValue(0)
+                                ->required(fn (Get $get) => $get('trigger') !== 'always')->visible(fn (Get $get) => $get('trigger') !== 'always'),
+                            DateTimePicker::make('starts_at')->label('From (optional)')->timezone('Europe/London'),
+                            DateTimePicker::make('ends_at')->label('Until (optional)')->timezone('Europe/London'),
+                            Money::input('price_pence', 'Ticket price while it applies (optional)'),
+                            TextInput::make('bonus_buy')->label('Buy (optional)')->integer()->minValue(1)->requiredWith('bonus_get'),
+                            TextInput::make('bonus_get')->label('Get free')->integer()->minValue(1)->requiredWith('bonus_buy'),
+                            CheckboxList::make('bundle_tier_ids')->label('Only these bundles on offer (optional)')->columnSpanFull()->columns(3)->dehydrateStateUsing(fn ($state) => $state ? array_map('intval', $state) : null)
+                                ->options(fn () => BundleTier::query()->where('is_active', true)->orderBy('sort_order')->get()->mapWithKeys(fn (BundleTier $t) => [$t->id => $t->displayLabel()])->all()),
+                            TextInput::make('release_pct')->label('Live draws: % of tickets on sale (optional)')->integer()->minValue(1)->maxValue(100)->suffix('%')
+                                ->helperText('Holds the rest back until a later rule releases them. Free postal entries are never held back.'),
+                        ]),
+                ]),
             Section::make('Bundles')->description('“Buy X Get Y Free” for live draws. Free tickets are entered exactly like paid ones. Players never see ticket counts.')
                 ->visible(fn (Get $get) => $get('type') === 'draw')->columns(3)->components([
                     Toggle::make('bundles_enabled')->label('Sell bundles')->live()->columnSpanFull(),

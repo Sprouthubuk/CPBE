@@ -4,7 +4,7 @@ import { addBundle, addToBasket } from "../lib/basket";
 import { trackAddToCart } from "../lib/consent";
 import { formatCount, formatMoney, formatPence } from "../lib/money";
 import { ukDateTime } from "../lib/time";
-import type { Bundle, CompetitionDetail } from "../lib/types";
+import type { Bundle, CompetitionDetail, Offer } from "../lib/types";
 import { Svg } from "./Svg";
 
 export interface PickerProps {
@@ -12,6 +12,9 @@ export interface PickerProps {
   slug: string;
   type: "instant" | "draw";
   pricePence: number;
+  /** Amendment 5: the published price and the automatic offer applying now. */
+  basePricePence?: number;
+  offer?: Offer | null;
   presets: number[];
   /** The button marked "Most popular" (one of presets), or null. */
   popularPreset?: number | null;
@@ -98,6 +101,8 @@ export default function TicketPicker(p: PickerProps) {
   const qty = choice.kind === "single" ? choice.qty : 0;
   const tickets = chosenBundle ? chosenBundle.tickets : qty;
   const total = chosenBundle ? chosenBundle.pricePence : qty * p.pricePence;
+  // Amendment 5: a "buy X get Y free" offer adds free tickets to single tickets (the server decides the final count).
+  const freeNow = !chosenBundle && p.offer?.bonus ? Math.floor(qty / p.offer.bonus.buy) * p.offer.bonus.get : 0;
   const paidNow = chosenBundle ? chosenBundle.paid : qty;
   // One nudge: the smallest bundle that gives more tickets for at least as many paid ones.
   const next = bundles.filter((b) => b.paid >= paidNow && b.tickets > tickets && b.id !== chosenBundle?.id).sort((a, b) => a.tickets - b.tickets)[0] ?? null;
@@ -129,6 +134,14 @@ export default function TicketPicker(p: PickerProps) {
 
   return (
     <div className="panel stack g16" data-testid="ticket-picker">
+      {p.offer && !blocked && (
+        <div className="offer-bar" role="note" data-testid="offer">
+          <b>{p.offer.label}</b>
+          {p.basePricePence && p.basePricePence > p.pricePence ? <span> · {formatPence(p.pricePence)} a ticket, usually {formatPence(p.basePricePence)}</span> : null}
+          {p.offer.bonus ? <span> · Buy {formatCount(p.offer.bonus.buy)}, get {formatCount(p.offer.bonus.get)} free</span> : null}
+          {p.offer.until ? <span> · ends {ukDateTime(p.offer.until)}</span> : null}
+        </div>
+      )}
       {bundles.length > 0 && !blocked && (
         <div className="stack g8">
           <span className="lbl">Bundles · free tickets included</span>
@@ -149,7 +162,7 @@ export default function TicketPicker(p: PickerProps) {
         <div className="row between g12">
           <div>
             <div className="eyebrow">{bundles.length > 0 ? "Or single tickets" : "Per ticket"}</div>
-            <div className={`d np ${bundles.length > 0 ? "" : "big"}`} style={{ lineHeight: 1 }}>{formatPence(p.pricePence)}<small className="each"> each</small></div>
+            <div className={`d np ${bundles.length > 0 ? "" : "big"}`} style={{ lineHeight: 1 }}>{formatPence(p.pricePence)}<small className="each"> each</small>{p.offer && p.basePricePence && p.basePricePence > p.pricePence ? <s className="was"> {formatPence(p.basePricePence)}</s> : null}</div>
           </div>
           <div className="stepper">
             <button type="button" aria-label="One fewer ticket" onClick={() => setSingles((choice.kind === "single" ? qty : min + 1) - 1)} disabled={!!blocked || (choice.kind === "single" && qty <= min)}><Svg name="minus" size={18} stroke={2.6} /></button>
@@ -189,7 +202,7 @@ export default function TicketPicker(p: PickerProps) {
         <div>
           <div className="eyebrow">To pay</div>
           <div className="d" style={{ fontSize: 44, lineHeight: 1 }} data-testid="total">{formatMoney(total)}</div>
-          <div className="hint">{chosenBundle ? `${formatCount(chosenBundle.paid)} paid + ${formatCount(chosenBundle.free)} free = ${ticketWord(chosenBundle.tickets)}` : `${formatCount(qty)} × ${formatPence(p.pricePence)}`}{min > 1 && !chosenBundle ? ` · min ${formatCount(min)}` : ""}</div>
+          <div className="hint">{chosenBundle ? `${formatCount(chosenBundle.paid)} paid + ${formatCount(chosenBundle.free)} free = ${ticketWord(chosenBundle.tickets)}` : freeNow > 0 ? `${formatCount(qty)} paid + ${formatCount(freeNow)} free = ${ticketWord(qty + freeNow)}` : `${formatCount(qty)} × ${formatPence(p.pricePence)}`}{min > 1 && !chosenBundle ? ` · min ${formatCount(min)}` : ""}</div>
         </div>
         <div className="stack g8" style={{ flex: 1, minWidth: 200 }}>
           {blocked ? (

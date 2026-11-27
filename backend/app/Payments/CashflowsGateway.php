@@ -14,7 +14,7 @@ final class CashflowsGateway implements PaymentGateway
 {
     public function __construct(private string $baseUrl, private string $configurationId, private string $apiKey) {}
 
-    public function createPaymentJob(Order $order, string $email, array $returnUrls, ?int $recurringDays = null): array
+    public function createPaymentJob(Order $order, string $email, array $returnUrls, ?int $recurringDays = null, bool $debitOnly = false): array
     {
         $body = json_encode(array_filter([
             'type' => 'Payment',
@@ -30,6 +30,8 @@ final class CashflowsGateway implements PaymentGateway
             // A membership's first payment is the parent of its renewals (Cashflows "recurring payments").
             'options' => $recurringDays ? ['IsRecurringPaymentJobParent'] : null,
             'recurrenceCriteria' => $recurringDays ? self::recurrence($recurringDays) : null,
+            // Voluntary Code 1.3: debit cards only where a credit card isn't allowed (Cashflows "paymentMethodsToUse").
+            'paymentMethodsToUse' => $debitOnly ? ['DebitCard'] : null,
         ], fn ($v) => $v !== null), JSON_UNESCAPED_SLASHES);
         $res = Http::timeout(15)->withHeaders($this->headers($body))->withBody($body, 'application/json')
             ->post($this->baseUrl.'/api/gateway/payment-jobs');

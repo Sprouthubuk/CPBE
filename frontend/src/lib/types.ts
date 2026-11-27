@@ -25,7 +25,14 @@ export interface CompetitionSummary {
   imageSmall: string;
   /** "url 400w, url 800w, url 1200w" for srcset, or null when there are no copies. */
   imageSrcset: string | null;
+  /** The ticket price now: the published price, or the one an automatic pricing rule gives (amendment 5). */
   pricePence: Pence;
+  /** The price published with the competition. Shown struck through when an offer makes it cheaper. */
+  basePricePence: Pence;
+  /** The automatic offer applying now (amendment 5), or null. */
+  offer: Offer | null;
+  /** Amendment 4: paid entry for members of these tiers only (free postal entry stays open to all), or null. */
+  membersOnly?: string[] | null;
   /** Instant wins: the biggest prize value. Draws: the prize value. */
   topPrizePence: Pence | null;
   /** Shown under the price, e.g. "£50 cash alternative" or "2,516 wins". */
@@ -49,6 +56,15 @@ export interface CompetitionSummary {
   featuredBundle: Bundle | null;
 }
 
+/** Amendment 5: an automatic price or bonus-ticket offer, e.g. "Early Bird" or "Buy 5 Get 1 Free". */
+export interface Offer {
+  label: string;
+  /** When a time-limited offer ends, or null. */
+  until: string | null;
+  /** Free tickets on single tickets: buy `buy`, get `get` free. */
+  bonus: { buy: number; get: number } | null;
+}
+
 export interface PrizeTier {
   name: string;
   valuePence: Pence;
@@ -60,6 +76,13 @@ export interface PrizeTier {
 export interface CompetitionDetail extends CompetitionSummary {
   description: string;
   howToPlay: string | null;
+  /** Amendment 8: how to watch the draw (draws), and how the winner is announced. */
+  howToWatch?: string | null;
+  /** Amendment 4: the signed-in member's discounted ticket price, or null. */
+  memberPricePence?: Pence | null;
+  /** Amendment 6: whether paid entries answer a skill question at checkout. */
+  hasSkillQuestion?: boolean;
+  winnerAnnounced?: string;
   /** Tickets the signed-in player already holds (0 when signed out). */
   heldByMe: number;
   cashAlternativePence: Pence | null;
@@ -335,6 +358,11 @@ export interface PricedLine {
   problem: string | null;
   /** SOW 2.2: the question every paid entry must answer (never the answer), or null. */
   skillQuestion?: { question: string; options: string[] } | null;
+  /** Amendment 5: the automatic offer that set this line's price or free tickets, or null. */
+  offerLabel?: string | null;
+  priceRuleId?: number | null;
+  /** Amendment 4: the line is at the member's discounted price. */
+  memberPrice?: boolean;
   /** Neutral note that doesn't stop checkout, e.g. a Vault Case bonus the draw's promo cap no longer allows. */
   notice: string | null;
   /** The next bundle up, for "Upgrade to … for +£X". */
@@ -352,6 +380,8 @@ export interface PricedBasket {
   /** What the wallet would pay if the player chooses wallet. */
   walletCanPayPence: Pence;
   walletCovers: boolean;
+  /** Voluntary Code 1.3: why only a debit card can be used for this basket, or null. */
+  cardNote?: string | null;
   problems: string[];
 }
 

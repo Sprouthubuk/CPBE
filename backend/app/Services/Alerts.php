@@ -65,6 +65,14 @@ class Alerts
                 return $lastWeek > 0 && ($lastWeek - $today) * 100 > $t * $lastWeek
                     ? ['Sales so far today are '.round(($lastWeek - $today) * 100 / $lastWeek)."% down on the same time last week."] : [];
             })(),
+            'failed_payments' => ($n = Order::query()->where('status', 'failed')->where('updated_at', '>=', now()->subHour())->count()) > $t
+                ? ["{$n} card payments were declined in the last hour (alert above {$t})."] : [],
+            'shared_device' => collect(\App\Models\User::query()->whereNotNull('signup_device_hash')->where('created_at', '>=', now()->subDays(7))
+                ->selectRaw('signup_device_hash, COUNT(*) n')->groupBy('signup_device_hash')->having('n', '>', $t)->pluck('n', 'signup_device_hash'))
+                ->map(fn ($n, $h) => "{$n} accounts joined from one device (".substr((string) $h, 0, 8).'…) in the last 7 days.')->values()->all(),
+            'shared_card' => collect(Order::query()->whereNotNull('card_hash')->where('status', 'paid')->where('paid_at', '>=', now()->subDays(30))
+                ->selectRaw('card_hash, COUNT(DISTINCT user_id) n')->groupBy('card_hash')->having('n', '>', $t)->pluck('n', 'card_hash'))
+                ->map(fn ($n, $h) => "One card (".substr((string) $h, 0, 8)."…) paid for {$n} accounts in the last 30 days.")->values()->all(),
             default => [],
         };
     }

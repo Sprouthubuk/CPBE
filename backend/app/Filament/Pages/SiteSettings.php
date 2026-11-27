@@ -49,11 +49,12 @@ class SiteSettings extends Page
         'vault_case_hold_minutes', 'vault_case_share_of_sales_pct',
         'referral_reward_type', 'referral_reward_tickets', 'referral_reward_credit_pence', 'referral_min_purchase_pence', 'referral_monthly_cap',
         'referral_voucher_days', 'referral_clawback_days', 'referral_flag_after',
-        'payment_fee_bp', 'payment_fee_fixed_pence', 'monthly_revenue_target_pence', 'promo_budget_pct',
-        'google_gtm_id', 'google_ga4_id', 'google_ads_id', 'google_ads_purchase_label', 'weglot_api_key', 'announcement_text', 'announcement_link'];
+        'payment_fee_bp', 'payment_fee_fixed_pence', 'monthly_revenue_target_pence', 'promo_budget_pct', 'vat_pct',
+        'google_gtm_id', 'google_ga4_id', 'google_ads_id', 'google_ads_purchase_label', 'weglot_api_key', 'announcement_text', 'announcement_link',
+        'credit_card_monthly_cap_pence', 'draw_watch_default', 'winner_announce_default', 'harm_spend_30d_pence', 'harm_top_ups_24h', 'harm_cards_30d'];
 
-    /** On/off switches: shown as toggles, saved as 1/0. Both start off. */
-    private const FLAGS = ['feature_vault_case', 'feature_referrals', 'require_skill_question'];
+    /** On/off switches: shown as toggles, saved as 1/0. The features start off; the Code 1.10 guard starts on. */
+    private const FLAGS = ['feature_vault_case', 'feature_referrals', 'code_instant_majority_guard'];
 
     public function mount(): void
     {
@@ -153,11 +154,29 @@ class SiteSettings extends Page
                 Money::input('monthly_revenue_target_pence', 'Monthly sales target'),
                 \Filament\Forms\Components\TextInput::make('promo_budget_pct')->label('Promotional budget (% of revenue)')->integer()->minValue(0)->maxValue(100)
                     ->helperText('E.g. 15 to 20. 0 for none.'),
-                \Filament\Forms\Components\Toggle::make('require_skill_question')->label('Every competition needs a skill question to publish (SOW 2.2)'),
+                \Filament\Forms\Components\TextInput::make('vat_pct')->label('VAT included in prices (%)')->integer()->minValue(0)->maxValue(30)
+                    ->helperText('0 unless the business is VAT registered and owes VAT on entries: ask your accountant.'),
             ]),
+            Section::make('On Every Competition')->description('Amendment 8: how to watch the draw and how the winner is announced, unless a competition sets its own.')->columns(1)->collapsible()->components([
+                \Filament\Forms\Components\TextInput::make('draw_watch_default')->label('How to watch the draw')->maxLength(200),
+                \Filament\Forms\Components\TextInput::make('winner_announce_default')->label('How the winner is announced')->maxLength(200),
+            ]),
+            Section::make('Player Protection (Voluntary Code)')->description('Amendment 11. Credit cards: never for instant wins, top-ups or memberships, and no more than this a month on draws (the Code says £250). Harm indicators raise a flag in Player Protection for a person to review.')
+                ->columns(2)->collapsible()->components([
+                    Money::input('credit_card_monthly_cap_pence', 'Credit card limit a month (draws)')->helperText('At most £250.00 under the Code.')
+                        ->rules([fn () => fn ($a, $v, $fail) => Money::toPence((string) $v) > 25000 ? $fail('The Code allows at most £250 a month.') : null]),
+                    Money::input('harm_spend_30d_pence', 'Flag spending over, in 30 days'),
+                    \Filament\Forms\Components\TextInput::make('harm_top_ups_24h')->label('Flag this many top-ups in 24 hours')->integer()->minValue(2)->maxValue(50),
+                    \Filament\Forms\Components\Toggle::make('code_instant_majority_guard')->label('Refuse to publish an instant win that would make instant wins the majority (Code 1.10)')->columnSpanFull(),
+                    \Filament\Forms\Components\TextInput::make('harm_cards_30d')->label('Flag this many different cards in 30 days')->integer()->minValue(2)->maxValue(20),
+                ]),
             Section::make('Sales')->components([
                 Text::make($open ? 'Sales are OPEN: players can buy, top up and enter.' : 'Sales are CLOSED: the site shows “Entries open soon”. Competitions, prizes and the free postal route stay visible.'),
                 Actions::make([$this->salesAction()]),
+            ]),
+            Section::make('Data Export')->description('A full copy of the database goes to your own storage on the 1st of every month (amendment 27). Passwords and sign-in secrets are left out.')->components([
+                Text::make(fn () => ($last = Setting::get('data_export_last')) ? 'Last export: '.$last : 'No export yet.'),
+                Actions::make([$this->exportAction()]),
             ]),
             Section::make('Email')->components([
                 Text::make(fn () => 'Sending through '.config('mail.default').(config('mail.default') === 'smtp' ? ' ('.config('mail.mailers.smtp.host').':'.config('mail.mailers.smtp.port').')' : '').' from '.config('mail.from.address').'.'),
@@ -177,6 +196,17 @@ class SiteSettings extends Page
                 Setting::put('sales_open', $open ? '0' : '1');
                 AdminAction::record(auth()->user(), $open ? 'sales.closed' : 'sales.opened', null, $data['reason']);
                 Notification::make()->success()->title($open ? 'Sales closed' : 'Sales open')->send();
+            });
+    }
+
+    public function exportAction(): Action
+    {
+        return Action::make('exportData')->label('Export All Data Now')->color('gray')->requiresConfirmation()
+            ->modalDescription('Sends a full copy of the database to your export storage. It runs in the background and can take a few minutes.')
+            ->action(function () {
+                dispatch(fn () => \Illuminate\Support\Facades\Artisan::call('platform:export-data'));
+                AdminAction::record(auth()->user(), 'data.export_requested', null, null);
+                Notification::make()->success()->title('Export started')->body('It will show as the last export here when it is done.')->send();
             });
     }
 

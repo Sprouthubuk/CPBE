@@ -94,12 +94,18 @@ class Reports
         $manual = CostEntry::query()->whereDate('date', '>=', $from->copy()->timezone('Europe/London')->toDateString())->whereDate('date', '<=', $to->copy()->timezone('Europe/London')->toDateString())->get();
         $fees = self::cardFee($cardPence, $cardPayments);
         $net = $real + $membershipRevenue - $refunds;
+        // Amendment 3: VAT shown on its own (the rate, if any, is in Settings; prices include it).
+        $vatPct = Setting::int('vat_pct');
+        $vat = $vatPct > 0 ? intdiv(($real + $membershipRevenue - $refunds) * $vatPct, 100 + $vatPct) : 0;
         $costs = [
             'Instant-win prizes' => $instantPrizes,
             'Draw prizes' => $drawPrizes,
             'Payment fees (estimated)' => $fees,
-            'Bonus credit used' => $bonusUsed,
+            'Promotions (bonus credit used)' => $bonusUsed,
         ];
+        if ($vatPct > 0) {
+            $costs['VAT ('.$vatPct.'%)'] = $vat;
+        }
         foreach (CostEntry::CATEGORIES as $k => $label) {
             $costs[$label.' (entered)'] = (int) $manual->where('category', $k)->sum('amount_pence');
         }
@@ -114,7 +120,114 @@ class Reports
             'costBasis' => ['actual' => (int) $manual->where('basis', 'actual')->sum('amount_pence'), 'estimated' => (int) $manual->where('basis', 'estimated')->sum('amount_pence') + $fees,
                 'forecast' => (int) $manual->where('basis', 'forecast')->sum('amount_pence')],
             'profit' => $profit, 'marginPct' => $net > 0 ? round($profit * 100 / $net, 1) : null,
+            'vat' => $vat, 'vatPct' => $vatPct,
+            // Amendment 3: what each entry actually brought in, and costs the figures don't include yet.
+            'effectivePerTicket' => ($all = $paidEntries + $bundleFree + $bonusEntries + $promoEntries) > 0 ? intdiv($net, $all) : null,
+            'missingCosts' => $this->missingCosts($from, $to, $manual),
+            'asOf' => now()->toIso8601String(),
         ];
+    }
+
+    /**
+     * Amendment 3: costs that aren't recorded yet, so the profit shown is known to be incomplete: ended draws with no
+     * prize cost, sales channels with revenue but no marketing spend entered, and no running costs this period.
+     *
+     * @return list<string>
+     */
+    public function missingCosts(Carbon $from, Carbon $to, ?Collection $manual = null): array
+    {
+        $out = [];
+        foreach (Competition::query()->published()->where('type', 'draw')->whereNull('prize_cost_pence')->where('closes_at', '<=', now())->whereBetween('closes_at', [$from, $to])->pluck('title') as $t) {
+            $out[] = "{$t}: no prize cost entered (using the prize value).";
+        }
+        $manual ??= CostEntry::query()->whereDate('date', '>=', $from->copy()->timezone('Europe/London')->toDateString())->whereDate('date', '<=', $to->copy()->timezone('Europe/London')->toDateString())->get();
+        $spendChannels = $manual->where('category', 'marketing')->pluck('channel')->filter()->unique()->all();
+        $paidChannels = $this->paid($from, $to)->whereNotNull('channel')->where('channel', '!=', 'direct')->distinct()->pluck('channel')->all();
+        foreach (array_diff($paidChannels, $spendChannels) as $ch) {
+            $out[] = "Sales came from {$ch} but no {$ch} spend is entered for the period.";
+        }
+        if ($manual->where('category', 'operating')->isEmpty()) {
+            $out[] = 'No running costs entered for the period.';
+        }
+
+        return array_values($out);
+    }
+
+    /**
+     * Amendment 2: daily totals for the accounts, one row per UK day: sales, refunds, site credit used, wallet
+     * balances at the end of the day and payment provider fees. A plain CSV / Excel layout that accounting and
+     * bookkeeping software imports (or the journal() layout below).
+     *
+     * @return list<array<string, int|string>>
+     */
+    public function dailyTotals(Carbon $from, Carbon $to): array
+    {
+        $tz = 'Europe/London';
+        $days = [];
+        for ($d = $from->copy()->timezone($tz)->startOfDay(); $d->lte($to->copy()->timezone($tz)); $d->addDay()) {
+            $days[$d->toDateString()] = ['start' => $d->copy()->utc(), 'end' => $d->copy()->endOfDay()->utc()];
+        }
+        // Wallet balances: the opening balance, then each day's movements.
+        $bal = fn (Carbon $before) => LedgerEntry::query()->where('created_at', '<', $before)->selectRaw("bucket, COALESCE(SUM(CASE WHEN direction = 'credit' THEN amount_pence ELSE -amount_pence END), 0) s")->groupBy('bucket')->pluck('s', 'bucket');
+        $running = $bal($from)->map(fn ($v) => (int) $v)->all();
+        $rows = [];
+        foreach ($days as $date => $w) {
+            $o = Order::query()->whereIn('status', ['paid', 'refunded'])->whereBetween('paid_at', [$w['start'], $w['end']]);
+            $tickets = (clone $o)->whereIn('order_type', ['tickets', 'membership']);
+            $card = (int) (clone $o)->sum('card_pence');
+            $payments = (clone $o)->where('card_pence', '>', 0)->count();
+            $moves = LedgerEntry::query()->whereBetween('created_at', [$w['start'], $w['end']])
+                ->selectRaw("bucket, COALESCE(SUM(CASE WHEN direction = 'credit' THEN amount_pence ELSE -amount_pence END), 0) s")->groupBy('bucket')->pluck('s', 'bucket');
+            foreach ($moves as $b => $v) {
+                $running[$b] = ($running[$b] ?? 0) + (int) $v;
+            }
+            $rows[] = [
+                'Date' => $date,
+                'Sales (entries and memberships)' => (int) (clone $tickets)->sum('total_pence'),
+                'Paid by card' => $card,
+                'Paid from wallet cash and winnings' => (int) (clone $tickets)->selectRaw('COALESCE(SUM(paid_deposit_pence + paid_winnings_pence), 0) s')->value('s'),
+                'Site credit used (bonus)' => (int) (clone $tickets)->sum('paid_bonus_pence'),
+                'Promo code discounts' => (int) (clone $tickets)->sum('discount_pence'),
+                'Wallet top-ups' => (int) (clone $o)->where('order_type', 'deposit')->sum('total_pence'),
+                'Refunds' => (int) Order::query()->where('status', 'refunded')->whereBetween('updated_at', [$w['start'], $w['end']])->sum('card_pence'),
+                'Payment fees (estimated)' => self::cardFee($card, $payments),
+                'Withdrawals paid' => (int) \App\Models\Withdrawal::query()->where('status', 'paid')->whereBetween('decided_at', [$w['start'], $w['end']])->sum('amount_pence'),
+                'Wallet cash at end of day' => (int) ($running['deposit'] ?? 0),
+                'Wallet winnings at end of day' => (int) ($running['winnings'] ?? 0),
+                'Site credit at end of day' => (int) ($running['bonus'] ?? 0),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The same days as journal lines (Date, Reference, Description, Account, Debit, Credit, in pounds), for software
+     * that imports manual journals. Account names are generic: map them to the chart of accounts once.
+     *
+     * @return list<list<string|float>>
+     */
+    public function journal(Carbon $from, Carbon $to): array
+    {
+        $out = [['Date', 'Reference', 'Description', 'Account', 'Debit', 'Credit']];
+        $p = fn (int $pence) => round($pence / 100, 2);
+        foreach ($this->dailyTotals($from, $to) as $d) {
+            $ref = 'DAY-'.str_replace('-', '', $d['Date']);
+            $lines = [
+                ['Card clearing', $d['Paid by card'], 0], ['Player wallets (cash and winnings)', $d['Paid from wallet cash and winnings'], 0],
+                ['Promotional credit', $d['Site credit used (bonus)'], 0], ['Competition sales', 0, $d['Sales (entries and memberships)']],
+                ['Card clearing', $d['Wallet top-ups'], 0], ['Player wallets (cash and winnings)', 0, $d['Wallet top-ups']],
+                ['Refunds', $d['Refunds'], 0], ['Card clearing', 0, $d['Refunds']],
+                ['Payment fees', $d['Payment fees (estimated)'], 0], ['Card clearing', 0, $d['Payment fees (estimated)']],
+            ];
+            foreach ($lines as [$acc, $dr, $cr]) {
+                if ($dr > 0 || $cr > 0) {
+                    $out[] = [$d['Date'], $ref, 'Daily totals '.$d['Date'], $acc, $p($dr), $p($cr)];
+                }
+            }
+        }
+
+        return $out;
     }
 
     /** Sales for today, this week, month, year and all time (the headline row). */
@@ -168,6 +281,17 @@ class Reports
                 'breakEvenTickets' => $breakEven, 'profitSoFar' => $revenue - ($c->isInstant() ? $paidOut : 0),
                 'forecastProfit' => $forecastRevenue - $prizeCost,
                 'atRisk' => $breakEven !== null && $forecastSold < $breakEven && $hoursLeft > 0,
+                // Amendment 3: what's left, what each entry really brought in, and profit at each sell-through.
+                'left' => $left,
+                'effectivePerTicket' => $sold > 0 ? intdiv($revenue, $sold) : null,
+                'scenarios' => collect([30, 40, 50, 60, 70, 80, 90, 100])->mapWithKeys(function ($pct) use ($c, $sold, $revenue, $prizeCost) {
+                    $tickets = (int) floor($c->max_tickets * $pct / 100);
+                    $perTicket = $sold > 0 ? $revenue / $sold : (float) $c->price_pence;
+                    $rev = (int) round($perTicket * $tickets);
+                    $fees = self::cardFee($rev, (int) ceil($rev / 1000));
+
+                    return [$pct => $rev - $prizeCost - $fees];
+                })->all(),
             ];
         })->sortByDesc('revenue')->values();
     }
@@ -213,7 +337,14 @@ class Reports
         $newBy = $orders->filter(fn ($o) => isset($firsts[$o->user_id]) && $o->paid_at->equalTo(Carbon::parse($firsts[$o->user_id])))
             ->unique('user_id')->groupBy(fn ($o) => $o->channel ?: 'direct')->map->count();
         $channels = collect([...$spend->keys(), ...$revenue->keys(), ...$newBy->keys()])->unique()->values();
+        // Amendment 3: checkout conversion (paid / started) and profit by channel, after an equal share of prize cost and fees.
+        $started = Order::query()->where('order_type', 'tickets')->whereBetween('created_at', [$from, $to])->selectRaw("COALESCE(channel, 'direct') ch, COUNT(*) n, SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) p")
+            ->groupBy('ch')->get()->keyBy('ch');
+        $co = $this->company($from, $to);
+        $costShare = $co['netRevenue'] > 0 ? ($co['costs']['Instant-win prizes'] + $co['costs']['Draw prizes'] + $co['costs']['Payment fees (estimated)']) / $co['netRevenue'] : 0;
         $rows = $channels->map(fn ($ch) => [
+            'conversionPct' => isset($started[$ch]) && $started[$ch]->n > 0 ? round($started[$ch]->p * 100 / $started[$ch]->n, 1) : null,
+            'profit' => (int) round(($revenue[$ch] ?? 0) * (1 - $costShare)) - ($spend[$ch] ?? 0),
             'channel' => $ch, 'spend' => $spend[$ch] ?? 0, 'revenue' => $revenue[$ch] ?? 0, 'newCustomers' => $newBy[$ch] ?? 0,
             'roas' => ($spend[$ch] ?? 0) > 0 ? round(($revenue[$ch] ?? 0) / $spend[$ch], 2) : null,
             'cpa' => ($newBy[$ch] ?? 0) > 0 && ($spend[$ch] ?? 0) > 0 ? intdiv($spend[$ch], $newBy[$ch]) : null,
@@ -241,7 +372,33 @@ class Reports
             'referralsToReview' => Referral::query()->where('status', 'review')->count(),
             'busyIps' => Order::query()->whereNotNull('ip')->where('created_at', '>=', now()->subHour())->selectRaw('ip, COUNT(*) n')->groupBy('ip')
                 ->having('n', '>', 20)->pluck('n', 'ip')->all(),
+            // Amendment 3: complaints, system errors and urgent tasks.
+            'complaints' => \App\Models\ContactMessage::query()->whereNull('handled_at')->where('topic', 'like', '%omplain%')->count(),
+            'unansweredMessages' => \App\Models\ContactMessage::query()->whereNull('handled_at')->count(),
+            'systemErrors' => (\Illuminate\Support\Facades\Schema::hasTable('failed_jobs') ? (int) \Illuminate\Support\Facades\DB::table('failed_jobs')->where('failed_at', '>=', now()->subDay())->count() : 0)
+                + Order::query()->where('needs_attention', true)->where('updated_at', '>=', now()->subDay())->count(),
+            'urgent' => $this->urgent(),
         ];
+    }
+
+    /**
+     * Amendment 3: what needs a person now, each with where to deal with it.
+     *
+     * @return list<array{label: string, count: int, url: string}>
+     */
+    public function urgent(): array
+    {
+        $rows = [
+            ['Orders needing attention', Order::query()->where('needs_attention', true)->where('status', 'paid')->count(), '/admin/orders'],
+            ['Player protection flags', \App\Models\HarmFlag::query()->whereNull('reviewed_at')->count(), '/admin/player-protection'],
+            ['ID checks waiting', \App\Models\IdCheck::query()->where('status', 'pending')->count(), '/admin/id-checks'],
+            ['Prizes to send', PrizeClaim::query()->where('status', 'open')->count(), '/admin/prize-claims'],
+            ['Disputes due within 3 days', Dispute::query()->whereIn('status', ['open', 'evidence_sent'])->whereNotNull('respond_by')->where('respond_by', '<=', now()->addDays(3))->count(), '/admin/disputes'],
+            ['Withdrawals to pay', \App\Models\Withdrawal::query()->where('status', 'requested')->count(), '/admin/withdrawals'],
+            ['Unanswered messages', \App\Models\ContactMessage::query()->whereNull('handled_at')->count(), '/admin/contact-messages'],
+        ];
+
+        return array_values(array_map(fn ($r) => ['label' => $r[0], 'count' => $r[1], 'url' => $r[2]], array_filter($rows, fn ($r) => $r[1] > 0)));
     }
 
     /** Instant wins by game: plays, winners, prizes paid and still to win, cost against revenue. */

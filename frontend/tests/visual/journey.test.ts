@@ -173,7 +173,7 @@ it("a new player and a regular player can buy, pay, play and recover from a fail
       await q.goto(site.origin + "/competitions/cash-flights");
       await buyNow(q);
       await q.waitForLoadState("networkidle");
-      await q.getByText("Debit Or Credit Card").click();
+      await q.getByText(/^Debit( Or Credit)? Card$/).click();
       await shot(q, `checkout-before-${result}`);
       log.push(`pay button: ${await q.locator('main button.cp-cta').last().textContent()}`);
       await q.locator('main button.cp-cta').last().click();

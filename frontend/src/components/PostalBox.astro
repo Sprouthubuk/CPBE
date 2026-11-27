@@ -1,8 +1,14 @@
 ---
 // "No purchase necessary": the free postal route, next to every buy button (Meta's review and the rules).
+// On a competition page a signed-in player can get the reference to write on their entry (amendment 7).
 import Icon from "./Icon.astro";
+import PostalReference from "../islands/PostalReference";
+interface Props { competitionId?: string; signedIn?: boolean }
+const { competitionId, signedIn = false } = Astro.props;
 ---
 <div class="postal" data-postal>
   <Icon name="mail" size={24} />
-  <div><b>No purchase necessary</b><p>Enter free by post with exactly the same chance of winning. <a href="/free-entry">How to enter by post</a> · 18+ UK only · <a href="/legal/terms">T&amp;Cs</a></p></div>
+  <div><b>No purchase necessary</b><p>Enter free by post with exactly the same chance of winning. <a href="/free-entry">How to enter by post</a> · 18+ UK only · <a href="/legal/terms">T&amp;Cs</a></p>
+    {competitionId && signedIn && <PostalReference client:visible competitionId={competitionId} />}
+  </div>
 </div>

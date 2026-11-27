@@ -19,6 +19,10 @@ final class ProfitPlanner
         'feeBp' => 200,           // payment fee: basis points of card money (200 = 2%)
         'feeFixed' => 20,         // and pence per order
         'avgOrder' => 1000,       // average order value, for the per-order fee
+        // Amendment 3: prizes paid whatever sells (e.g. instant wins guaranteed to drop), and cash alternatives.
+        'guaranteedPrizes' => 0,  // paid out even at 0 sold, on top of prizeCost
+        'cashAltValue' => 0,      // the cash alternative on offer (0 = none)
+        'cashAltSharePct' => 0,   // share of winners expected to take it, instead of the prize
     ];
 
     /** @return array{levels: list<array<string, mixed>>, breakEvenPct: float|null, breakEvenTickets: int|null, for20: array|null, for30: array|null, fullProfit: int} */
@@ -58,6 +62,9 @@ final class ProfitPlanner
             'breakEvenPct' => $breakEven !== null ? round($breakEven * 100 / max(1, $i['maxTickets']), 1) : null,
             'for20' => $target(20), 'for30' => $target(30),
             'fullProfit' => self::at($i, $i['maxTickets'])['profit'],
+            // Amendment 3: the sell-through levels that lose money, and the worst of them.
+            'lossScenarios' => array_values(array_filter($levels, fn ($l) => $l['profit'] < 0)),
+            'worstLoss' => min(0, ...array_column($levels, 'profit')),
             'effectivePrice' => self::at($i, $i['maxTickets'])['effectivePrice'],
         ];
     }
@@ -70,9 +77,13 @@ final class ProfitPlanner
         $vat = intdiv($revenue * $i['vatPct'], 100 + $i['vatPct']);
         $orders = $i['avgOrder'] > 0 ? (int) ceil($revenue / $i['avgOrder']) : 0;
         $fees = intdiv($revenue * $i['feeBp'], 10000) + $orders * $i['feeFixed'];
-        $costs = $i['prizeCost'] + $i['marketing'] + $vat + $fees;
+        $share = min(100, $i['cashAltSharePct']);
+        $prize = $i['cashAltValue'] > 0 ? intdiv($i['prizeCost'] * (100 - $share) + $i['cashAltValue'] * $share, 100) : $i['prizeCost'];
+        $costs = $prize + $i['guaranteedPrizes'] + $i['marketing'] + $vat + $fees;
+        // The promotional tickets given away, valued at the ticket price (they earn nothing).
+        $promoTickets = (int) floor($sold * min(100, $i['freeSharePct'] + $i['promoSharePct']) / 100);
 
-        return ['sold' => $sold, 'paid' => $paid, 'revenue' => $revenue, 'vat' => $vat, 'fees' => $fees, 'costs' => $costs,
+        return ['sold' => $sold, 'paid' => $paid, 'promoTickets' => $promoTickets, 'promoValue' => $promoTickets * $i['ticketPrice'], 'revenue' => $revenue, 'vat' => $vat, 'fees' => $fees, 'prizes' => $prize + $i['guaranteedPrizes'], 'costs' => $costs,
             'profit' => $revenue - $costs, 'margin' => $revenue > 0 ? round(($revenue - $costs) * 100 / $revenue, 1) : null,
             'effectivePrice' => $sold > 0 ? intdiv($revenue, $sold) : 0];
     }

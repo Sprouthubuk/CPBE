@@ -19,6 +19,11 @@ class ReportsHourly extends Command
     public function handle(Alerts $alerts, Reports $reports): int
     {
         $fired = $alerts->check();
+        // Voluntary Code 1.6: signs of harm for Admin → Player Protection.
+        $flags = app(\App\Services\HarmSignals::class)->scan();
+        if ($flags > 0) {
+            $this->info("{$flags} player protection flags raised.");
+        }
         $sent = 0;
         $uk = now('Europe/London');
         foreach (ReportSchedule::query()->where('active', true)->get() as $s) {

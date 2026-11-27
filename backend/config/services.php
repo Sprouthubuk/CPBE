@@ -56,11 +56,23 @@ return [
         'sms_optout_secret' => env('SMS_OPTOUT_SECRET'),
     ],
 
+    // Amendment 7: the postal entry provider submits the references written on entries (POST /api/webhooks/postal).
+    'postal' => [
+        'provider_token' => env('POSTAL_PROVIDER_TOKEN'),
+    ],
+
     'cashflows' => [
         'driver' => env('CASHFLOWS_DRIVER', 'cashflows'), // 'fake' only for tests and local development
         'base_url' => env('CASHFLOWS_BASE_URL', env('CASHFLOWS_ENV') === 'production' ? 'https://gateway.cashflows.com' : 'https://gateway-int.cashflows.com'),
         'configuration_id' => env('CASHFLOWS_CONFIGURATION_ID'),
         'api_key' => env('CASHFLOWS_API_KEY'),
+    ],
+
+
+    // Amendment 27: the monthly full export (App\Services\DataExport) goes to this disk, normally the Client's own bucket.
+    'data_export' => [
+        'disk' => env('DATA_EXPORT_DISK', 'client_export'),
+        'password' => env('DATA_EXPORT_PASSWORD'),
     ],
 
 ];

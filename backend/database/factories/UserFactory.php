@@ -24,6 +24,8 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'date_of_birth' => now()->subYears(30)->toDateString(),
             'remember_token' => Str::random(10),
+            // Tests start past the Voluntary Code's spend limit offer; CodeComplianceTest covers it.
+            'limits_prompted_at' => now(),
         ];
     }
 

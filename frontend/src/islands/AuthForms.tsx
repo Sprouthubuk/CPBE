@@ -48,7 +48,7 @@ function deviceId(): string | null {
 }
 
 export function JoinForm({ next, referralCode = null }: { next: string | null; referralCode?: string | null }) {
-  const [f, setF] = useState({ firstName: "", lastName: "", email: "", password: "", day: "", month: "", year: "", marketing: false });
+  const [f, setF] = useState({ firstName: "", lastName: "", email: "", password: "", day: "", month: "", year: "", marketing: false, limit: "" });
   const [errors, setErrors] = useState<Errors>({});
   const [general, setGeneral] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -59,7 +59,7 @@ export function JoinForm({ next, referralCode = null }: { next: string | null; r
     setBusy(true); setErrors({}); setGeneral(null);
     const dob = `${f.year.padStart(4, "0")}-${f.month.padStart(2, "0")}-${f.day.padStart(2, "0")}`;
     try {
-      const me = await api<Me>("/api/auth/register", { json: { firstName: f.firstName.trim(), lastName: f.lastName.trim(), email: f.email.trim(), password: f.password, dateOfBirth: dob, marketingOptIn: f.marketing, deviceId: deviceId(), next: safeNext(next, "/competitions"), ...(referralCode ? { referralCode } : {}) } });
+      const me = await api<Me>("/api/auth/register", { json: { firstName: f.firstName.trim(), lastName: f.lastName.trim(), email: f.email.trim(), password: f.password, dateOfBirth: dob, marketingOptIn: f.marketing, ...(f.limit.trim() !== "" ? { monthlyLimitPence: Math.round(Number(f.limit.replace(/[£,\s]/g, "")) * 100) } : {}), deviceId: deviceId(), next: safeNext(next, "/competitions"), ...(referralCode ? { referralCode } : {}) } });
       // The same id the server sends (reg-{id}), so Meta counts the sign-up once.
       track("CompleteRegistration", {}, `reg-${me.id}`);
       window.location.assign(`/verify-email?next=${encodeURIComponent(safeNext(next, "/competitions"))}`);
@@ -86,6 +86,11 @@ export function JoinForm({ next, referralCode = null }: { next: string | null; r
           <input className="inp" inputMode="numeric" placeholder="YYYY" aria-label="Year" maxLength={4} value={f.year} onChange={(e) => set("year")(e.target.value.replace(/\D/g, ""))} autoComplete="bday-year" />
         </div>
         {errors.dateOfBirth ? <span className="err">{errors.dateOfBirth}</span> : <span className="hint">You must be 18+ and live in the UK to play.</span>}
+      </div>
+      <div className="stack g8">
+        <label className="lbl" htmlFor="join-limit">Monthly spending limit (optional)</label>
+        <input className="inp" id="join-limit" inputMode="decimal" placeholder="e.g. 50, or 0" value={f.limit} onChange={(e) => set("limit")(e.target.value)} />
+        {errors.monthlyLimitPence ? <span className="err">{errors.monthlyLimitPence}</span> : <span className="hint">The most you want to spend a month. You can change it any time in Safer Play.</span>}
       </div>
       <label className="row g12" style={{ padding: "6px 0", cursor: "pointer" }}>
         <input type="checkbox" className="sw" checked={f.marketing} onChange={(e) => set("marketing")(e.target.checked)} />
@@ -196,7 +201,7 @@ export function VerifyEmail({ email, next }: { email: string | null; next: strin
   }
   return (
     <div className="stack g12">
-      <div className="notice notice-c"><Svg name="mail" size={18} /><span>We’ve sent a link to <b>{email ?? "your email"}</b>. Tap it to confirm your account and start playing. Your basket is saved.</span></div>
+      <div className="notice notice-c"><Svg name="mail" size={18} /><span>We’ve sent a link to <b data-wg-notranslate="" translate="no">{email ?? "your email"}</b>. Tap it to confirm your account and start playing. Your basket is saved.</span></div>
       <a className="btn btn-y btn-lg" href={safeNext(next, "/competitions")}>I’ve Confirmed — Continue</a>
       <button type="button" className="btn btn-o" onClick={resend} disabled={busy}>{busy ? <span className="spin" /> : "Send The Link Again"}</button>
       {msg && <p className="hint" role="status" style={{ textAlign: "center", margin: 0 }}>{msg}</p>}

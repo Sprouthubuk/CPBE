@@ -6,7 +6,8 @@
     $td = 'padding:6px 8px 6px 0;border-top:1px solid rgba(127,127,127,.2)';
     $fields = [['prizeCost', 'Prize cost (£)'], ['ticketPrice', 'Ticket price (£)'], ['maxTickets', 'Maximum tickets'], ['freeSharePct', 'Free bundle tickets (% of tickets)'],
         ['promoSharePct', 'Promotional tickets (%)'], ['discountPct', 'Average discount (%)'], ['marketing', 'Marketing (£)'], ['vatPct', 'VAT on revenue (%)'],
-        ['feePct', 'Payment fee (%)'], ['feeFixed', 'Fee per order (£)'], ['avgOrder', 'Average order (£)']];
+        ['feePct', 'Payment fee (%)'], ['feeFixed', 'Fee per order (£)'], ['avgOrder', 'Average order (£)'],
+        ['guaranteedPrizes', 'Guaranteed minimum prizes (£)'], ['cashAltValue', 'Cash alternative (£)'], ['cashAltSharePct', 'Winners taking the cash (%)']];
 @endphp
 <x-filament-panels::page>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -30,9 +31,10 @@
             <tr><th style="{{ $th }}"></th>@foreach ($res as $r)<th style="{{ $th }}">{{ $r['name'] }}</th>@endforeach</tr>
             <tr><td style="{{ $td }}">Break-even</td>@foreach ($res as $r)<td style="{{ $td }}">{{ $r['breakEvenTickets'] !== null ? number_format($r['breakEvenTickets']).' tickets ('.$r['breakEvenPct'].'%)' : 'Never (costs more than a sell-out brings in)' }}</td>@endforeach</tr>
             <tr><td style="{{ $td }}">Sales for a 20% margin</td>@foreach ($res as $r)<td style="{{ $td }}">{{ $r['for20'] ? number_format($r['for20']['tickets']).' ('.$r['for20']['pct'].'%)' : 'Not reachable' }}</td>@endforeach</tr>
+            <tr><td style="{{ $td }}">Worst loss (10% to 100% sold)</td>@foreach ($res as $r)<td style="{{ $td }};{{ $r['worstLoss'] < 0 ? 'color:#ef4444' : '' }}">{{ $r['worstLoss'] < 0 ? $m($r['worstLoss']).' · loses money up to '.max(array_column($r['lossScenarios'], 'pct')).'% sold' : 'No loss at any level' }}</td>@endforeach</tr>
             <tr><td style="{{ $td }}">Sales for a 30% margin</td>@foreach ($res as $r)<td style="{{ $td }}">{{ $r['for30'] ? number_format($r['for30']['tickets']).' ('.$r['for30']['pct'].'%)' : 'Not reachable' }}</td>@endforeach</tr>
             <tr><td style="{{ $td }}">Revenue per ticket (all entries)</td>@foreach ($res as $r)<td style="{{ $td }}">{{ $m($r['effectivePrice']) }}</td>@endforeach</tr>
-            @foreach ([50, 70, 90, 100] as $lvl)
+            @foreach ([30, 40, 50, 60, 70, 80, 90, 100] as $lvl)
                 <tr><td style="{{ $td }}">Profit at {{ $lvl }}% sold</td>@foreach ($res as $r)@php($l = collect($r['levels'])->firstWhere('pct', $lvl))<td style="{{ $td }};{{ $l['profit'] < 0 ? 'color:#ef4444' : '' }}">{{ $m($l['profit']) }}{{ $l['margin'] !== null ? ' ('.$l['margin'].'%)' : '' }}</td>@endforeach</tr>
             @endforeach
         </table></div>

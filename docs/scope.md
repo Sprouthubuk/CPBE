@@ -66,13 +66,32 @@ Status: **Built** = done and covered by tests · **Needs Liam/Client** = waiting
 | 3.5 | Draft legal policies | Needs redrafting for the Client: `backend/resources/legal/*.html` are carried-over texts with the name replaced |
 | 3.6 | Introductions | Not code |
 
+## Amendments (RaffleLabs amendments document)
+
+Technical amendments built on `build/amendments`. Commercial and legal amendments (payment terms, liability,
+ownership, warranties) aren't code: see the PR notes.
+
+| Amendment | What | Where | Status |
+|---|---|---|---|
+| 2 | API and webhook access to the Platform and the Client's data | `/api/v1/*` (`Api\V1\DataController`, `PlatformApiToken`), `Webhooks`, `WebhookEvents`, `platform:webhooks`; Admin → Site → API Tokens, Webhooks | Built |
+| 2 | Accounting exports | Business Reports → Daily Totals and Journal (`Reports::dailyTotals`, `journal`), also `/api/v1/daily-totals` | Built. Map the journal's account names to the Client's chart once |
+| 3 | Reporting: live dashboard, urgent tiles, VAT, revenue per entry, missing costs, sell-through scenarios, conversion and profit by channel, complaints and errors, player and order search, fraud alerts | `Reports`, `business-reports.blade.php`, `ProfitPlanner`, `Alerts` (`failed_payments`, `shared_device`, `shared_card`) | Built |
+| 4 | Subscription perks: member ticket discount, members-only competitions | `MembershipTier.ticket_discount_pct`, `competitions.members_only_tier_ids`, `Pricing::memberPrice` | Built (postal entry stays open to everyone) |
+| 5 | Automatic pricing and offers (early bird, last chance, slow-seller and hot-seller rules, staged release) | `CompetitionPriceRule`, `PriceRules`, `Pricing` | Built. The maximum tickets can't change after publish (Verity fixes it); staged release holds tickets back instead |
+| 6 | Skill question optional per competition | `competitions.skill_enabled` | Built |
+| 7 | Postal entries matched by reference, provider feed | `PostalReference`, `Postal::logReference`, `/api/webhooks/postal`, reference CSV import | Built. Needs the provider's format and `POSTAL_PROVIDER_TOKEN` |
+| 8 | Plain information at a glance on every competition (how to enter, price, when, how to watch, how announced, laws of chance) | `watch_info`, `announce_info`, Settings defaults, `[slug].astro` "At A Glance" | Built |
+| 9 | Translation on every page, checkout, account, games and messages included | `Layout.astro` (Weglot), personal details `data-wg-notranslate` | Built. Needs the Weglot key |
+| 11 | DCMS Voluntary Code: £250/month credit card cap and debit-only instant wins, limits offered at sign-up, harm monitoring and review, the 1.10 instant-win guard, a published player protection page | `CardRules`, `Orders`, `HarmSignals`, Admin → Player Protection, `Publishing`, `resources/legal/player-protection.html` (draft) | Built. Cashflows to confirm `paymentMethodsToUse`; legal wording to approve |
+| 27 | Monthly full database export to the Client's own storage, and on request | `DataExport`, `platform:export-data` (1st of the month, 03:17 UK), Settings → Data Export, `client_export` disk | Built. Needs the Client's bucket and keys |
+
 ## Notes
 
 1. **Instant-win CSV.** The SOW says winning tickets are "set in advance or uploaded by CSV". The platform sets them
    in advance: Verity picks them at publish from a committed seed and publishes the winning numbers, which is what
    makes the draw provable. A CSV naming ticket numbers would mean we chose the winners, so the CSV imports the
    prize table instead. Agree this reading with the Client.
-2. **Postal CSV format.** The import takes `email,received_at`. Once the Client picks a postal entry provider,
+2. **Postal CSV format.** The import takes `email,received_at`, or `reference,received_at[,id]` (amendment 7). Once the Client picks a postal entry provider,
    map its export to these columns (or add a mapping): `Postal::importCsv`.
 3. **Early access** (memberships) applies to competitions published after a tier with early access exists, because
    Verity's opening time is fixed at publish.

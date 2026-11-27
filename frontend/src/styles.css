@@ -431,6 +431,9 @@ label:has(> .sw),label:has(.sw){min-height:44px;align-items:center}
 .singles .d.big{font-size:44px}
 .singles .d{font-size:30px}
 .singles .each{font-family:Barlow,sans-serif;font-size:13px;font-weight:800;color:#9AA8A1}
+.singles .was{font-family:Barlow,sans-serif;font-size:14px;font-weight:700;color:#9AA8A1;font-style:normal}
+.offer-bar{padding:10px 14px;border-radius:12px;background:rgba(47,211,107,.12);border:1px solid rgba(47,211,107,.4);color:#dff9e8;font-size:15px;line-height:1.4}
+.offer-bar b{color:#2FD36B}
 .singles.quiet{padding:12px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
 .singles.quiet .stepper button{width:40px;height:44px}
 /* Fixed buy bar on phones, just above the bottom tab bar */
@@ -609,6 +612,9 @@ a{color:var(--green)}a:hover{color:var(--green-hover)}
 .postal p{margin:2px 0 0;font-size:14px;color:var(--text-2);line-height:1.5}
 .postal-line{font-size:12px;color:var(--muted);text-align:center;margin:0}
 .postal-line a{color:var(--green);font-weight:700}
+.postal-ref{margin:8px 0 0;font-size:14px;color:var(--text-2);line-height:1.5}
+.postal-ref b{color:#fff;font-family:"JetBrains Mono",monospace;letter-spacing:.04em}
+.link-btn{background:none;border:0;padding:0;color:var(--green);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;min-height:40px}
 
 /* Section headings with a link on the right. */
 .sh2{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:24px}
@@ -635,6 +641,8 @@ a{color:var(--green)}a:hover{color:var(--green-hover)}
 .vc-bd{padding:16px;display:flex;flex-direction:column;gap:10px;flex:1}
 .vc-pr{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .vc-price{font-family:var(--display);font-style:italic;font-weight:900;font-size:34px;line-height:1;color:var(--green)}
+.vc-was{font-size:16px;color:#9AA8A1;margin-left:8px;font-style:normal;font-weight:700}
+.vc-offer{display:inline-block;align-self:flex-start;margin:6px 0 2px;padding:3px 10px;border-radius:999px;background:rgba(47,211,107,.14);border:1px solid rgba(47,211,107,.45);color:#c9f7da;font-size:12px;font-weight:800;letter-spacing:.02em}
 .vc-chip{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text-2);border:1px solid var(--line-2);border-radius:4px;padding:3px 6px;white-space:nowrap}
 .vc h3{margin:-6px 0;font-family:var(--display);font-weight:800;font-size:19px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em}
 .vc h3 a{color:var(--text);text-decoration:none;display:flex;align-items:center;min-height:40px}
@@ -837,3 +845,11 @@ a{color:var(--green)}a:hover{color:var(--green-hover)}
 .cp-lid-pull{position:absolute;right:-3px;top:50%;width:18px;height:52px;margin-top:-26px;border-radius:8px 0 0 8px;background:var(--green);box-shadow:0 0 18px rgba(47,211,107,.6)}
 @media (max-width:479px){.cp-lid-chip{top:14px;left:14px;font-size:12px}.cp-slot{min-height:36px;gap:8px}.cp-tray{border-radius:18px}.cp-lid{border-radius:18px}}
 .cp-flicker{animation:none}
+/* Amendment 8: a competition's plain answers (how to enter, price, draw, watching, winner, how chosen). */
+.glance{display:grid;gap:14px;padding:22px;margin:0}
+.glance div{display:grid;gap:2px}
+.glance dt{font-weight:800;color:var(--green);font-size:14px;letter-spacing:.02em}
+.glance dd{margin:0;color:var(--text-2);line-height:1.5;font-size:16px}
+@media (min-width:900px){.glance{grid-template-columns:1fr 1fr;column-gap:32px}}
+.members-note{margin:0;padding:10px 14px;border-radius:12px;border:1px solid rgba(47,211,107,.4);background:rgba(47,211,107,.08);color:var(--text-2);font-size:15px;line-height:1.5}
+.members-note b{color:#fff}

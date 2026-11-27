@@ -2,7 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../components/Icon.astro";
 import { ukDate } from "../../lib/time";
-const PAGES = [["terms", "Terms & Conditions"], ["free-entry", "Free Entry Terms"], ["privacy", "Privacy Policy"], ["cookies", "Cookie Policy"], ["complaints", "Complaints"]];
+const PAGES = [["terms", "Terms & Conditions"], ["free-entry", "Free Entry Terms"], ["privacy", "Privacy Policy"], ["cookies", "Cookie Policy"], ["complaints", "Complaints"], ["player-protection", "Player Protection"]];
 const slug = Astro.params.page!;
 if (!PAGES.some(([s]) => s === slug)) return Astro.rewrite("/404");
 // The wording is edited in the admin. The backend stores it sanitised (no scripts, no styles, no event handlers).
@@ -15,6 +15,7 @@ const DESCRIPTIONS: Record<string, string> = {
   privacy: "How Brand Name collects, uses and protects your personal information, and your rights over it.",
   cookies: "The cookies Brand Name uses, what each one does, and how to accept, reject or change your choice.",
   complaints: "How to make a complaint to Brand Name, how we handle it and what to do if you are not happy with our answer.",
+  "player-protection": "How Brand Name follows the prize draw Voluntary Code: age checks, credit card limits, spending limits, breaks and how draws work.",
 };
 ---
 <Layout title={title} description={DESCRIPTIONS[slug]}>

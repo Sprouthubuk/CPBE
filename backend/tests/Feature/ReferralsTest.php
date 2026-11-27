@@ -48,7 +48,8 @@ class ReferralsTest extends TestCase
         $this->app['auth']->forgetGuards();
         $this->app['auth']->shouldUse('web');
         $u = User::query()->where('email', $email)->firstOrFail();
-        $u->forceFill(['email_verified_at' => now()])->save();
+        // Past the Voluntary Code's spend limit offer (CodeComplianceTest covers it).
+        $u->forceFill(['email_verified_at' => now(), 'limits_prompted_at' => now()])->save();
 
         return $u->refresh();
     }

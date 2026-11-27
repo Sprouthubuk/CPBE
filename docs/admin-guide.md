@@ -60,6 +60,10 @@ To log envelopes, open **Competitions → Postal Entries**.
 - **In bulk:** use **Import envelopes (CSV)** with the columns `email,received_at`. Times are UK time, for example
   `21/11/2026 14:30`.
 
+- **By reference:** players get a reference for each competition on its page (for example `PE7K 3M9Q 2R`) to write
+  on their envelope. A CSV with `reference,received_at` (and an optional envelope `id`) matches them without an email.
+  The postal entry provider can also send them straight in (needs `POSTAL_PROVIDER_TOKEN`).
+
 Every envelope is recorded as entered or refused, with the reason.
 
 ## Players and wallets
@@ -97,7 +101,21 @@ printable page with everything about the order. Save it as a PDF from the browse
 - **Profit Planner:** model a competition before launch.
 - **Reconciliation:** match orders against Cashflows settlements.
 - **Cost Entries:** costs the system can't see, including Google Ads spend.
-- **Alert Rules** and **Report Schedules:** email alerts and regular reports.
+- **Alert Rules** and **Report Schedules:** email alerts and regular reports. Fraud alerts: declined card payments in
+  an hour, several accounts from one device, one card used by several accounts.
+- **Daily Totals** and **Journal** on Business Reports: daily figures and journal lines to import into accounting
+  software.
+- **Player Protection** (Players & Money): signs of harm the system has spotted (big spending, many top-ups, many
+  cards, back from a break, limit raised or reached). Review each one; put the account on hold if needed.
+
+## Competitions: pricing, members and plain information
+
+- **Automatic Pricing & Offers:** rules that change the price, add "buy X get Y free" or hold tickets back, while their
+  dates and trigger match (time left, % sold, sales in the last 24 hours). The first matching rule wins. The maximum
+  tickets never change after publishing.
+- **Skill question:** switch it on per competition; it's off unless you do.
+- **Members only / member discount:** set on the competition and the membership tier. Postal entry stays open to all.
+- **How to watch / How winners are announced:** shown "At A Glance" on the page; empty uses the defaults in Settings.
 
 ## Settings
 
@@ -109,3 +127,8 @@ Admins only.
 - Meta, Google and Weglot IDs.
 - Payment fees, revenue target and promotional budget.
 - Feature switches.
+- Player protection (Voluntary Code): the monthly credit card cap (at most £250) and the harm thresholds.
+- Data Export: a full copy of the database goes to your own storage on the 1st of each month; **Export All Data Now**
+  sends one at once.
+- **API Tokens** and **Webhooks** (Site): give your own tools read access to competitions, orders, players, postal
+  entries and daily totals, and send them events as they happen (see `docs/api.md`). A token is shown once.

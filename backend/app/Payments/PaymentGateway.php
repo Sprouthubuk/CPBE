@@ -13,9 +13,11 @@ interface PaymentGateway
      * With $recurringDays it is also the parent of later renewals (memberships, SOW 2.12): the player
      * pays the first time with 3-D Secure and later payments are charged with chargeRecurring().
      *
+     * With $debitOnly the payment page accepts debit cards only (Voluntary Code 1.3, App\Services\CardRules).
+     *
      * @return array{reference:string, redirectUrl:string}
      */
-    public function createPaymentJob(Order $order, string $email, array $returnUrls, ?int $recurringDays = null): array;
+    public function createPaymentJob(Order $order, string $email, array $returnUrls, ?int $recurringDays = null, bool $debitOnly = false): array;
 
     /**
      * Charge a renewal against a parent job, without the player (Cashflows has no schedule of its own:

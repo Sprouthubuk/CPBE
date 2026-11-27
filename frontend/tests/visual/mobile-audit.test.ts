@@ -37,7 +37,8 @@ async function audit(ctx: BrowserContext, base: string, path: string, width: num
     // Tap targets: buttons and standalone links (not links inside running text).
     for (const e of touch ? document.querySelectorAll("button, a[href], [role=button], select, summary") : []) {
       if (!visible(e) || e.classList.contains("skip")) continue;
-      if (e.tagName === "A" && e.closest("p, li.txt, .hint, small, figcaption, td, .notice span, .legal") && !e.classList.contains("tap") && !e.classList.contains("btn")) continue;
+      // A link inside running text (a sentence in a paragraph, table cell or definition) wraps with the line, like p.
+      if (e.tagName === "A" && e.closest("p, li.txt, .hint, small, figcaption, td, dd, .notice span, .legal") && !e.classList.contains("tap") && !e.classList.contains("btn")) continue;
       const b = e.getBoundingClientRect();
       if (b.height < 39.5 || b.width < 39.5) out.push({ kind: "small-tap", detail: `${Math.round(b.width)}x${Math.round(b.height)} "${label(e)}"` });
     }

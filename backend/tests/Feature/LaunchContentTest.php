@@ -16,7 +16,7 @@ class LaunchContentTest extends TestCase
         Page::query()->delete(); // the migration has already loaded them once
         $this->artisan('platform:legal-pages')->assertSuccessful();
 
-        foreach (['terms', 'free-entry', 'privacy', 'cookies', 'complaints'] as $slug) {
+        foreach (['terms', 'free-entry', 'privacy', 'cookies', 'complaints', 'player-protection'] as $slug) {
             $page = Page::query()->findOrFail($slug);
             $this->assertNotSame('sample', $page->version);
             $this->assertStringNotContainsString('placeholder', strtolower($page->html));
@@ -25,8 +25,9 @@ class LaunchContentTest extends TestCase
         $terms = Page::query()->findOrFail('terms')->html;
         $this->assertStringContainsString('DRAFT – Brand Name to confirm', $terms);
         $this->assertStringContainsString('<h2 id="1-who-we-are">1. Who We Are</h2>', $terms);
-        // Version 2.0 (18 Nov 2026): none of the old template wording, nothing the site doesn't do.
-        $all = strtolower(Page::query()->pluck('html')->implode(' '));
+        // Version 2.0 (18 Nov 2026): none of the old template wording, nothing the site doesn't do. (£250 is back only as
+        // the Voluntary Code's credit card limit, on the player protection page.)
+        $all = strtolower(Page::query()->where('slug', '!=', 'player-protection')->pluck('html')->implode(' '));
         foreach (['grievance', 'every ticket wins', 'holiday in question', 'welcome bonus', '£250'] as $gone) {
             $this->assertStringNotContainsString($gone, $all);
         }
@@ -55,7 +56,7 @@ class LaunchContentTest extends TestCase
         $this->seed();
 
         $this->assertSame(0, User::query()->count());
-        $this->assertSame(5, Page::query()->count());
+        $this->assertSame(6, Page::query()->count());
     }
 
     public function test_the_meta_pixel_id_reaches_the_site_only_when_it_is_a_real_id(): void

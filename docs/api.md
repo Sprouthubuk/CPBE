@@ -50,6 +50,26 @@ The seed that made the list stays sealed until the competition ends.
 `presets` are the ticket quick-pick buttons (smallest first), `popularPreset` the one marked
 "Most popular" (or null), and `minTickets` the fewest tickets one order can hold.
 
+Amendment 8 (plain information at a glance): `CompetitionDetail.howToWatch` and `winnerAnnounced` (the
+competition's own text, or the defaults from Admin → Settings → On Every Competition) and `hasSkillQuestion`
+(amendment 6: false unless the competition switches its question on). Amendment 4: `CompetitionSummary.membersOnly`
+is `[tierName]` when only members of those tiers may buy (null for everyone; postal entry stays open to all), and
+`CompetitionDetail.memberPricePence` is the signed-in member's price after their tier's ticket discount (null
+otherwise). Refusal for a non-member: "This competition is for members only. You can still enter free by post."
+
+## Automatic pricing and offers (amendment 5)
+
+Rules on a competition (`competition_price_rules`, Admin → Competition → Automatic Pricing & Offers) change, while
+their dates and trigger match, the ticket price, a "buy X get Y free" bonus on single tickets, which bundles are on
+offer and (live draws) the share of tickets on sale. Triggers: `always`, `hours_left_more`, `hours_left_at_most`,
+`sold_pct_below`, `sold_pct_at_least`, `sold_24h_at_least`. For each setting the first matching rule (by `sort`) wins.
+Applied only by `App\Services\PriceRules`, so summaries, the basket and checkout agree:
+`CompetitionSummary.pricePence` is the price now, `basePricePence` the published price, `offer` =
+`{ label, until, bonus: { buy, get } | null }` or null. A `PricedLine` carries `offerLabel` and `priceRuleId`;
+bonus tickets are `freeQuantity` on the single-ticket line and are entered like paid ones. `maxTickets` never
+changes; a release rule only holds tickets back (refusal "All the tickets on sale for now are taken…"), never
+free postal entries.
+
 ## Bundles ("Buy X Get Y Free", live draws)
 
 A `BundleTier` is a preset (paid + free tickets); each draw chooses which it offers and which is Best
@@ -87,6 +107,9 @@ locks each competition row so two orders can't both take the last tickets.
 1. Run the play check (sales switch, staff, 18+, email verified, self-exclusion, break, hold,
    spend limits including card payments in progress). Refuse with
    `403` + `code`.
+   Before that, a player who has never been offered spending limits (DCMS Code 1.4) gets `409`
+   `code: "limits_prompt"`: the site shows the limits prompt, and `POST /api/me/limits` or
+   `POST /api/me/limits/skip` clears it. The same applies to `/api/me/deposits` and memberships.
 2. Re-price on the server. A card part under `minCardPence` is `422`.
 3. Take the wallet part at once (append-only ledger; spend deposit → bonus → winnings; bonus ≤ 50%
    of the basket). Not enough is `422`.
@@ -94,6 +117,12 @@ locks each competition row so two orders can't both take the last tickets.
    `next: "play"` (or `"attention"` if entries could not all be issued — never auto-refunded).
 5. Otherwise create a Cashflows payment job for the card part, store its reference on the order,
    return `next: "redirect"` and `redirectUrl`.
+
+**Credit cards (DCMS Code 1.3, amendment 11).** `PricedBasket.cardNote` is set when the card part must be paid by
+debit card: any instant-win line, wallet top-ups, memberships, or credit card spending this calendar month already at
+the cap (`credit_card_monthly_cap_pence`, never above £250). Then the payment job is created with
+`paymentMethodsToUse: ['DebitCard']` and `orders.credit_allowed` is false. If Cashflows still reports a credit card on
+such an order, it is marked paid and flagged for a person, and no tickets are issued until someone decides.
 
 `GET /api/orders/{number}` → `OrderView` (own orders only; `404` otherwise). `trackValuePence` is
 what the Meta pixel reports for the order: real money only (card, deposit and winnings), never bonus credit.
@@ -175,6 +204,8 @@ rewardCreditPence, minPurchasePence }`). While off every route below is `404`.
 | GET | `/api/orders/{number}/repeat?via=` | One-click repeat purchase: `{ lines: BasketLine[] (via repeat, or recovery for the reminder email), skipped: string[] }`; only the player's own ticket orders, only what's still on sale |
 | GET | `/api/experiments` · POST `/api/experiments/{key}/seen` | A/B tests: `{ data: { [placement]: { variant, text } } }` for a signed-in player or a visitor who accepted cookies (`cp_vid`); `seen` counts a view. A paid order converts the tests its player saw |
 | POST | `/api/webhooks/sms-opt-out` | SOW 3.3: the SMS platform's STOP: `{ phone?, email? }` signed `X-Signature` = HMAC-SHA256 of the body with SMS_OPTOUT_SECRET; turns off marketing texts |
+| POST | `/api/me/postal-references` | Amendment 7, signed in: `{ competitionId }` → `{ reference, competitionId, title, closesAt }`. One reference per player per open competition ("PE7K 3M9Q 2R"), made on first ask, to write on a postal entry |
+| POST | `/api/webhooks/postal` | Amendment 7, the postal entry provider: `Authorization: Bearer POSTAL_PROVIDER_TOKEN`, `{ entries: [{ id, reference, receivedAt }] }` (max 500) → `{ results: [{ id, status: entered\|refused\|unmatched, reason, duplicate }] }`. Each is checked like a hand-logged envelope; a repeated `id` enters once. 404 while no token is set |
 
 A referral qualifies on the friend's first paid ticket order if its real money (card + deposit +
 winnings; never bonus, vouchers or postal entries) is at least `minPurchasePence`. Then fraud checks
@@ -187,7 +218,7 @@ refund within `referral_clawback_days` takes back unused rewards. `/r/{code}` on
 
 | Method | Path | Body → Returns |
 | --- | --- | --- |
-| POST | `/api/auth/register` | `{ firstName, lastName, email, password, dateOfBirth, marketingOptIn, referralCode?, deviceId?, next? }` → `Me` (signed in, email unverified); under 18 is `422`. `next` is a path on the site (e.g. the checkout for the tickets they picked): the confirmation link then redirects to `/verify-email?status=verified&next=…`, even in another browser; anything else is ignored. `referralCode` links the friend to a referrer (now or never; an unknown code is ignored). `deviceId` is a random id the browser keeps; only its hash is stored, for the referral fraud checks |
+| POST | `/api/auth/register` | `{ firstName, lastName, email, password, dateOfBirth, marketingOptIn, referralCode?, deviceId?, next?, monthlyLimitPence? }` → `Me` (signed in, email unverified); under 18 is `422`. `next` is a path on the site (e.g. the checkout for the tickets they picked): the confirmation link then redirects to `/verify-email?status=verified&next=…`, even in another browser; anything else is ignored. `referralCode` links the friend to a referrer (now or never; an unknown code is ignored). `deviceId` is a random id the browser keeps; only its hash is stored, for the referral fraud checks |
 | POST | `/api/auth/login` | `{ email, password, remember }` → `Me`; throttled |
 | POST | `/api/auth/logout` | → `204` |
 | POST | `/api/auth/forgot-password` | `{ email }` → `204` always |
@@ -200,6 +231,7 @@ refund within `referral_clawback_days` takes back unused rewards. `/r/{code}` on
 | GET | `/api/me/tickets/{order}/{competitionId}?page=` | `TicketPage`: every ticket of one order line, 500 a page (a `TicketGroup` lists only the first 40 plus winners, with `ticketCount`) |
 | GET/POST | `/api/me/limits` | `Limits` / any of `{ dailyDepositPence, weeklyDepositPence, monthlyDepositPence }` → `Limits` (SOW 2.8: each over a rolling 1, 7 or 30 days; lowering is instant, raising or removing waits 24h and shows in `pending` for just the periods changing; refusals `daily_limit`, `spend_limit` (weekly), `monthly_limit`) |
 | POST | `/api/me/break` | `{ days }` → `Limits` (instant, no checks in front of it) |
+| POST | `/api/me/limits/skip` | → `Limits`. Amendment 11 / Code 1.4: the player chose no limits for now; `Me.limitsPrompt` becomes false. A monthly limit given at sign-up (`monthlyLimitPence`, £0 allowed) also clears it |
 | POST | `/api/me/self-exclude` | `{ months }` → `Limits` (instant) |
 | PATCH | `/api/me/profile` | `{ phone }` → `Me` (name, date of birth fill-once) |
 | PATCH | `/api/me/address` | `{ line1, line2, city, postcode }` → `Me` (fill-once) |
@@ -211,6 +243,32 @@ refund within `referral_clawback_days` takes back unused rewards. `/r/{code}` on
 
 `Me.playBlock` is the same reason the play check would give, so the site can explain it before
 the player tries.
+`Me.limitsPrompt` is true until the player has set or skipped spending limits (see checkout step 1).
+
+## Platform API and webhooks (amendment 2)
+
+Read-only access to the Platform's data for any tool the Client chooses (accounting, CRM, reporting). Tokens are made
+in Admin → Site → API Tokens (admin role), shown once, stored only as a SHA-256 hash, and can be revoked. Send
+`Authorization: Bearer cpk_…`; no or a revoked token is `401 { code: "api_token" }`. 120 requests a minute.
+
+| Method | Path | Returns |
+| --- | --- | --- |
+| GET | `/api/v1/competitions?since=&page=` | `{ data, page, lastPage, total }`: id, slug, title, type, pricePence, maxTickets, opensAt, closesAt, publishedAt, endedAt, endPrize, endPrizeValuePence, prizeCostPence, verityRef, updatedAt |
+| GET | `/api/v1/orders?since=&status=&page=` | orders: number, playerId, type, status, totalPence, cardPence, walletPence, bonusPence, discountPence, promoCode, cardType, channel, paidAt, createdAt, updatedAt, lines (competitionId, quantity, freeQuantity, unitPence, linePence) |
+| GET | `/api/v1/players?since=&page=` | players only (never staff): id, firstName, lastName, email, phone, postcode, emailVerified, marketingEmail, marketingSms, closed, joinedAt, updatedAt. No passwords, birth dates, ID checks, bank details or protection records |
+| GET | `/api/v1/postal-entries?since=&page=` | id, competitionId, playerId, status, reason, source, reference, receivedAt, createdAt |
+| GET | `/api/v1/daily-totals?from=YYYY-MM-DD&to=` | `{ data }`: one row per UK day (at most 366, default the last 30), the same figures as Business Reports' Daily Totals export, in pence |
+
+Lists are 100 a page, oldest change first; `since` (ISO 8601) returns only rows changed after it (`422 bad_since`).
+
+**Webhooks.** Admin → Site → Webhooks: an https address, the events it wants and a signing secret. Events:
+`order.paid`, `order.refunded` (data = the `/api/v1/orders` row), `player.registered` (a `/players` row),
+`postal.entered` (a `/postal-entries` row), `competition.published`, `competition.drawn` (with `verifyUrl`), and
+`test` from the admin. Each is a POST of `{ id, event, createdAt, data }` with `X-Event` and
+`X-Signature: sha256=<HMAC-SHA256 of the raw body, keyed with the secret>`; check it before trusting the body.
+A 2xx answer is delivered; anything else retries after 1, 5, 15, 60, 180, 360 and 720 minutes (eight tries) and then
+gives up (shown as "Gave up" in the admin). `id` is the same on every retry, so receivers can ignore repeats.
+`platform:webhooks` sends every minute.
 
 ## Reveal shapes
 

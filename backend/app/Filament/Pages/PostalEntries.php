@@ -88,9 +88,9 @@ class PostalEntries extends Page implements HasTable
     {
         return [
             Action::make('import')->label('Import envelopes (CSV)')->icon(Heroicon::OutlinedArrowUpTray)
-                ->modalDescription('One row per envelope, with the columns email and received_at (UK time, e.g. 21/11/2026 14:30 or 2026-11-21 14:30). Each row is checked and entered exactly like one logged by hand.')
+                ->modalDescription('One row per envelope. With the reference the entrant wrote: columns reference, received_at (and the provider\'s id, if it has one). Or by email for a chosen competition: email and received_at (UK time, e.g. 21/11/2026 14:30 or 2026-11-21 14:30). Each row is checked and entered exactly like one logged by hand.')
                 ->schema([
-                    Select::make('competition_id')->label('Competition')->required()->searchable()
+                    Select::make('competition_id')->label('Competition (not needed when the file has references)')->searchable()
                         ->options(fn () => Competition::query()->published()->where('closes_at', '>', now()->subDays(14))->orderBy('closes_at')->pluck('title', 'id')),
                     \Filament\Forms\Components\FileUpload::make('file')->label('CSV file')->disk('local')->directory('imports')->visibility('private')
                         ->acceptedFileTypes(['text/csv', 'text/plain', 'application/vnd.ms-excel'])->maxSize(2048)->required(),
@@ -99,9 +99,9 @@ class PostalEntries extends Page implements HasTable
                     $disk = \Illuminate\Support\Facades\Storage::disk('local');
                     $path = is_array($data['file']) ? reset($data['file']) : $data['file'];
                     try {
-                        $c = Competition::query()->findOrFail($data['competition_id']);
+                        $c = filled($data['competition_id'] ?? null) ? Competition::query()->findOrFail($data['competition_id']) : null;
                         $r = $postal->importCsv($c, (string) $disk->get($path), auth()->user());
-                        \App\Models\AdminAction::record(auth()->user(), 'postal.import', (string) $c->id, null, ['entered' => $r['entered'], 'refused' => $r['refused']]);
+                        \App\Models\AdminAction::record(auth()->user(), 'postal.import', (string) $c?->id, null, ['entered' => $r['entered'], 'refused' => $r['refused']]);
                         $why = collect($r['rows'])->where('status', '!=', 'entered')->take(8)->map(fn ($x) => "Row {$x['line']} ({$x['email']}): {$x['reason']}")->implode("\n");
                         Notification::make()->success()->title("{$r['entered']} entered, {$r['refused']} refused")->body($why ?: null)->persistent()->send();
                     } catch (\InvalidArgumentException $e) {
@@ -121,6 +121,8 @@ class PostalEntries extends Page implements HasTable
             TextColumn::make('user_id')->label('Player')->formatStateUsing(fn ($state) => User::query()->find($state)?->email),
             TextColumn::make('status')->badge()->color(fn ($state) => $state === 'entered' ? 'success' : 'danger'),
             TextColumn::make('reason')->wrap(),
+            TextColumn::make('source')->badge()->color('gray'),
+            TextColumn::make('reference')->placeholder('—')->searchable(),
         ]);
     }
 }

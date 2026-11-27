@@ -54,6 +54,9 @@ Route::middleware('web')->group(function () {
                 ...$r->competitions()->map(fn ($c) => [$c['title'], $c['type'], $c['status'], $c['sold'], $c['max'], $c['soldPct'], $c['revenue'] / 100, $c['perHour'],
                     $c['forecastSold'], $c['forecastRevenue'] / 100, $c['prizeCost'] / 100, $c['breakEvenTickets'], $c['profitSoFar'] / 100, $c['forecastProfit'] / 100])->all()],
             'segments' => app(\App\Services\Segments::class)->rows((string) request('segment', 'all')),
+            // Amendment 2: daily totals for the accounts, as columns or as journal lines.
+            'daily' => ($rows = $r->dailyTotals($from, $to)) ? [array_keys($rows[0]), ...array_map(fn ($row) => array_map(fn ($v) => is_int($v) ? $v / 100 : $v, array_values($row)), $rows)] : [['Date']],
+            'journal' => $r->journal($from, $to),
             default => abort(404),
         };
         \App\Models\AdminAction::record($user, 'report.exported', $what, null, ['format' => $format, 'period' => $period]);

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, errorText } from "../lib/api";
+import LimitsPrompt from "./LimitsPrompt";
+import { ApiFailure, api, errorText } from "../lib/api";
 import { clearBasket, readBasket, setAside } from "../lib/basket";
 import { trackInitiateCheckout } from "../lib/consent";
 import { lineMakeup, topUpFor } from "../lib/bundles";
@@ -31,6 +32,7 @@ export default function CheckoutView({ buy, walletPence, minCardPence, minDeposi
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rid] = useState(requestId);
+  const [needLimits, setNeedLimits] = useState(false);
 
   useEffect(() => { setLines(direct ?? readBasket()); }, [direct]);
   useEffect(() => {
@@ -73,18 +75,20 @@ export default function CheckoutView({ buy, walletPence, minCardPence, minDeposi
       if (!direct) clearBasket();
       window.location.assign(`/order/${encodeURIComponent(res.order.number)}`);
     } catch (e) {
-      setError(errorText(e));
+      if (e instanceof ApiFailure && e.body?.code === "limits_prompt") setNeedLimits(true);
+      else setError(errorText(e));
       setBusy(false);
     }
   }
 
   return (
     <div className="stack g16">
+      {needLimits && <LimitsPrompt onDone={() => { setNeedLimits(false); void submit(); }} />}
       <div className="card cp-rise cp-d2" style={{ overflow: "hidden" }}>
         {priced.lines.map((l, i) => (
           <div key={`${l.competitionId}:${l.bundleId ?? "s"}`} className="row g12" style={{ padding: "14px 16px", borderTop: i ? "1px solid rgba(255,255,255,.06)" : 0 }}>
             <img src={l.imageSmall} alt="" style={{ width: 48, height: 48, borderRadius: 12, objectFit: "cover" }} />
-            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 900 }}>{l.title}</div>{l.bundleLabel && <div className="tag tag-y" style={{ marginTop: 4 }}>{l.bundleLabel}</div>}<div className="hint">{lineMakeup(l)} · {l.type === "draw" ? "live draw" : "instant win"}</div>{l.problem && <div className="err">{l.problem}</div>}</div>
+            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 900 }}>{l.title}</div>{l.bundleLabel && <div className="tag tag-y" style={{ marginTop: 4 }}>{l.bundleLabel}</div>}{l.offerLabel && <div className="tag tag-y" style={{ marginTop: 4 }}>{l.offerLabel}</div>}<div className="hint">{lineMakeup(l)} · {l.type === "draw" ? "live draw" : "instant win"}</div>{l.problem && <div className="err">{l.problem}</div>}</div>
             <b>{formatMoney(l.linePence)}</b>
           </div>
         ))}
@@ -118,9 +122,10 @@ export default function CheckoutView({ buy, walletPence, minCardPence, minDeposi
         })()}
         <label className="opt">
           <input type="radio" name="pay" checked={pay === "card"} onChange={() => setPay("card")} />
-          <span style={{ flex: 1 }}><b className="d" style={{ fontSize: 18 }}>Debit Or Credit Card</b><span className="hint" style={{ display: "block" }}>On Cashflows’ secure payment page · from {formatMoney(minCardPence)}</span></span>
+          <span style={{ flex: 1 }}><b className="d" style={{ fontSize: 18 }}>{priced.cardNote ? "Debit Card" : "Debit Or Credit Card"}</b><span className="hint" style={{ display: "block" }}>On Cashflows’ secure payment page · from {formatMoney(minCardPence)}</span></span>
           <Svg name="card" />
         </label>
+        {pay === "card" && priced.cardNote && <div className="hint" role="note" data-testid="card-note">{priced.cardNote}</div>}
         {pay === "card" && walletPence > 0 && !priced.walletCovers && (
           <label className="row g12" style={{ padding: "6px 2px", cursor: "pointer" }}>
             <input type="checkbox" className="sw" checked={useWallet} onChange={(e) => setUseWallet(e.target.checked)} />

@@ -34,7 +34,9 @@ Read before every task. If a request conflicts with this, stop and ask.
   Reveal games are presentation only (`frontend/src/games/`); `tests/games` proves a board can only
   show the result it was given.
 - One play check on every path: sales switch (off by default), staff can't play, 18+, email
-  verified, self-exclusion, break, hold, spend limits (daily, weekly, monthly). No credit-card cap. No limit per person by default;
+  verified, self-exclusion, break, hold, spend limits (daily, weekly, monthly). DCMS Code (amendment 11):
+  credit cards capped at £250 a month and never for instant wins, top-ups or memberships (`App\Services\CardRules`,
+  debit-only payment page), and limits offered before the first payment (`limits_prompt`). No limit per person by default;
   SOW 2.2 adds an optional "Limit per player" on each competition (empty = none).
   Self-exclusion and breaks always apply at once — no check or delay in front of them.
 - At fulfilment only WINNING entries are played through Verity (`Fulfilment::playAll`: entries with an
@@ -66,6 +68,10 @@ Read before every task. If a request conflicts with this, stop and ask.
 - Promo ticket cap: voucher tickets + Vault Case bonus tickets per draw never pass `promo_ticket_cap_pct`
   (default 5%), counted and checked only in `App\Services\PromoCap`, with the competition row locked
   (checkout, voucher redeem). Postal entries are never capped or counted. Players see a neutral notice, never the numbers.
+- Ticket prices change only through price rules (`App\Services\PriceRules`, amendment 5); `maxTickets` never
+  changes after publish. The skill question is optional per competition (`skill_enabled`, amendment 6).
+- Amendment 2: `/api/v1` is read-only (tokens hashed, admin role only); webhooks are signed and sent only by
+  `platform:webhooks`. Amendment 27: `platform:export-data` never includes passwords or sign-in secrets.
 - Never invent winners, reviews or trust figures. Free postal route always visible.
 - All dates shown in UK time (`frontend/src/lib/time.ts`).
 
@@ -111,7 +117,8 @@ Read before every task. If a request conflicts with this, stop and ask.
 - Nothing third-party loads before a cookie choice. The Meta Pixel (`src/lib/consent.ts`) and Google tags
   (`src/lib/google.ts`), IDs set in Admin → Settings, load only after "Accept", and never on a page whose address holds
   an email or token (`addressIsPrivate`). Weglot (SOW 2.17) loads only when the visitor presses "Translate This Site",
-  and never on signed-in pages. Their addresses are the only extra ones in the CSP.
+  on every page including checkout and the account (amendment 9); names, emails and balances carry
+  `data-wg-notranslate translate="no"` so they're never sent to it. Their addresses are the only extra ones in the CSP.
 - Meta tracking: the banner's choice is copied to a `cp_consent` cookie; only with it does the server keep and send
   events to the Conversions API (`App\Tracking\MetaEvents`, `platform:meta-events` every minute, token in `META_CAPI_TOKEN`
   only). Browser and server share event ids (order number; `reg-{user id}`). Values are real money only, never bonus.

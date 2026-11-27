@@ -23,9 +23,9 @@ const nav = [
       <div class="hd-r">
         {me ? (
           <>
-            <a class="wal" href="/account/wallet" aria-label={`Wallet balance ${formatMoney(me.wallet.totalPence)}`}><i>£</i><span data-wallet>{formatMoney(me.wallet.totalPence)}</span></a>
+            <a class="wal" href="/account/wallet" aria-label={`Wallet balance ${formatMoney(me.wallet.totalPence)}`}><i>£</i><span data-wallet data-wg-notranslate translate="no">{formatMoney(me.wallet.totalPence)}</span></a>
             <a class="ib" href="/basket" aria-label="Basket" data-basket-link><Icon name="cart" /><span class="badge" data-basket-count hidden></span></a>
-            <a class="ib acc" href="/account" aria-label="Your account">{me.firstName.slice(0, 1).toUpperCase()}</a>
+            <a class="ib acc" href="/account" aria-label="Your account" data-wg-notranslate translate="no">{me.firstName.slice(0, 1).toUpperCase()}</a>
           </>
         ) : (
           <>

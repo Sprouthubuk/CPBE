@@ -72,8 +72,10 @@ export default function BasketView({ signedIn, vaultCase = false }: { signedIn: 
                 <div className="row between g8" style={{ alignItems: "flex-start" }}>
                   <div style={{ minWidth: 0 }}>
                     <a href={`/competitions/${pl.slug}`} className="d" style={{ fontSize: 18, lineHeight: 1.1, color: "#fff", textDecoration: "none" }}>{pl.title}</a>
-                    {(pl.bundleLabel || pl.bonusQuantity > 0) && <div className="row g8" style={{ marginTop: 4, flexWrap: "wrap" }}>
+                    {(pl.bundleLabel || pl.bonusQuantity > 0 || pl.offerLabel || pl.memberPrice) && <div className="row g8" style={{ marginTop: 4, flexWrap: "wrap" }}>
                       {pl.bundleLabel && <span className="tag tag-y">{pl.bundleLabel}</span>}
+                      {pl.offerLabel && <span className="tag tag-y" data-testid="line-offer">{pl.offerLabel}</span>}
+                      {pl.memberPrice && <span className="tag tag-y">Member Price</span>}
                       {pl.bonusQuantity > 0 && <span className="tag tag-c" data-testid="box-bonus">+{pl.bonusQuantity} Bonus</span>}
                     </div>}
                     <div className="hint">{lineMakeup(pl)}</div>

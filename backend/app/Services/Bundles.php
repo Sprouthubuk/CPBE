@@ -13,7 +13,7 @@ use App\Models\Competition;
  */
 final class Bundles
 {
-    public function __construct(private CompetitionState $state) {}
+    public function __construct(private CompetitionState $state, private PriceRules $rules) {}
 
     /**
      * @return list<array{tier: BundleTier, paid: int, free: int, total: int, label: string, featured: bool}>
@@ -25,10 +25,12 @@ final class Bundles
         }
         $room ??= $this->state->status($c) === 'live' ? max(0, $this->state->left($c) - $this->state->reserved($c)) : 0;
         $share = self::shareLimit($c);
+        // Amendment 5: a rule can limit which bundles are on offer right now.
+        $onOffer = $this->rules->now($c)['bundleTierIds'];
         $out = [];
         foreach ($c->bundleTiers as $tier) {
             $total = $tier->total();
-            if (! $tier->is_active || $total > $room || $total > $share) {
+            if (! $tier->is_active || $total > $room || $total > $share || ($onOffer !== null && ! in_array((int) $tier->id, $onOffer, true))) {
                 continue;
             }
             $out[] = ['tier' => $tier, 'paid' => $tier->paid_qty, 'free' => $tier->free_qty, 'total' => $total,
@@ -47,14 +49,16 @@ final class Bundles
     /** Public view of the bundles: prices and ticket counts per bundle, nothing about the pool. */
     public function forPlayers(Competition $c): array
     {
+        $unit = $this->rules->now($c)['unitPence'];
+
         return array_map(fn (array $b) => [
             'id' => $b['tier']->id,
             'label' => $b['label'],
             'paid' => $b['paid'],
             'free' => $b['free'],
             'tickets' => $b['total'],
-            'pricePence' => $b['paid'] * $c->price_pence,
-            'savePence' => $b['free'] * $c->price_pence,
+            'pricePence' => $b['paid'] * $unit,
+            'savePence' => $b['free'] * $unit,
             'ourPick' => $b['featured'],
         ], $this->available($c));
     }

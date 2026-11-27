@@ -24,6 +24,7 @@ class Order extends Model
     {
         return [
             'needs_attention' => 'boolean',
+            'credit_allowed' => 'boolean',
             'paid_at' => 'datetime',
             'closed_at' => 'datetime',
             'fulfilled_at' => 'datetime',

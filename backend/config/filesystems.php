@@ -60,6 +60,19 @@ return [
             'report' => false,
         ],
 
+        // Amendment 27: the Client's own S3-compatible bucket for the monthly full export (keys from the Client, set in Forge).
+        'client_export' => [
+            'driver' => 's3',
+            'key' => env('DATA_EXPORT_KEY'),
+            'secret' => env('DATA_EXPORT_SECRET'),
+            'region' => env('DATA_EXPORT_REGION', 'eu-west-2'),
+            'bucket' => env('DATA_EXPORT_BUCKET'),
+            'endpoint' => env('DATA_EXPORT_ENDPOINT'),
+            'use_path_style_endpoint' => (bool) env('DATA_EXPORT_PATH_STYLE', false),
+            'throw' => true,
+            'report' => false,
+        ],
+
     ],
 
     /*

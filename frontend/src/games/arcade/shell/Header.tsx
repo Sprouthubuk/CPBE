@@ -36,7 +36,7 @@ export function WalletPill({ pence }: { pence: number }) {
     <div className="rg-wallet" aria-label={`Wallet balance ${formatBalance(pence)}`}>
       <span className="rg-wallet-coin" aria-hidden="true">£</span>
       {/* Keyed on the value so the bump animation replays whenever it changes. */}
-      <span key={pence} className="rg-wallet-amount">{formatBalance(pence)}</span>
+      <span key={pence} className="rg-wallet-amount" data-wg-notranslate="" translate="no">{formatBalance(pence)}</span>
     </div>
   );
 }

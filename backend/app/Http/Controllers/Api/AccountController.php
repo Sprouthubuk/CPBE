@@ -58,6 +58,15 @@ class AccountController extends Controller
     }
 
     /** Lowering a limit is instant; raising or removing it waits 24 hours. */
+    /** Voluntary Code 1.4: the player saw the spend limit offer and chose to carry on without one (they can set one any time). */
+    public function skipLimits(Request $r): JsonResponse
+    {
+        $u = $r->user();
+        $u->forceFill(['limits_prompted_at' => $u->limits_prompted_at ?? now()])->save();
+
+        return response()->json(['ok' => true]);
+    }
+
     public function setLimits(Request $r): JsonResponse
     {
         // £0 (pay nothing in at all) or from £5. The Voluntary Code asks that players can set a £0 limit.
@@ -66,6 +75,7 @@ class AccountController extends Controller
         $d = $r->validate(['dailyDepositPence' => $rule(), 'weeklyDepositPence' => $rule(), 'monthlyDepositPence' => $rule()]);
         abort_if($d === [], 422, 'Choose a limit.');
         $u = $r->user();
+        $u->forceFill(['limits_prompted_at' => $u->limits_prompted_at ?? now()])->save();
         $l = $u->limits()->firstOrCreate([]);
         if (array_key_exists('weeklyDepositPence', $d)) {
             $new = $d['weeklyDepositPence'];
@@ -94,6 +104,10 @@ class AccountController extends Controller
             }
         }
         $l->refresh();
+        if ($l->pending_limits || $l->pending_weekly_deposit_pence !== null || $l->pending_remove) {
+            // Voluntary Code 1.6: asking for a higher limit (it waits 24 hours) is a sign a person should look at.
+            \App\Services\HarmSignals::raise($u, 'limit_raised', 'Asked to raise or remove a spending limit.', now('Europe/London')->toDateString());
+        }
         if (! $l->pending_limits && $l->pending_weekly_deposit_pence === null && ! $l->pending_remove) {
             $l->forceFill(['pending_applies_at' => null])->save();
         }

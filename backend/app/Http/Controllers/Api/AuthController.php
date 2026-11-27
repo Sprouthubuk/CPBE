@@ -41,6 +41,9 @@ class AuthController extends Controller
             'referralCode' => ['sometimes', 'nullable', 'string', 'max:20'],
             'deviceId' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9-]+$/'],
             'next' => ['sometimes', 'nullable', 'string', 'max:500'],
+            // Voluntary Code 1.4: an optional monthly spend limit at sign-up (£0, or £5 or more).
+            'monthlyLimitPence' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:10000000',
+                fn ($attr, $v, $fail) => $v !== null && $v > 0 && $v < 500 ? $fail('Set £0, or £5 or more.') : null],
         ], [
             'email.unique' => "There's already an account with that email. Try logging in.",
             'dateOfBirth.before_or_equal' => 'You must be 18 or over to join.',
@@ -54,6 +57,10 @@ class AuthController extends Controller
             // Marketing is only ever added by a box the player ticked, dated when they ticked it.
             ...$u->marketingChoices(($d['marketingOptIn'] ?? false) === true, false),
         ])->save();
+        if (array_key_exists('monthlyLimitPence', $d) && $d['monthlyLimitPence'] !== null) {
+            $u->limits()->create(['monthly_deposit_pence' => (int) $d['monthlyLimitPence']]);
+            $u->forceFill(['limits_prompted_at' => now()])->save();
+        }
         // Refer a Friend: linked now or never. Device and IP are kept only as hashes, for the fraud checks.
         app(Referrals::class)->attach($u, $d['referralCode'] ?? null, $d['deviceId'] ?? null, $r->ip());
         app(\App\Services\Loyalty::class)->signedUp($u);

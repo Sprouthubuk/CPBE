@@ -70,6 +70,8 @@ final class PlayCheck
         foreach ([['daily_deposit_pence', 1, 'daily_limit'], ['weekly_deposit_pence', 7, 'spend_limit'], ['monthly_deposit_pence', 30, 'monthly_limit']] as [$col, $days, $reason]) {
             $limit = $l?->$col;
             if ($limit !== null && $this->paidInSince($user, now()->subDays($days)) + $cardPence > $limit) {
+                // Voluntary Code 1.6: reaching a limit is a sign a person should look at.
+                HarmSignals::raise($user, 'limit_reached', 'Stopped by their '.str_replace('_', ' ', $reason).' of £'.number_format($limit / 100, 2).'.', now('Europe/London')->toDateString());
                 $this->refuse($reason, 403);
             }
         }

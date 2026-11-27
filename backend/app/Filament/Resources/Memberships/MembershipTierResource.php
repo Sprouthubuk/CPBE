@@ -64,6 +64,8 @@ class MembershipTierResource extends Resource
                 TextInput::make('early_access_hours')->label('Early access (hours before a competition opens)')->integer()->minValue(0)->maxValue(168)->default(0)
                     ->helperText('Applies to competitions published after this is set.'),
                 TextInput::make('loyalty_bonus_pct')->label('Extra loyalty points (%)')->integer()->minValue(0)->maxValue(900)->default(0),
+                TextInput::make('ticket_discount_pct')->label('Discount on tickets (%)')->integer()->minValue(0)->maxValue(90)->default(0)
+                    ->helperText('Amendment 4: members pay this much less for every ticket, single or bundle.'),
                 Textarea::make('perks')->label('Other perks (one a line, shown to players)')->rows(3)->columnSpanFull(),
             ]),
         ]);

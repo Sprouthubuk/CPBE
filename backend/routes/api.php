@@ -49,6 +49,7 @@ Route::middleware('throttle:api')->group(function () {
         Route::get('me/tickets/{number}/{competition}', [AccountController::class, 'ticketPage']);
         Route::get('me/limits', [AccountController::class, 'limits']);
         Route::post('me/limits', [AccountController::class, 'setLimits']);
+        Route::post('me/limits/skip', [AccountController::class, 'skipLimits']);
         Route::post('me/break', [AccountController::class, 'takeBreak']);
         Route::post('me/self-exclude', [AccountController::class, 'selfExclude']);
         Route::patch('me/profile', [AccountController::class, 'profile']);
@@ -75,10 +76,12 @@ Route::middleware('throttle:api')->group(function () {
         Route::post('me/loyalty/redeem', [\App\Http\Controllers\Api\LoyaltyController::class, 'redeem'])->middleware('throttle:money');
         Route::get('me/vouchers/{voucher}/draws', [ReferralController::class, 'draws']);
         Route::post('me/vouchers/{voucher}/redeem', [ReferralController::class, 'redeem'])->middleware('throttle:money');
+        Route::post('me/postal-references', [\App\Http\Controllers\Api\PostalController::class, 'reference'])->middleware('throttle:30,1');
     });
 });
 
 Route::post('webhooks/cashflows', [OrderController::class, 'webhook'])->middleware('throttle:120,1');
+Route::post('webhooks/postal', [\App\Http\Controllers\Api\PostalController::class, 'provider'])->middleware('throttle:60,1');
 Route::post('webhooks/sms-opt-out', [\App\Http\Controllers\Api\ConversionController::class, 'smsOptOut'])->middleware('throttle:120,1');
 
 // The stand-in payment page, only when the fake gateway is in use (never in production).
@@ -86,3 +89,12 @@ if (config('services.cashflows.driver') === 'fake' && ! app()->environment('prod
     Route::get('fake-pay/{ref}', [FakePayController::class, 'page']);
     Route::get('fake-pay/{ref}/{result}', [FakePayController::class, 'settle'])->whereIn('result', ['paid', 'failed', 'cancelled']);
 }
+
+// Amendment 2: read-only API for the Client's own tools (tokens made in Admin → API & Webhooks).
+Route::prefix('v1')->middleware([\App\Http\Middleware\PlatformApiToken::class, 'throttle:120,1'])->group(function () {
+    Route::get('competitions', [\App\Http\Controllers\Api\V1\DataController::class, 'competitions']);
+    Route::get('orders', [\App\Http\Controllers\Api\V1\DataController::class, 'orders']);
+    Route::get('players', [\App\Http\Controllers\Api\V1\DataController::class, 'players']);
+    Route::get('postal-entries', [\App\Http\Controllers\Api\V1\DataController::class, 'postalEntries']);
+    Route::get('daily-totals', [\App\Http\Controllers\Api\V1\DataController::class, 'dailyTotals']);
+});

@@ -25,7 +25,7 @@ const LABELS = { claw_machine: "Claw Machine", slots: "Slots", scratch_card: "Sc
 const LADDER = [["Nine-Darter", 75000, 1], ["Big Fish", 22222, 1], ["Ton Eighty", 11111, 3], ["Double Top", 5555, 6], ["Bullseye", 2222, 15], ["Treble Twenty", 1111, 40], ["Shanghai", 555, 100], ["Bed Of Nails", 222, 250], ["Single One", 111, 600], ["Bust", 50, 1500]];
 
 function comp(id, slug, title, type, game, skin, img, price, top, sold, subtitle, extra = {}) {
-  return { id, slug, title, type, status: "live", game, gameLabel: game ? LABELS[game] : null, skin, image: `${SELF}/media/${img}.webp`, imageSmall: `${SELF}/media/${img}.webp`, imageSrcset: null, pricePence: price, topPrizePence: top, subtitle, soldPercent: sold, maxTickets: type === "instant" ? 50000 : 999, ticketsLeft: type === "instant" ? 50000 - Math.floor(500 * sold) : 999 - Math.floor(9.99 * sold), prizeCount: type === "instant" ? 2516 : null, endPrize: null, opensAt: null, closesAt: type === "draw" ? drawAt : closes, drawAt: type === "draw" ? drawAt : null, featured: false, tags: [], featuredBundle: null, ...extra };
+  return { id, slug, title, type, status: "live", game, gameLabel: game ? LABELS[game] : null, skin, image: `${SELF}/media/${img}.webp`, imageSmall: `${SELF}/media/${img}.webp`, imageSrcset: null, pricePence: price, basePricePence: price, offer: null, membersOnly: null, topPrizePence: top, subtitle, soldPercent: sold, maxTickets: type === "instant" ? 50000 : 999, ticketsLeft: type === "instant" ? 50000 - Math.floor(500 * sold) : 999 - Math.floor(9.99 * sold), prizeCount: type === "instant" ? 2516 : null, endPrize: null, opensAt: null, closesAt: type === "draw" ? drawAt : closes, drawAt: type === "draw" ? drawAt : null, featured: false, tags: [], featuredBundle: null, ...extra };
 }
 const COMPS = [
   comp("c-bush", "treble-twenty-cash-claw", "Treble Twenty Cash Claw", "instant", "claw_machine", "classic", "claw-lg", 25, 75000, 2, "2,516 wins", { featured: true }),
@@ -41,7 +41,7 @@ const COMPS = [
   comp("c-scrooge", "big-fish-scratch", "Big Fish Scratch", "instant", "scratch_card", "classic", "bigfish", 49, 33333, 2, "Instant wins"),
   comp("c-lush", "pro-dartboard-bundle", "Pro Dartboard & Surround Bundle", "draw", null, "classic", "board", 59, 5000, 8, "£50 cash alternative", { cashAlternativePence: 5000 }),
   comp("c-cash", "250-tax-free-cash", "£250 Tax-Free Cash", "draw", null, "classic", "cash", 99, 25000, 14, "Cash prize", { closesAt: iso(now + 20 * 36e5), drawAt: iso(now + 20 * 36e5) }), // ending soon: the red strip
-  comp("c-ninja", "tungsten-darts-set", "90% Tungsten Darts Set", "draw", null, "classic", "darts", 79, 15000, 11, "£100 cash alternative", { cashAlternativePence: 10000 }),
+  comp("c-ninja", "tungsten-darts-set", "90% Tungsten Darts Set", "draw", null, "classic", "darts", 79, 15000, 11, "£100 cash alternative", { cashAlternativePence: 10000, basePricePence: 99, offer: { label: "Early Bird", until: null, bonus: { buy: 5, get: 1 } } }),
 ];
 // "Buy X Get Y Free" bundles (live draws): what the server would offer for these two.
 const TIERS = [[1, 5, 5], [2, 10, 15], [3, 20, 40], [4, 40, 100]];
@@ -62,6 +62,9 @@ function detail(c, user) {
     ...c,
     description: c.type === "draw" ? `Win the ${c.title}. One winner picked at random, live.` : `Are you brave enough? ${c.title} — every ticket plays one go, with instant prizes up to £${(c.topPrizePence / 100).toFixed(2)}.`,
     howToPlay: c.type === "instant" ? "Buy tickets and each one plays one game. Your result is locked in at purchase — the game just reveals it." : null,
+    howToWatch: c.type === "draw" ? "Streamed live: the link is posted on our social pages before the draw." : null,
+    winnerAnnounced: "We contact the winner by email and phone, then show their first name and initial on our Winners page.",
+    hasSkillQuestion: Boolean(SKILL[c.slug]),
     heldByMe: held,
     bundles: c.bundles ?? [],
     cashAlternativePence: c.cashAlternativePence ?? null,
@@ -286,7 +289,7 @@ route("GET", "/api/recommendations", (req, res, { query }) => {
 route("GET", "/api/experiments", (req, res) => send(res, 200, { data: {} }));
 route("POST", "/api/experiments/:key/seen", (req, res) => send(res, 200, { ok: true }));
 route("GET", "/api/entry-lists/:slug", (req, res, { params }) => { const c = bySlug.get(params.slug); return c ? send(res, 200, { competition: c, data: [{ ticket: 1, name: "N***** B.", source: "paid", prizeName: null }, { ticket: 2, name: "E**** A.", source: "postal", prizeName: c.type === "instant" ? "Single One" : null }], hasMore: false }) : fail(res, 404, "Not found"); });
-route("GET", "/api/pages/:slug", (req, res, { params }) => send(res, 200, { title: { terms: "Terms & Conditions", privacy: "Privacy Policy", cookies: "Cookie Policy", complaints: "Complaints", "free-entry": "Free Entry Terms" }[params.slug] ?? "Page", updatedAt: iso(now - 10 * DAY), version: "1.0", html: `<h2 id="about">1. About Us</h2><p>Brand Name is a trading name of [Company name TBC].</p><h2 id="who">2. Who Can Enter</h2><p>UK residents aged 18 or over.</p>`, headings: [{ id: "about", text: "1. About Us" }, { id: "who", text: "2. Who Can Enter" }] }));
+route("GET", "/api/pages/:slug", (req, res, { params }) => send(res, 200, { title: { terms: "Terms & Conditions", privacy: "Privacy Policy", cookies: "Cookie Policy", complaints: "Complaints", "free-entry": "Free Entry Terms", "player-protection": "Player Protection" }[params.slug] ?? "Page", updatedAt: iso(now - 10 * DAY), version: "1.0", html: `<h2 id="about">1. About Us</h2><p>Brand Name is a trading name of [Company name TBC].</p><h2 id="who">2. Who Can Enter</h2><p>UK residents aged 18 or over.</p>`, headings: [{ id: "about", text: "1. About Us" }, { id: "who", text: "2. Who Can Enter" }] }));
 route("POST", "/api/contact", async (req, res) => { const b = await readJson(req); if (!b.message || String(b.message).length < 10) return fail(res, 422, "Please check the form.", { message: ["Tell us a bit more (at least 10 characters)."] }); send(res, 201, { ok: true }); });
 route("POST", "/api/basket/price", async (req, res, { user }) => { const b = await readJson(req); send(res, 200, price(b.lines, user, b.promoCode)); });
 
@@ -375,8 +378,10 @@ route("GET", "/api/me/tickets/:number/:competitionId", authed((req, res, { user,
 }));
 route("GET", "/api/me/limits", authed((req, res, { user }) => send(res, 200, { dailyDepositPence: null, monthlyDepositPence: null, ...user.limits })));
 route("POST", "/api/me/limits", authed(async (req, res, { user }) => { const b = await readJson(req); for (const k of ["dailyDepositPence", "weeklyDepositPence", "monthlyDepositPence"]) if (k in b) user.limits[k] = b[k] ?? null; send(res, 200, { dailyDepositPence: null, monthlyDepositPence: null, ...user.limits }); }));
+route("POST", "/api/me/limits/skip", authed((req, res) => send(res, 200, { ok: true })));
 route("POST", "/api/me/break", authed(async (req, res, { user }) => { const b = await readJson(req); user.limits.coolOffUntil = iso(Date.now() + (Number(b.days) || 1) * DAY); send(res, 200, user.limits); }));
 route("POST", "/api/me/self-exclude", authed(async (req, res, { user }) => { const b = await readJson(req); user.limits.selfExcludedUntil = iso(Date.now() + (Number(b.months) || 6) * 30 * DAY); send(res, 200, user.limits); }));
+route("POST", "/api/me/postal-references", authed(async (req, res) => { const b = await readJson(req); const c = COMPS.find((x) => x.id === b.competitionId); if (!c) return fail(res, 404, "Not found."); send(res, 200, { reference: "PE7K 3M9Q 2R", competitionId: c.id, title: c.title, closesAt: c.closesAt }); }));
 route("PATCH", "/api/me/profile", authed(async (req, res, { user }) => { const b = await readJson(req); user.phone = b.phone || null; send(res, 200, meJson(user)); }));
 route("PATCH", "/api/me/address", authed(async (req, res, { user }) => { const b = await readJson(req); if (user.address.line1) return fail(res, 422, "Contact us to change your address."); user.address = { line1: b.line1, line2: b.line2 || null, city: b.city, postcode: b.postcode }; send(res, 200, meJson(user)); }));
 route("PATCH", "/api/me/preferences", authed(async (req, res, { user }) => { const b = await readJson(req); user.marketing = { email: !!b.email, sms: !!b.sms, winNotifications: !!b.winNotifications }; send(res, 200, meJson(user)); }));

@@ -44,13 +44,24 @@ class Setting extends Model
         'vault_case_share_of_sales_pct' => '30',
         // Refer a Friend (off until switched on)
         'feature_referrals' => '0',
-        // SOW 2.2: a competition can't be published without a skill question.
-        'require_skill_question' => '1',
+        // Voluntary Code 1.3 (amendment 11): credit card payments a player may make a month, on draws only.
+        'credit_card_monthly_cap_pence' => '25000',
+        // Amendment 8: shown on every draw unless the competition says otherwise.
+        'draw_watch_default' => 'Streamed live: the link is posted on our social pages before the draw.',
+        'winner_announce_default' => 'We contact the winner by email and phone, then show their first name and initial on our Winners page.',
+        // Voluntary Code 1.10: an instant win can't be published if instant wins would be the majority running.
+        'code_instant_majority_guard' => '1',
+        // Voluntary Code 1.6: harm indicators (App\Services\HarmSignals).
+        'harm_spend_30d_pence' => '100000',
+        'harm_top_ups_24h' => '5',
+        'harm_cards_30d' => '3',
         // Reports (SOW 2.14): Cashflows' starting rate, 2% + 20p.
         'payment_fee_bp' => '200',
         'payment_fee_fixed_pence' => '20',
         'monthly_revenue_target_pence' => '0',
         'promo_budget_pct' => '0',
+        // Amendment 3: VAT included in ticket prices, if the business is VAT registered (0 = none).
+        'vat_pct' => '0',
         'referral_reward_type' => 'tickets',
         'referral_reward_tickets' => '10',
         'referral_reward_credit_pence' => '200',

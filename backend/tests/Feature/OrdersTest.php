@@ -244,19 +244,18 @@ class OrdersTest extends TestCase
         $this->buy($u->refresh(), $c, 20, 'card', false); // £5 more would be £11
     }
 
-    public function test_there_is_no_monthly_credit_card_limit(): void
+    public function test_the_codes_monthly_credit_card_limit_replaces_the_old_no_limit_rule(): void
     {
-        // Owner's decision (18 Nov 2026): no £250 cap. £400 on a credit card in one month goes through and
-        // nothing is flagged for a refund. An old setting left in the database changes nothing.
-        Setting::put('credit_card_monthly_cap_pence', '25000');
+        // Amendment 11 (the Voluntary Code) replaces the base build's "no £250 cap" rule: the second £200
+        // on a credit card in a month is sent to a debit-only payment page, and a credit card used anyway is flagged.
         $u = $this->player();
         $c = $this->competition('draw', ['price_pence' => 1000, 'max_per_person' => 100]);
-        foreach ([20, 20] as $qty) {
+        foreach ([[20, false], [20, true]] as [$qty, $flagged]) {
             $o = $this->buy($u->refresh(), $c, $qty, 'card', false)['order']; // £200 each
             $this->gateway()->settle($o->gateway_ref, 'paid', 'credit');
             $this->orders()->syncWithGateway($o);
             $this->assertSame('paid', $o->refresh()->status);
-            $this->assertFalse((bool) $o->needs_attention);
+            $this->assertSame($flagged, (bool) $o->needs_attention);
         }
     }
 
